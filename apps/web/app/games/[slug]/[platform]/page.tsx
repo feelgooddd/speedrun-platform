@@ -52,7 +52,7 @@ interface Game {
 }
 
 async function getGame(slug: string): Promise<Game | null> {
-  const res = await fetch(`${process.env.API_URL}/games/${slug}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/games/${slug}`, {
     next: { revalidate: 60 },
   });
   if (!res.ok) return null;
@@ -65,7 +65,7 @@ async function getPlatformCategories(
   platform: string,
 ): Promise<Category[]> {
   const res = await fetch(
-    `${process.env.API_URL}/games/${slug}/${platform}/categories`,
+    `${process.env.NEXT_PUBLIC_API_URL}/games/${slug}/${platform}/categories`,
     { next: { revalidate: 60 } },
   );
   if (!res.ok) return [];
@@ -80,8 +80,8 @@ async function getLeaderboard(
   subcategory?: string,
 ): Promise<{ runs: Run[]; total: number }> {
   const url = subcategory
-    ? `${process.env.API_URL}/games/${slug}/${platform}/${category}/${subcategory}?page=1&limit=25`
-    : `${process.env.API_URL}/games/${slug}/${platform}/${category}?page=1&limit=25`;
+    ? `${process.env.NEXT_PUBLIC_API_URL}/games/${slug}/${platform}/${category}/${subcategory}?page=1&limit=25`
+    : `${process.env.NEXT_PUBLIC_API_URL}/games/${slug}/${platform}/${category}?page=1&limit=25`;
 
   const res = await fetch(url, { next: { revalidate: 60 } });
   if (!res.ok) return { runs: [], total: 0 };

@@ -14,7 +14,7 @@ interface Game {
 }
 
 async function getGames(): Promise<Game[]> {
-  const res = await fetch(`${process.env.API_URL}/games`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/games`, {
     next: { revalidate: 60 },
   });
   if (!res.ok) return [];

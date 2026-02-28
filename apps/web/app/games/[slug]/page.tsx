@@ -23,7 +23,7 @@ interface Game {
 }
 
 async function getGame(slug: string): Promise<Game | null> {
-  const res = await fetch(`${process.env.API_URL}/games/${slug}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/games/${slug}`, {
     next: { revalidate: 60 },
   });
   if (!res.ok) return null;

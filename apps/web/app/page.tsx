@@ -25,7 +25,7 @@ interface Stats {
 
 async function getGames(): Promise<Game[]> {
   try {
-    const res = await fetch(`${process.env.API_URL}/games`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/games`, {
       next: { revalidate: 60 },
     });
     return res.json();
@@ -36,7 +36,7 @@ async function getGames(): Promise<Game[]> {
 
 async function getStats(): Promise<Stats | null> {
   try {
-    const res = await fetch(`${process.env.API_URL}/games/stats`, {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/games/stats`, {
       next: { revalidate: 60 },
     });
     return res.json();

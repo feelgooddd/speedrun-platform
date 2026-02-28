@@ -62,7 +62,7 @@ interface UserProfile {
 }
 
 async function getUserProfile(id: string): Promise<UserProfile | null> {
-  const res = await fetch(`${process.env.API_URL}/users/${id}`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
     next: { revalidate: 60 },
   });
   if (!res.ok) return null;
@@ -70,7 +70,7 @@ async function getUserProfile(id: string): Promise<UserProfile | null> {
 }
 
 async function getUserRuns(id: string): Promise<Run[]> {
-  const res = await fetch(`${process.env.API_URL}/users/${id}/runs?limit=100`, {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}/runs?limit=100`, {
     next: { revalidate: 60 },
   });
   if (!res.ok) return [];

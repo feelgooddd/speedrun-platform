@@ -1,0 +1,104 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id               String   @id @default(cuid())
+  username         String   @unique
+  display_name     String?
+  email            String?  @unique
+  password_hash    String?
+  avatar_url       String?
+  country          String?
+  twitch           String?
+  role             String   @default("user") // "admin" or mod or "user"
+  is_placeholder   Boolean  @default(false)
+  speedrun_com_id  String?  @unique
+  created_at       DateTime @default(now())
+
+  runs            Run[]
+  moderated_games GameModerator[]
+}
+
+model Game {
+  id                  String   @id @default(cuid())
+  slug                String   @unique
+  name                String
+  created_at          DateTime @default(now())
+  default_platform_id String?
+
+  platforms  Platform[]
+  moderators GameModerator[]
+}
+
+model Platform {
+  id      String @id @default(cuid())
+  game_id String
+  name    String
+  slug    String
+  timing_method String @default("realtime") // "realtime" or "gametime"
+
+  game       Game       @relation(fields: [game_id], references: [id])
+  runs       Run[]
+  categories Category[]
+}
+
+model Category {
+  id          String @id @default(cuid())
+  platform_id String
+  name        String
+  slug        String
+
+  platform      Platform      @relation(fields: [platform_id], references: [id])
+  runs          Run[]
+  subcategories Subcategory[]
+}
+
+model Subcategory {
+  id          String @id @default(cuid())
+  category_id String
+  name        String
+  slug        String
+
+  category Category @relation(fields: [category_id], references: [id])
+  runs     Run[]
+}
+
+model Run {
+  id              String    @id @default(cuid())
+  user_id         String
+  category_id     String
+  platform_id     String
+  subcategory_id  String?
+  realtime_ms     Int?      // Keep
+  gametime_ms     Int?      // Keep
+  comment         String?
+  video_url       String?
+  verified        Boolean   @default(false)
+  rejected        Boolean   @default(false)
+  reject_reason   String?
+  submitted_at    DateTime  @default(now())
+  verified_at     DateTime?
+  speedrun_com_id String?   @unique
+
+  user        User         @relation(fields: [user_id], references: [id])
+  category    Category     @relation(fields: [category_id], references: [id])
+  platform    Platform     @relation(fields: [platform_id], references: [id])
+  subcategory Subcategory? @relation(fields: [subcategory_id], references: [id])
+}
+
+model GameModerator {
+  user_id String
+  game_id String
+  role    String @default("moderator")
+
+  user User @relation(fields: [user_id], references: [id])
+  game Game @relation(fields: [game_id], references: [id])
+
+  @@id([user_id, game_id])
+}

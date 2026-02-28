@@ -1,0 +1,265 @@
+/* ============================= */
+/* User Profile Page             */
+/* ============================= */
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  margin-top: 2rem;
+  justify-content: center;
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 2px solid var(--card-border);
+  background: var(--card-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar span {
+  font-family: 'Cinzel', serif;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.profile-identity {
+  text-align: left;
+}
+
+.profile-username-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.profile-country {
+  font-size: 1.2rem;
+  opacity: 0.7;
+}
+
+.profile-username {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0.05em;
+}
+
+.profile-placeholder-badge {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #555;
+  border: 1px solid #333;
+  padding: 0.2rem 0.6rem;
+  border-radius: 2px;
+}
+
+.profile-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 0.5rem;
+}
+
+.profile-twitch-link {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #9147ff;
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.profile-twitch-link:hover {
+  opacity: 1;
+}
+
+.profile-joined {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.95rem;
+  color: #444;
+  font-style: italic;
+}
+
+/* Stats Bar */
+.profile-stats {
+  display: flex;
+  justify-content: center;
+  gap: 4rem;
+  margin: 3rem 0;
+  padding: 2rem;
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.profile-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.profile-stat-number {
+  font-family: 'Cinzel', serif;
+  font-size: clamp(1.8rem, 3vw, 2.5rem);
+  font-weight: 900;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.profile-stat-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #555;
+}
+
+/* Sections */
+.profile-section {
+  margin-top: 3rem;
+}
+
+.profile-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--card-border);
+}
+
+/* Moderated Games */
+.profile-mod-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.profile-mod-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  border: 1px solid var(--card-border);
+  padding: 0.4rem 1rem;
+  border-radius: 2px;
+  transition: all 0.2s ease;
+}
+
+.profile-mod-pill:hover {
+  background: var(--card-bg);
+  border-color: var(--accent);
+}
+
+.profile-mod-role {
+  font-size: 0.6rem;
+  color: #555;
+  text-transform: capitalize;
+}
+
+/* Personal Bests */
+.profile-pb-games {
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+}
+
+.profile-pb-game-title {
+  display: block;
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent);
+  text-decoration: none;
+  margin-bottom: 1rem;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.profile-pb-game-title:hover {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profile-identity {
+    text-align: center;
+  }
+
+  .profile-username-row {
+    justify-content: center;
+  }
+
+  .profile-meta {
+    justify-content: center;
+  }
+
+  .profile-stats {
+    gap: 2rem;
+  }
+}
+
+/* ============================= */
+/* Moderation Dashboard          */
+/* ============================= */
+
+.mod-page-section {
+  padding-top: 6rem;
+  text-align: center;
+}
+
+.mod-admin-link {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.mod-game-card {
+  position: relative;
+  text-decoration: none;
+}
+
+.mod-pending-badge {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
+  background: #e63946;
+  color: white;
+  border-radius: 12px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: bold;
+}

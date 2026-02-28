@@ -1,0 +1,55 @@
+@layer components {
+  .btn {
+    font-family: "Cinzel", serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 1rem 2.5rem;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid var(--accent);
+    background: transparent;
+    color: var(--accent);
+  }
+  
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  
+  .auth-input {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    border-radius: 2px;
+    padding: 0.75rem 1rem;
+    color: #e8e0d0;
+    font-family: "Crimson Text", serif;
+    font-size: 1rem;
+    transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+    outline: none;
+    width: 100%;
+  }
+  
+  .auth-input::placeholder {
+    color: #444;
+  }
+  
+  .auth-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--glow);
+  }
+
+.auth-input:-webkit-autofill,
+.auth-input:-webkit-autofill:hover,
+.auth-input:-webkit-autofill:focus,
+.auth-input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0px 1000px #0d0000 inset !important;
+  -webkit-text-fill-color: #e8e0d0 !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: #e8e0d0;
+}
+}

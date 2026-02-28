@@ -1,0 +1,102 @@
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 8rem 2rem 4rem;
+  position: relative;
+  padding: 8rem 2rem 8rem;
+}
+
+.hero-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid var(--card-border);
+  top: 50%;
+  left: 50%;
+  pointer-events: none;
+  transition: border-color 0.8s ease;
+}
+
+.hero-ring-outer {
+  width: 600px;
+  height: 600px;
+  animation: spin-slow 30s linear infinite;
+}
+
+.hero-ring-inner {
+  width: 400px;
+  height: 400px;
+  animation: spin-slow-reverse 20s linear infinite;
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  max-width: 800px;
+}
+
+.hero-tagline {
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  color: var(--accent);
+  opacity: 0.85;
+  letter-spacing: 0.05em;
+  margin-bottom: 1.5rem;
+  animation: fadeUp 1s ease 0.2s both;
+  transition: color 0.8s ease;
+}
+
+.hero-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 900;
+  font-size: clamp(2.5rem, 6vw, 5rem);
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #fff 0%, var(--accent) 40%, #fff 60%, var(--accent) 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite, fadeUp 1s ease both;
+  margin-bottom: 1rem;
+}
+
+.hero-description {
+  font-family: 'Crimson Text', serif;
+  font-size: 1.2rem;
+  color: #aaa;
+  max-width: 500px;
+  margin: 0 auto 2.5rem;
+  line-height: 1.7;
+  animation: fadeUp 1s ease 0.3s both;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+  animation: fadeUp 1s ease 0.5s both;
+}
+
+.scroll-indicator {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--accent);
+  opacity: 0.4;
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.2em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  animation: scroll-bounce 2s ease-in-out infinite;
+  transition: color 0.8s ease;
+}

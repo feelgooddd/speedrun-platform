@@ -1,0 +1,78 @@
+/* ============================= */
+/* Submit Run Page Styles */
+/* ============================= */
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.auth-input {
+  width: 100%;
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 215, 0, 0.2);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 1rem;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.auth-input:focus {
+  outline: none;
+  border-color: rgba(255, 215, 0, 0.6);
+  box-shadow: 0 0 0 2px rgba(255, 215, 0, 0.15);
+}
+
+.auth-input::placeholder {
+  color: var(--text-secondary);
+}
+
+textarea.auth-input {
+  resize: vertical;
+  font-family: inherit;
+}
+
+.time-input-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.time-input-group .auth-input {
+  text-align: center;
+}
+
+.time-separator {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+
+/* Success + Error Boxes */
+
+.submit-success,
+.submit-error {
+  padding: 1rem;
+  margin-bottom: 2rem;
+  border-radius: 4px;
+  text-align: center;
+}
+
+.submit-success {
+  background: rgba(0, 255, 0, 0.1);
+  border: 1px solid rgba(0, 255, 0, 0.3);
+  color: var(--accent);
+}
+
+.submit-error {
+  background: rgba(255, 0, 0, 0.1);
+  border: 1px solid rgba(255, 0, 0, 0.3);
+  color: #ff4444;
+}

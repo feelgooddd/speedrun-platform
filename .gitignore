@@ -1,5 +1,3 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
-
 # Dependencies
 node_modules
 .pnp
@@ -21,12 +19,11 @@ coverage
 # Vercel
 .vercel
 
-# Build Outputs
+# Build outputs
 .next/
 out/
-build
-dist
-
+build/
+dist/
 
 # Debug
 npm-debug.log*
@@ -36,3 +33,16 @@ yarn-error.log*
 # Misc
 .DS_Store
 *.pem
+
+# Workspace node_modules
+apps/**/node_modules/
+packages/**/node_modules/
+
+# Local backups (IMPORTANT)
+backup.sql
+clean_backup.sql
+data_backup.sql
+
+# Prisma runtime artifacts
+*.db
+prisma/dev.db

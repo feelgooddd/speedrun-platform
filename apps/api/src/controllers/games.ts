@@ -76,12 +76,12 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-    const where = {
-      category_id: category.id,
-      platform_id: platform.id,
-      subcategory_id: subcategory ? subcategory.id : null,
-      verified: true,
-    };
+const where = {
+  category_id: category.id,
+  platform_id: platform.id,
+  ...(subcategory ? { subcategory_id: subcategory.id } : {}),
+  verified: true,
+};
 
     // Use platform.timing_method
     const timingField =
@@ -103,12 +103,13 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       orderBy: { [timingField]: "asc" as const },
     });
 
-    const seen = new Set<string>();
-    const dedupedRuns = allRuns.filter((run) => {
-      if (seen.has(run.user.id)) return false;
-      seen.add(run.user.id);
-      return true;
-    });
+const seen = new Set<string>();
+const dedupedRuns = allRuns.filter((run) => {
+  const key = `${run.user.id}-${run.subcategory_id ?? 'none'}`;
+  if (seen.has(key)) return false;
+  seen.add(key);
+  return true;
+});
 
     const total = dedupedRuns.length;
     const paginatedRuns = dedupedRuns.slice(skip, skip + limitNum);
@@ -117,6 +118,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       rank: skip + index + 1,
       user: run.user,
       id: run.id,
+      ubcategory_id: run.subcategory_id,
       comment: run.comment,
       realtime_ms: run.realtime_ms,
       gametime_ms: run.gametime_ms,

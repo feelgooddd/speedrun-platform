@@ -1,0 +1,468 @@
+{
+  "game": {
+    "id": "xlde4513",
+    "name": "Harry Potter and the Chamber of Secrets (GBC)",
+    "slug": "hp2gbc"
+  },
+  "category": {
+    "id": "zdnlex2q",
+    "name": "Any% NG+"
+  },
+  "runCount": 9,
+  "runs": [
+    {
+      "place": 1,
+      "run": {
+        "id": "y680vr6z",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/y680vr6z",
+        "game": "xlde4513",
+        "level": null,
+        "category": "zdnlex2q",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/gJvwPpqloxo"
+            }
+          ]
+        },
+        "comment": "![](/static/blob/1n5477ke.gif)",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2025-12-01T01:05:02Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "8vkp96ej",
+            "uri": "http://www.speedrun.com/api/v1/users/8vkp96ej"
+          }
+        ],
+        "date": "2025-11-30",
+        "submitted": "2025-11-30T23:59:51Z",
+        "times": {
+          "primary": "PT19M3S",
+          "primary_t": 1143,
+          "realtime": "PT19M3S",
+          "realtime_t": 1143,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 2,
+      "run": {
+        "id": "ylj9973m",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/ylj9973m",
+        "game": "xlde4513",
+        "level": null,
+        "category": "zdnlex2q",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=LKn0Bbp3jxg&ab_channel=Flo203"
+            }
+          ]
+        },
+        "comment": null,
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2025-04-25T13:22:42Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "48gl4k2x",
+            "uri": "http://www.speedrun.com/api/v1/users/48gl4k2x"
+          }
+        ],
+        "date": "2025-04-25",
+        "submitted": "2025-04-25T13:22:42Z",
+        "times": {
+          "primary": "PT1H8M35S",
+          "primary_t": 4115,
+          "realtime": "PT1H8M35S",
+          "realtime_t": 4115,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "7m6yvw6p",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 3,
+      "run": {
+        "id": "zn110gvm",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/zn110gvm",
+        "game": "xlde4513",
+        "level": null,
+        "category": "zdnlex2q",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/fHvfi1TX_r4"
+            }
+          ]
+        },
+        "comment": "Unexpected sub 1:09 WR!!\r\nBiggest time losses:\r\n_ Select Glitch failed and slow Bowling game: around 12 seconds.\r\n_ 1 unwanted encounter in Forest: 6 seconds.\r\n_ 2 misses on Basilisk: 15 seconds.",
+        "status": {
+          "status": "verified",
+          "examiner": "qj2z3pjk",
+          "verify-date": "2021-05-11T20:17:47Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "kj9p9vrx",
+            "uri": "http://www.speedrun.com/api/v1/users/kj9p9vrx"
+          }
+        ],
+        "date": "2021-05-11",
+        "submitted": "2021-05-11T19:47:28Z",
+        "times": {
+          "primary": "PT1H9M14S",
+          "primary_t": 4154,
+          "realtime": "PT1H9M14S",
+          "realtime_t": 4154,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 4,
+      "run": {
+        "id": "m7p0vr5m",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/m7p0vr5m",
+        "game": "xlde4513",
+        "level": null,
+        "category": "zdnlex2q",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=tbUNaw4yqrU"
+            }
+          ]
+        },
+        "comment": "Pretty decent I suppose. Not sure if I will try for sub 1:07.\r\n\r\n4 strikes, 2 unnecessary encounters, bad Aragog fight, decent Lockhart fight and perfect Basilisk. RNG was alright.",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2018-12-19T19:02:26Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "v816v5xp",
+            "uri": "http://www.speedrun.com/api/v1/users/v816v5xp"
+          }
+        ],
+        "date": "2018-12-19",
+        "submitted": "2018-12-19T16:37:29Z",
+        "times": {
+          "primary": "PT1H9M22S",
+          "primary_t": 4162,
+          "realtime": "PT1H9M22S",
+          "realtime_t": 4162,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H7M8S",
+          "ingame_t": 4028
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/3euf"
+        },
+        "values": {}
+      }
+    },
+    {
+      "place": 5,
+      "run": {
+        "id": "z51pkpjm",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/z51pkpjm",
+        "game": "xlde4513",
+        "level": null,
+        "category": "zdnlex2q",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/350089322"
+            },
+            {
+              "uri": "https://www.youtube.com/watch?v=A71dHNFjFA0"
+            }
+          ]
+        },
+        "comment": "?     ?     ?\r\n???     ?\r\n?     ?     ?\r\n                                                               \r\nThis run is poop. That is all. Really.\r\n\r\nBad RNG at the beginning, a lot of encounters, bad input, lost time practically anywhere. I just had luck during intended fights. I could over 10 unintended encounters. Just awful.\r\nStill, got the WR. YaY, I guess. Thanks to incredible and not deserved good luck at the last 3 fights of the game. That's it. \r\n\r\nGood luck if you try to beat it! :)\r\n\r\nTwitch ('cause why not?): https://www.twitch.tv/videos/350089322",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2018-12-17T20:13:24Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "68wgpr4x",
+            "uri": "http://www.speedrun.com/api/v1/users/68wgpr4x"
+          }
+        ],
+        "date": "2018-12-16",
+        "submitted": "2018-12-16T22:04:46Z",
+        "times": {
+          "primary": "PT1H9M53S",
+          "primary_t": 4193,
+          "realtime": "PT1H9M53S",
+          "realtime_t": 4193,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H7M37S",
+          "ingame_t": 4057
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/3egz"
+        },
+        "values": {}
+      }
+    },
+    {
+      "place": 6,
+      "run": {
+        "id": "y97oxrrm",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/y97oxrrm",
+        "game": "xlde4513",
+        "level": null,
+        "category": "zdnlex2q",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=Z6B2Z3E378c&t=2431s"
+            }
+          ]
+        },
+        "comment": "1 damn second! Anyway not doing this again, is going to be almost impossible to beat with current strats.",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2017-04-09T16:02:01Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "dx36gqxl",
+            "uri": "http://www.speedrun.com/api/v1/users/dx36gqxl"
+          }
+        ],
+        "date": "2017-04-08",
+        "submitted": "2017-04-09T16:02:01Z",
+        "times": {
+          "primary": "PT1H12M28S",
+          "primary_t": 4348,
+          "realtime": "PT1H12M28S",
+          "realtime_t": 4348,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H10M1S",
+          "ingame_t": 4201
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 7,
+      "run": {
+        "id": "y8wpnl1y",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/y8wpnl1y",
+        "game": "xlde4513",
+        "level": null,
+        "category": "zdnlex2q",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/2153010969"
+            }
+          ]
+        },
+        "comment": "First ever run of this category during an Insane% attempt for HP2 GBC. I'm honestly quite happy with it overall, just some solid gameplay without being knowledgable about the game at all and Top 5 in the end so not bad!  ",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2024-05-29T11:57:58Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "7j4ozn58",
+            "uri": "http://www.speedrun.com/api/v1/users/7j4ozn58"
+          }
+        ],
+        "date": "2024-05-14",
+        "submitted": "2024-05-23T09:22:09Z",
+        "times": {
+          "primary": "PT1H20M57S",
+          "primary_t": 4857,
+          "realtime": "PT1H20M57S",
+          "realtime_t": 4857,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 8,
+      "run": {
+        "id": "1zxo0xez",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/1zxo0xez",
+        "game": "xlde4513",
+        "level": null,
+        "category": "zdnlex2q",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=2Gxf1p_m30s"
+            }
+          ]
+        },
+        "comment": "First run of Harry Potter Chamber of Secrets for the gameboy color. Pretty bad run, lots of easy timesaves, but a full run nontheless. Final fight very nearly killed me due to a lot of missing. Will improve this time soon, but I guess for now this is technically Console World Record",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2015-12-24T01:59:05Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "v81m358p",
+            "uri": "http://www.speedrun.com/api/v1/users/v81m358p"
+          }
+        ],
+        "date": "2015-12-24",
+        "submitted": "2015-12-24T01:29:19Z",
+        "times": {
+          "primary": "PT1H32M41S",
+          "primary_t": 5561,
+          "realtime": "PT1H32M41S",
+          "realtime_t": 5561,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H30M13S",
+          "ingame_t": 5413
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": false,
+          "region": null
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/dyu"
+        },
+        "values": {}
+      }
+    },
+    {
+      "place": 9,
+      "run": {
+        "id": "1zx2v15m",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/1zx2v15m",
+        "game": "xlde4513",
+        "level": null,
+        "category": "zdnlex2q",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/1randomdude/v/42001725"
+            }
+          ]
+        },
+        "comment": null,
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2015-05-06T13:46:23Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "qj2z3pjk",
+            "uri": "http://www.speedrun.com/api/v1/users/qj2z3pjk"
+          }
+        ],
+        "date": "2015-05-06",
+        "submitted": "2015-05-06T13:46:23Z",
+        "times": {
+          "primary": "PT1H42M26S",
+          "primary_t": 6146,
+          "realtime": "PT1H42M26S",
+          "realtime_t": 6146,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    }
+  ],
+  "scrapedAt": "2026-03-01T16:42:35.039Z"
+}

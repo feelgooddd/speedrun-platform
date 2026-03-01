@@ -1,0 +1,90 @@
+[
+  {
+    "id": "yn20gk2l",
+    "name": "Console or Emulator",
+    "category": null,
+    "scope": {
+      "type": "global"
+    },
+    "mandatory": true,
+    "user-defined": false,
+    "obsoletes": true,
+    "values": {
+      "_note": "`choices` is deprecated, please use `values` instead",
+      "choices": {
+        "139v60r1": "Console",
+        "qvv4y7rq": "Emulator"
+      },
+      "values": {
+        "139v60r1": {
+          "label": "Console",
+          "rules": "Your run must be done on original hardware for this category.",
+          "flags": {
+            "miscellaneous": false
+          }
+        },
+        "qvv4y7rq": {
+          "label": "Emulator",
+          "rules": "Your run must be done on Emulator for this category.",
+          "flags": {
+            "miscellaneous": false
+          }
+        }
+      },
+      "default": "139v60r1"
+    },
+    "is-subcategory": true,
+    "links": [
+      {
+        "rel": "self",
+        "uri": "http://www.speedrun.com/api/v1/variables/yn20gk2l"
+      },
+      {
+        "rel": "game",
+        "uri": "http://www.speedrun.com/api/v1/games/pd0n7o21"
+      }
+    ]
+  },
+  {
+    "id": "wleg6wen",
+    "name": "Lag Abuse",
+    "category": "w209e9z2",
+    "scope": {
+      "type": "global"
+    },
+    "mandatory": true,
+    "user-defined": false,
+    "obsoletes": true,
+    "values": {
+      "_note": "`choices` is deprecated, please use `values` instead",
+      "choices": {
+        "1392xg31": "Yes",
+        "qox5j42q": "No"
+      },
+      "values": {
+        "1392xg31": {
+          "label": "Yes"
+        },
+        "qox5j42q": {
+          "label": "No"
+        }
+      },
+      "default": "1392xg31"
+    },
+    "is-subcategory": false,
+    "links": [
+      {
+        "rel": "self",
+        "uri": "http://www.speedrun.com/api/v1/variables/wleg6wen"
+      },
+      {
+        "rel": "game",
+        "uri": "http://www.speedrun.com/api/v1/games/pd0n7o21"
+      },
+      {
+        "rel": "category",
+        "uri": "http://www.speedrun.com/api/v1/categories/w209e9z2"
+      }
+    ]
+  }
+]

@@ -1,0 +1,260 @@
+{
+  "game": {
+    "id": "xlde4513",
+    "name": "Harry Potter and the Chamber of Secrets (GBC)",
+    "slug": "hp2gbc"
+  },
+  "category": {
+    "id": "ndx9q31d",
+    "name": "Glitchless"
+  },
+  "runCount": 5,
+  "runs": [
+    {
+      "place": 1,
+      "run": {
+        "id": "mkw49jxm",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/mkw49jxm",
+        "game": "xlde4513",
+        "level": null,
+        "category": "ndx9q31d",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/tfboPBJfP3M?si=u_jQXyKttxxOTXBq"
+            }
+          ]
+        },
+        "comment": "Cool route\n\nNot doing select glitch was hard\n\n1:22 is free",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2025-04-25T23:32:35Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "48gl4k2x",
+            "uri": "http://www.speedrun.com/api/v1/users/48gl4k2x"
+          }
+        ],
+        "date": "2025-04-25",
+        "submitted": "2025-04-25T23:32:35Z",
+        "times": {
+          "primary": "PT1H23M43S",
+          "primary_t": 5023,
+          "realtime": "PT1H23M43S",
+          "realtime_t": 5023,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "7m6yvw6p",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 2,
+      "run": {
+        "id": "m73gox9y",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/m73gox9y",
+        "game": "xlde4513",
+        "level": null,
+        "category": "ndx9q31d",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/1943303888"
+            }
+          ]
+        },
+        "comment": "Yet another good pb.",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2023-10-05T16:34:36Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "dx36gqxl",
+            "uri": "http://www.speedrun.com/api/v1/users/dx36gqxl"
+          }
+        ],
+        "date": "2023-10-05",
+        "submitted": "2023-10-05T16:34:36Z",
+        "times": {
+          "primary": "PT1H24M38S",
+          "primary_t": 5078,
+          "realtime": "PT1H24M38S",
+          "realtime_t": 5078,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 3,
+      "run": {
+        "id": "z5xrd8ny",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/z5xrd8ny",
+        "game": "xlde4513",
+        "level": null,
+        "category": "ndx9q31d",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/1571289231"
+            }
+          ]
+        },
+        "comment": "New PB! Next step is probably trying to get the gringotts knight fight at level 3 and hoping for a good run after that!",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2022-09-08T16:13:26Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "86640ew8",
+            "uri": "http://www.speedrun.com/api/v1/users/86640ew8"
+          }
+        ],
+        "date": "2022-08-24",
+        "submitted": "2022-08-24T15:22:51Z",
+        "times": {
+          "primary": "PT1H35M27S",
+          "primary_t": 5727,
+          "realtime": "PT1H35M27S",
+          "realtime_t": 5727,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 4,
+      "run": {
+        "id": "ylj39gnm",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/ylj39gnm",
+        "game": "xlde4513",
+        "level": null,
+        "category": "ndx9q31d",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/KuwfRPnpFDA?t=19162"
+            }
+          ]
+        },
+        "comment": "Shoutouts to Deano for the sending me the route and helping out throughout the run! Not a great attempt but a big PB so I'm fairly happy with it!",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2025-04-21T09:30:17Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "7j4ozn58",
+            "uri": "http://www.speedrun.com/api/v1/users/7j4ozn58"
+          }
+        ],
+        "date": "2025-04-03",
+        "submitted": "2025-04-19T13:16:00Z",
+        "times": {
+          "primary": "PT1H47M52S",
+          "primary_t": 6472,
+          "realtime": "PT1H47M52S",
+          "realtime_t": 6472,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 5,
+      "run": {
+        "id": "ydln2e0z",
+        "weblink": "http://www.speedrun.com/hp2gbc/run/ydln2e0z",
+        "game": "xlde4513",
+        "level": null,
+        "category": "ndx9q31d",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=FgFhMoa1cVA"
+            }
+          ]
+        },
+        "comment": "Definitely take this for a first run.\n\n99% sure this is valid. No EAS and definitely no Select Glitch\n\n\n\nNote - Re-submission to update to Youtube Link. Previously verified :)",
+        "status": {
+          "status": "verified",
+          "examiner": "j5v9dw68",
+          "verify-date": "2025-03-02T23:59:51Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "j2yzy968",
+            "uri": "http://www.speedrun.com/api/v1/users/j2yzy968"
+          }
+        ],
+        "date": "2024-09-30",
+        "submitted": "2024-09-30T21:33:21Z",
+        "times": {
+          "primary": "PT1H48M55S",
+          "primary_t": 6535,
+          "realtime": "PT1H48M55S",
+          "realtime_t": 6535,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    }
+  ],
+  "scrapedAt": "2026-03-01T16:42:37.800Z"
+}

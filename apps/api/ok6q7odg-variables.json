@@ -1,0 +1,132 @@
+[
+  {
+    "id": "p85rp0ng",
+    "name": "Version",
+    "category": null,
+    "scope": {
+      "type": "full-game"
+    },
+    "mandatory": true,
+    "user-defined": false,
+    "obsoletes": true,
+    "values": {
+      "_note": "`choices` is deprecated, please use `values` instead",
+      "choices": {
+        "gq707dlp": "Gamecube/Xbox",
+        "xqk2zkq9": "Playstation 2"
+      },
+      "values": {
+        "gq707dlp": {
+          "label": "Gamecube/Xbox",
+          "rules": "",
+          "flags": {
+            "miscellaneous": false
+          }
+        },
+        "xqk2zkq9": {
+          "label": "Playstation 2",
+          "rules": "",
+          "flags": {
+            "miscellaneous": null
+          }
+        }
+      },
+      "default": "gq707dlp"
+    },
+    "is-subcategory": true,
+    "links": [
+      {
+        "rel": "self",
+        "uri": "http://www.speedrun.com/api/v1/variables/p85rp0ng"
+      },
+      {
+        "rel": "game",
+        "uri": "http://www.speedrun.com/api/v1/games/ok6q7odg"
+      }
+    ]
+  },
+  {
+    "id": "kn0vxg0l",
+    "name": "Console or Emulator",
+    "category": null,
+    "scope": {
+      "type": "global"
+    },
+    "mandatory": true,
+    "user-defined": false,
+    "obsoletes": true,
+    "values": {
+      "_note": "`choices` is deprecated, please use `values` instead",
+      "choices": {
+        "5lm72p0l": "Console",
+        "81w6796l": "Emulator"
+      },
+      "values": {
+        "5lm72p0l": {
+          "label": "Console",
+          "rules": "Your run must be done on original hardware for this category.",
+          "flags": {
+            "miscellaneous": null
+          }
+        },
+        "81w6796l": {
+          "label": "Emulator",
+          "rules": "Your run must be done on Emulator for this category.",
+          "flags": {
+            "miscellaneous": null
+          }
+        }
+      },
+      "default": "5lm72p0l"
+    },
+    "is-subcategory": true,
+    "links": [
+      {
+        "rel": "self",
+        "uri": "http://www.speedrun.com/api/v1/variables/kn0vxg0l"
+      },
+      {
+        "rel": "game",
+        "uri": "http://www.speedrun.com/api/v1/games/ok6q7odg"
+      }
+    ]
+  },
+  {
+    "id": "9l753x78",
+    "name": "Disc/HDD",
+    "category": null,
+    "scope": {
+      "type": "global"
+    },
+    "mandatory": true,
+    "user-defined": false,
+    "obsoletes": true,
+    "values": {
+      "_note": "`choices` is deprecated, please use `values` instead",
+      "choices": {
+        "5q8ye4yl": "Disc",
+        "4qy0x76l": "HDD"
+      },
+      "values": {
+        "5q8ye4yl": {
+          "label": "Disc"
+        },
+        "4qy0x76l": {
+          "label": "HDD"
+        }
+      },
+      "default": null
+    },
+    "is-subcategory": false,
+    "links": [
+      {
+        "rel": "self",
+        "uri": "http://www.speedrun.com/api/v1/variables/9l753x78"
+      },
+      {
+        "rel": "game",
+        "uri": "http://www.speedrun.com/api/v1/games/ok6q7odg"
+      }
+    ]
+  }
+]

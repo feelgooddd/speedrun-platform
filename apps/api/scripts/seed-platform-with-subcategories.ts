@@ -15,6 +15,7 @@ interface SRCRun {
   run: {
     id: string;
     weblink: string;
+    comment?: string;
     videos?: { links?: Array<{ uri: string }> };
     players: Array<{
       rel: string;
@@ -31,37 +32,22 @@ interface SRCRun {
     system: {
       platform: string;
     };
-    values: Record<string, string>; // Subcategory data
+    values: Record<string, string>;
   };
 }
 
 interface SRCData {
-  game: {
-    id: string;
-    name: string;
-    slug: string;
-  };
-  category: {
-    id: string;
-    name: string;
-  };
+  game: { id: string; name: string; slug: string };
+  category: { id: string; name: string };
   runs: SRCRun[];
 }
 
 interface SRCUserData {
   data: {
     id: string;
-    names: {
-      international: string;
-    };
-    location?: {
-      country?: {
-        code: string;
-      };
-    };
-    twitch?: {
-      uri: string;
-    };
+    names: { international: string };
+    location?: { country?: { code: string } };
+    twitch?: { uri: string };
   };
 }
 
@@ -70,24 +56,18 @@ interface Variable {
   name: string;
   'is-subcategory': boolean;
   values: {
-    values: Record<string, {
-      label: string;
-    }>;
+    values: Record<string, { label: string }>;
   };
 }
 
-// Cache for fetched users to avoid duplicate API calls
 const userCache = new Map<string, any>();
 const CACHE_FILE = 'users-cache.json';
 
-// Load existing cache on startup
 function loadUserCache() {
   try {
     if (fs.existsSync(CACHE_FILE)) {
       const cacheData = JSON.parse(fs.readFileSync(CACHE_FILE, 'utf-8'));
-      Object.entries(cacheData).forEach(([id, data]) => {
-        userCache.set(id, data);
-      });
+      Object.entries(cacheData).forEach(([id, data]) => userCache.set(id, data));
       console.log(`📦 Loaded ${userCache.size} users from cache\n`);
     }
   } catch (error) {
@@ -95,28 +75,24 @@ function loadUserCache() {
   }
 }
 
-// Save cache to disk
 function saveUserCache() {
   try {
-    const cacheData = Object.fromEntries(userCache);
-    fs.writeFileSync(CACHE_FILE, JSON.stringify(cacheData, null, 2));
+    fs.writeFileSync(CACHE_FILE, JSON.stringify(Object.fromEntries(userCache), null, 2));
     console.log(`\n💾 Saved ${userCache.size} users to cache`);
   } catch (error) {
     console.warn('Could not save user cache:', error);
   }
 }
 
-async function sleep(ms: number): Promise<void> {
+async function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function fetchUserDetails(userId: string): Promise<SRCUserData | null> {
-  if (userCache.has(userId)) {
-    return userCache.get(userId);
-  }
+  if (userCache.has(userId)) return userCache.get(userId);
 
   try {
-    await sleep(1000); // Rate limit
+    await sleep(1000);
     const response = await fetch(`https://www.speedrun.com/api/v1/users/${userId}`);
     if (!response.ok) {
       console.warn(`Failed to fetch user ${userId}: ${response.status}`);
@@ -131,31 +107,27 @@ async function fetchUserDetails(userId: string): Promise<SRCUserData | null> {
   }
 }
 
-async function getOrCreateUser(player: any) {
-  // Player is a registered SRC user
+async function getOrCreateUser(player: SRCRun['run']['players'][0]) {
   if (player.rel === 'user' && player.id) {
-    let user = await prisma.user.findUnique({
-      where: { speedrun_com_id: player.id }
-    });
+    let user = await prisma.user.findUnique({ where: { speedrun_com_id: player.id } });
 
     if (!user) {
-      // Fetch full user details from SRC API
       const userData = await fetchUserDetails(player.id);
-      
+
       if (userData) {
-        const srcUser = userData.data;
+        const src = userData.data;
         user = await prisma.user.create({
           data: {
-            username: srcUser.names.international,
+            username: src.names.international.toLowerCase(),
+            display_name: src.names.international,
             speedrun_com_id: player.id,
             is_placeholder: true,
-            country: srcUser.location?.country?.code || null,
-            twitch: srcUser.twitch?.uri || null,
+            country: src.location?.country?.code ?? null,
+            twitch: src.twitch?.uri ?? null,
           }
         });
-        console.log(`  Created placeholder user: ${user.username}`);
+        console.log(`  Created user: ${user.username}`);
       } else {
-        // Fallback if API fetch fails
         user = await prisma.user.create({
           data: {
             username: `runner_${player.id}`,
@@ -163,26 +135,20 @@ async function getOrCreateUser(player: any) {
             is_placeholder: true,
           }
         });
-        console.log(`  Created placeholder user (fallback): ${user.username}`);
+        console.log(`  Created user (fallback): ${user.username}`);
       }
     }
     return user;
   }
-  
-  // Player is a guest (not registered on SRC)
+
   if (player.rel === 'guest' && player.name) {
-    let user = await prisma.user.findUnique({
-      where: { username: player.name }
-    });
+    let user = await prisma.user.findUnique({ where: { username: player.name } });
 
     if (!user) {
       user = await prisma.user.create({
-        data: {
-          username: player.name,
-          is_placeholder: true,
-        }
+        data: { username: player.name.toLowerCase(), display_name: player.name, is_placeholder: true }
       });
-      console.log(`  Created placeholder user (guest): ${user.username}`);
+      console.log(`  Created guest user: ${user.username}`);
     }
     return user;
   }
@@ -190,12 +156,10 @@ async function getOrCreateUser(player: any) {
   throw new Error('Invalid player data');
 }
 
-// Build subcategory map from variables
 function buildSubcategoryMap(variables: Variable[]): Map<string, Record<string, string>> {
   const map = new Map<string, Record<string, string>>();
-  
   for (const variable of variables) {
-    if (variable['is-subcategory']) {
+    if (variable['is-subcategory'] && Object.keys(variable.values.values).length > 1) {
       const valueMap: Record<string, string> = {};
       for (const [valueId, valueData] of Object.entries(variable.values.values)) {
         valueMap[valueId] = valueData.label.trim();
@@ -203,132 +167,111 @@ function buildSubcategoryMap(variables: Variable[]): Map<string, Record<string, 
       map.set(variable.id, valueMap);
     }
   }
-  
   return map;
 }
 
 async function seedFile(
-  filename: string, 
-  gameId: string, 
-  platformId: string,
+  filename: string,
+  gameId: string,
+  platform: { id: string; timing_method: string },
   subcategoryMap: Map<string, Record<string, string>>
 ) {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`Processing: ${filename}`);
   console.log('='.repeat(60));
 
-  const fileContent = fs.readFileSync(filename, 'utf-8');
-  const srcData: SRCData = JSON.parse(fileContent);
-
+  const srcData: SRCData = JSON.parse(fs.readFileSync(filename, 'utf-8'));
   const categoryName = srcData.category.name;
 
   console.log(`Category: ${categoryName}`);
   console.log(`Total runs: ${srcData.runs.length}\n`);
 
-  // Create or find category
+  // Find or create category
   const categorySlug = categoryName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/^-+|-+$/g, '');
   let category = await prisma.category.findFirst({
-    where: { slug: categorySlug, platform_id: platformId }
+    where: { slug: categorySlug, platform_id: platform.id }
   });
-  
+
   if (!category) {
     category = await prisma.category.create({
-      data: {
-        platform_id: platformId,
-        name: categoryName,
-        slug: categorySlug,
-      }
+      data: { platform_id: platform.id, name: categoryName, slug: categorySlug }
     });
     console.log(`✓ Created category: ${category.name}`);
   } else {
-    console.log(`✓ Category already exists: ${category.name}`);
+    console.log(`✓ Category exists: ${category.name}`);
   }
 
-  // Determine subcategories from runs
+  // Determine which subcategories are needed and create them
+  const subcategoryCache = new Map<string, any>();
   const subcategoriesNeeded = new Set<string>();
+
   for (const srcRun of srcData.runs) {
-    for (const [variableId, valueId] of Object.entries(srcRun.run.values || {})) {
+    for (const [variableId, valueId] of Object.entries(srcRun.run.values ?? {})) {
       if (subcategoryMap.has(variableId)) {
-        const subcategoryName = subcategoryMap.get(variableId)![valueId];
-        if (subcategoryName) {
-          subcategoriesNeeded.add(subcategoryName);
-        }
+        const name = subcategoryMap.get(variableId)![valueId];
+        if (name) subcategoriesNeeded.add(name);
       }
     }
   }
 
-  // Create subcategories
-  const subcategoryCache = new Map<string, any>();
-  for (const subcategoryName of subcategoriesNeeded) {
-    const subcategorySlug = subcategoryName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/^-+|-+$/g, '');
-    
-    let subcategory = await prisma.subcategory.findFirst({
-      where: { slug: subcategorySlug, category_id: category.id }
-    });
-    
-    if (!subcategory) {
-      subcategory = await prisma.subcategory.create({
-        data: {
-          category_id: category.id,
-          name: subcategoryName,
-          slug: subcategorySlug,
-        }
+  for (const name of subcategoriesNeeded) {
+    const slug = name.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/^-+|-+$/g, '');
+    let sub = await prisma.subcategory.findFirst({ where: { slug, category_id: category.id } });
+
+    if (!sub) {
+      sub = await prisma.subcategory.create({
+        data: { category_id: category.id, name, slug }
       });
-      console.log(`  ✓ Created subcategory: ${subcategoryName}`);
+      console.log(`  ✓ Created subcategory: ${name}`);
     }
-    
-    subcategoryCache.set(subcategoryName, subcategory);
+    subcategoryCache.set(name, sub);
   }
 
-  console.log('Importing runs...');
+  console.log('\nImporting runs...');
 
-  // Import runs
   let imported = 0;
   let skipped = 0;
 
   for (const srcRun of srcData.runs) {
-    // Check if run already exists
-    const existingRun = await prisma.run.findUnique({
-      where: { speedrun_com_id: srcRun.run.id }
-    });
-    
-    if (existingRun) {
-      skipped++;
-      continue;
-    }
+    const existing = await prisma.run.findUnique({ where: { speedrun_com_id: srcRun.run.id } });
+    if (existing) { skipped++; continue; }
 
     try {
-      // Get or create user
-      const player = srcRun.run.players[0]; // Primary runner
+      const player = srcRun.run.players[0];
       const user = await getOrCreateUser(player);
+      const videoUrl = srcRun.run.videos?.links?.[0]?.uri ?? null;
 
-      // Get video URL
-      const videoUrl = srcRun.run.videos?.links?.[0]?.uri || null;
-
-      // Determine subcategory
+      // Resolve subcategory
       let subcategoryId: string | null = null;
-      for (const [variableId, valueId] of Object.entries(srcRun.run.values || {})) {
+      for (const [variableId, valueId] of Object.entries(srcRun.run.values ?? {})) {
         if (subcategoryMap.has(variableId)) {
-          const subcategoryName = subcategoryMap.get(variableId)![valueId];
-          if (subcategoryName && subcategoryCache.has(subcategoryName)) {
-            subcategoryId = subcategoryCache.get(subcategoryName).id;
+          const name = subcategoryMap.get(variableId)![valueId];
+          if (name && subcategoryCache.has(name)) {
+            subcategoryId = subcategoryCache.get(name).id;
             break;
           }
         }
       }
 
-      // Create run
+      // Determine time fields based on platform timing method
+      // realtime_t = with loads, realtime_noloads_t = loadless (gametime)
+      const realtimeMs = srcRun.run.times.realtime_t
+        ? Math.round(srcRun.run.times.realtime_t * 1000)
+        : null;
+
+      const gametimeMs = srcRun.run.times.realtime_noloads_t
+        ? Math.round(srcRun.run.times.realtime_noloads_t * 1000)
+        : null;
+
       await prisma.run.create({
         data: {
           user_id: user.id,
           category_id: category.id,
-          platform_id: platformId,
+          platform_id: platform.id,
           subcategory_id: subcategoryId,
-          time_ms: Math.round(srcRun.run.times.primary_t * 1000),
-          realtime_ms: Math.round(srcRun.run.times.realtime_t * 1000),
-          gametime_ms: srcRun.run.times.realtime_noloads_t 
-            ? Math.round(srcRun.run.times.realtime_noloads_t * 1000) 
-            : null,
+          realtime_ms: realtimeMs,
+          gametime_ms: gametimeMs,
+          comment: srcRun.run.comment ?? null,
           video_url: videoUrl,
           verified: true,
           speedrun_com_id: srcRun.run.id,
@@ -336,20 +279,15 @@ async function seedFile(
           verified_at: new Date(srcRun.run.date),
         }
       });
-      
+
       imported++;
-      
-      if (imported % 10 === 0) {
-        console.log(`  Imported ${imported} runs...`);
-      }
+      if (imported % 10 === 0) console.log(`  Imported ${imported} runs...`);
     } catch (error) {
       console.error(`  Error importing run ${srcRun.run.id}:`, error);
     }
   }
 
-  console.log(`\n✓ Import complete for ${categoryName}`);
-  console.log(`  - Imported: ${imported} new runs`);
-  console.log(`  - Skipped: ${skipped} existing runs`);
+  console.log(`\n✓ Done: ${imported} imported, ${skipped} skipped`);
 }
 
 async function main() {
@@ -364,24 +302,20 @@ async function main() {
 
   console.log(`\n🎮 Seeding ${gameSlug.toUpperCase()} - ${platformName.toUpperCase()}\n`);
 
-  // Load variables
   const variables: Variable[] = JSON.parse(fs.readFileSync(variablesFile, 'utf-8'));
   const subcategoryMap = buildSubcategoryMap(variables);
-  
   console.log(`📋 Found ${subcategoryMap.size} subcategory variables\n`);
 
-  // Load existing user cache
   loadUserCache();
 
-  // Find or create game
-  let game = await prisma.game.findUnique({ where: { slug: gameSlug } });
+  const game = await prisma.game.findUnique({ where: { slug: gameSlug } });
   if (!game) {
-    console.error(`Game "${gameSlug}" not found. Create it first.`);
+    console.error(`Game "${gameSlug}" not found. Create it first with your main seed.`);
     process.exit(1);
   }
   console.log(`✓ Found game: ${game.name}\n`);
 
-  // Create or find platform
+  // Find or create platform
   const platformSlug = platformName.toLowerCase().replace(/\s+/g, '-');
   let platform = await prisma.platform.findFirst({
     where: { game_id: game.id, slug: platformSlug }
@@ -393,15 +327,17 @@ async function main() {
         game_id: game.id,
         name: platformName.toUpperCase(),
         slug: platformSlug,
+        // Default to realtime — change to "gametime" for platforms that use loadless timing
+        timing_method: 'realtime',
       }
     });
     console.log(`✓ Created platform: ${platform.name}\n`);
   } else {
-    console.log(`✓ Platform already exists: ${platform.name}\n`);
+    console.log(`✓ Platform exists: ${platform.name} (timing: ${platform.timing_method})\n`);
   }
 
-  // Find all JSON files with the prefix
-  const files = fs.readdirSync('.').filter(f => 
+  // Find all matching JSON files (exclude cache and variables files)
+  const files = fs.readdirSync('.').filter(f =>
     f.startsWith(filePrefix) && f.endsWith('.json') && !f.includes('cache') && !f.includes('variables')
   );
 
@@ -410,12 +346,12 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`Found ${files.length} files to process:\n`);
+  console.log(`Found ${files.length} file(s):\n`);
   files.forEach(f => console.log(`  - ${f}`));
 
   for (const file of files) {
     try {
-      await seedFile(file, game.id, platform.id, subcategoryMap);
+      await seedFile(file, game.id, platform, subcategoryMap);
     } catch (error) {
       console.error(`\n❌ Error processing ${file}:`, error);
     }
@@ -425,21 +361,20 @@ async function main() {
   console.log('✨ All files processed!');
   console.log('='.repeat(60) + '\n');
 
-  // Save user cache for next time
   saveUserCache();
 
-  // Summary
-  const totalRuns = await prisma.run.count();
-  const totalUsers = await prisma.user.count();
-  const totalCategories = await prisma.category.count();
-  const totalSubcategories = await prisma.subcategory.count();
+  const [totalRuns, totalUsers, totalCategories, totalSubcategories] = await Promise.all([
+    prisma.run.count(),
+    prisma.user.count(),
+    prisma.category.count(),
+    prisma.subcategory.count(),
+  ]);
 
-  console.log('📊 Database Summary:');
-  console.log(`  - Total runs: ${totalRuns}`);
-  console.log(`  - Total users: ${totalUsers}`);
-  console.log(`  - Total categories: ${totalCategories}`);
-  console.log(`  - Total subcategories: ${totalSubcategories}`);
-  console.log('');
+  console.log('📊 DB Summary:');
+  console.log(`  Runs:          ${totalRuns}`);
+  console.log(`  Users:         ${totalUsers}`);
+  console.log(`  Categories:    ${totalCategories}`);
+  console.log(`  Subcategories: ${totalSubcategories}\n`);
 }
 
 main()
@@ -447,6 +382,4 @@ main()
     console.error('Fatal error:', error);
     process.exit(1);
   })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+  .finally(() => prisma.$disconnect());

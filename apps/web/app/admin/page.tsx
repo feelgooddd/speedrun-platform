@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../components/auth/AuthContext";
 import { useRouter } from "next/navigation";
-
+import { countryCodeToFlag } from "../lib/flags";
 interface Platform {
   id: string;
   name: string;
@@ -447,8 +447,11 @@ export default function AdminPage() {
                       <div>
                         <div style={{ fontWeight: "bold", marginBottom: "0.25rem" }}>
                           {run.user.display_name || run.user.username}
-                          {run.user.country && <span style={{ opacity: 0.6, marginLeft: "0.5rem", fontSize: "0.85rem" }}>{run.user.country}</span>}
-                        </div>
+{run.user.country && (
+  <span className="runner-country">
+    {countryCodeToFlag(run.user.country)}
+  </span>
+)}                        </div>
                         <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
                           {run.game} · {run.platform} · {run.category}
                         </div>

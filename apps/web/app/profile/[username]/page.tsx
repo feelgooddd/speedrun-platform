@@ -3,7 +3,7 @@ import Link from "next/link";
 import PBTable from "@/app/components/profile/Pbtable";
 import RunsTable from "@/app/components/profile/Runstable";
 import SettingsLink from "@/app/components/profile/SetingsLink";
-
+import { countryCodeToFlag } from "@/app/lib/flags";
 interface PersonalBest {
   game_id: string;
   game_name: string;
@@ -131,9 +131,9 @@ export default async function UserProfilePage({
 
             <div className="profile-identity">
               <div className="profile-username-row">
-                {profile.country && (
-                  <span className="profile-country">{profile.country}</span>
-                )}
+{profile.country && (
+  <span className="profile-country">{countryCodeToFlag(profile.country)}</span>
+)}
                 <h1 className="profile-username">{displayName}</h1>
                 {profile.is_placeholder && (
                   <span className="profile-placeholder-badge">

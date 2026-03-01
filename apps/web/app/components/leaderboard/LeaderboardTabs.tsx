@@ -2,6 +2,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "../auth/AuthContext";
+import { countryCodeToFlag } from "@/app/lib/flags";
+
 
 interface Run {
   rank: number;
@@ -248,11 +250,12 @@ export default function LeaderboardTabs({
                               className="runner-link"
                               onClick={(e) => e.stopPropagation()}
                             >
-                              {run.user.country && (
-                                <span className="runner-country">
-                                  {run.user.country}
-                                </span>
-                              )}
+{run.user.country && (
+  <span className="runner-country">
+    {countryCodeToFlag(run.user.country)}
+  </span>
+)}
+                              
                               {run.user.display_name}
                             </Link>
                           </td>

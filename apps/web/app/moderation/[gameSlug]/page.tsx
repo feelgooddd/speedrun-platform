@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { countryCodeToFlag } from "@/app/lib/flags";
 
 interface User {
   id: string;
@@ -229,11 +230,11 @@ href={`/profile/${run.user.username}`}
                             className="runner-link"
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {run.user.country && (
-                              <span className="runner-country">
-                                {run.user.country}
-                              </span>
-                            )}
+{run.user.country && (
+  <span className="runner-country">
+    {countryCodeToFlag(run.user.country)}
+  </span>
+)}
                             {run.user.display_name}
                           </Link>
                         </td>

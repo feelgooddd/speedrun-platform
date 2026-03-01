@@ -82,7 +82,10 @@
   flex-wrap: wrap;
   animation: fadeUp 1s ease 0.5s both;
 }
-
+.hero-actions a {
+  min-width: 300px;
+  text-align: center;
+}
 .scroll-indicator {
   position: absolute;
   bottom: 2rem;

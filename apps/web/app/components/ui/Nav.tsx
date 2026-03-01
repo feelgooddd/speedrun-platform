@@ -12,6 +12,7 @@ export default function Nav() {
       <div className="nav-links">
         <Link href="/" className="nav-link">Home</Link>
         <Link href="/games" className="nav-link">Leaderboards</Link>
+<Link href="/submit" className="btn btn-primary nav-submit-btn">Submit Run</Link>
         <NavAuth />
       </div>
       <MobileMenu />

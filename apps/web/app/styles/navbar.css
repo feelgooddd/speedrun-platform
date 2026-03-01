@@ -51,6 +51,12 @@
   color: var(--accent);
 }
 
+.nav-submit-btn {
+  padding: 0.4rem 1rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
 /* ── Mobile Nav ── */
 .nav-hamburger {
   display: none;
@@ -116,7 +122,7 @@
   font-family: 'Cinzel', serif;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1024px) {
   .nav {
     padding: 1.2rem 1.5rem;
   }

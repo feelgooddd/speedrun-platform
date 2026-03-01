@@ -1,6 +1,8 @@
 import Particles from "./components/ui/Particles";
 import HouseSelector from "./components/ui/HouseSelector";
 import Link from "next/link";
+import HeroActions from "./components/ui/HeroActions";
+import LandingCTA from "./components/ui/LandingCTA";
 
 interface Platform {
   id: string;
@@ -49,10 +51,16 @@ export default async function Page() {
   const [games, stats] = await Promise.all([getGames(), getStats()]);
 
   const STATS = [
-    { number: stats?.total_runs?.toLocaleString() ?? "—",    label: "Total Runs"    },
-    { number: stats?.total_pbs?.toLocaleString() ?? "—", label: "Number of PB's" },
-    { number: stats?.runners?.toLocaleString() ?? "—",       label: "Runners"       },
-    { number: stats?.world_records?.toLocaleString() ?? "—", label: "World Records" },
+    { number: stats?.total_runs?.toLocaleString() ?? "—", label: "Total Runs" },
+    {
+      number: stats?.total_pbs?.toLocaleString() ?? "—",
+      label: "Number of PB's",
+    },
+    { number: stats?.runners?.toLocaleString() ?? "—", label: "Runners" },
+    {
+      number: stats?.world_records?.toLocaleString() ?? "—",
+      label: "World Records",
+    },
   ];
 
   return (
@@ -74,14 +82,11 @@ export default async function Page() {
           </h1>
 
           <p className="hero-description">
-            Every spell cast, every potion brewed, every corridor sprinted 
-            all in pursuit of the fastest time through the wizarding world.
+            Every spell cast, every potion brewed, every corridor sprinted all
+            in pursuit of the fastest time through the wizarding world.
           </p>
 
-          <div className="hero-actions">
-            <button className="btn btn-primary">View Leaderboards</button>
-            <button className="btn">Join the Community</button>
-          </div>
+          <HeroActions />
         </div>
 
         <div className="scroll-indicator">
@@ -109,26 +114,35 @@ export default async function Page() {
           <div className="section-divider" />
           <h2 className="section-title">The Games</h2>
           <div className="section-divider" />
-          <p className="section-subtitle">Choose your adventure through the wizarding world</p>
+          <p className="section-subtitle">
+            Choose your adventure through the wizarding world
+          </p>
         </div>
 
         <div className="games-grid">
           {games.length === 0 ? (
-            <div className="games-empty">✦ Summoning games from the archives... ✦</div>
+            <div className="games-empty">
+              ✦ Summoning games from the archives... ✦
+            </div>
           ) : (
             games.map((game, i) => (
               <Link
                 key={game.id}
                 href={`/games/${game.slug}`}
                 className="game-card"
-                style={{ animationDelay: `${i * 0.1}s`, textDecoration: "none" }}
+                style={{
+                  animationDelay: `${i * 0.1}s`,
+                  textDecoration: "none",
+                }}
               >
                 <div className="game-card-icon">⚡</div>
                 <h3 className="game-card-title">{game.name}</h3>
 
                 <div className="game-card-platforms">
                   {game.platforms.map((p) => (
-                    <span key={p.id} className="platform-tag">{p.name}</span>
+                    <span key={p.id} className="platform-tag">
+                      {p.name}
+                    </span>
                   ))}
                 </div>
 
@@ -148,10 +162,7 @@ export default async function Page() {
           <p className="cta-banner-description">
             Submit your run and claim your place in the wizarding records.
           </p>
-          <div className="cta-banner-actions">
-            <button className="btn btn-primary">Create Account</button>
-            <button className="btn">Browse Runs</button>
-          </div>
+          <LandingCTA />
         </div>
       </section>
 
@@ -162,11 +173,19 @@ export default async function Page() {
           <span className="footer-logo-text">WIZARDING RUNS</span>
         </div>
         <div className="footer-links">
-          <a href="#" className="nav-link">API Docs</a>
-          <a href="#" className="nav-link">Discord</a>
-          <a href="#" className="nav-link">GitHub</a>
+          <a href="#" className="nav-link">
+            API Docs
+          </a>
+          <a href="#" className="nav-link">
+            Discord
+          </a>
+          <a href="#" className="nav-link">
+            GitHub
+          </a>
         </div>
-        <span className="footer-tagline">Open source. Self-hostable. Community owned.</span>
+        <span className="footer-tagline">
+          Open source. Self-hostable. Community owned.
+        </span>
       </footer>
     </div>
   );

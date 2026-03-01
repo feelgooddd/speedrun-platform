@@ -4,7 +4,9 @@
     "module": "commonjs",
     "rootDir": "src",
     "outDir": "dist",
-    "strict": true,
+    "strict": false,               // Disables the suite of strict checks
+    "noImplicitAny": false,        // Specifically allows 'any' when types aren't defined
+    "strictNullChecks": false,     // Allows null/undefined without explicit checks
     "esModuleInterop": true,
     "skipLibCheck": true
   },

@@ -10,42 +10,43 @@ export const HOUSE_META: Record<House, { badge: string; tagline: string; label: 
   hufflepuff: { badge: "🦡", tagline: "Patience breaks every record", label: "Hufflepuff" },
 };
 
+function getSavedHouse(): House {
+  if (typeof window === "undefined") return "gryffindor";
+  const saved = localStorage.getItem("house") as House;
+  return saved && HOUSE_META[saved] ? saved : "gryffindor";
+}
+
 export default function HouseSelector() {
-  const [house, setHouse] = useState<House>("gryffindor");
+  const [house, setHouse] = useState<House>(getSavedHouse);
 
   useEffect(() => {
-    const saved = localStorage.getItem("house") as House;
-    if (saved && HOUSE_META[saved]) setHouse(saved);
-  }, []);
-
-useEffect(() => {
-  document.documentElement.setAttribute("data-house", house);
-}, [house]);
+    document.documentElement.setAttribute("data-house", house);
+  }, [house]);
 
   const selectHouse = (h: House) => {
     setHouse(h);
     localStorage.setItem("house", h);
   };
 
-return (
-  <>
-    <div className="house-selector">
-      {(Object.keys(HOUSE_META) as House[]).map((h) => (
-        <button
-          key={h}
-          className={`house-btn ${house === h ? "active" : ""}`}
-          onClick={() => selectHouse(h)}
-          style={{
-            borderColor: house === h ? "var(--accent)" : "transparent",
-            color: house === h ? "var(--accent)" : undefined,
-            background: house === h ? "var(--card-bg)" : undefined,
-          }}
-        >
-          {HOUSE_META[h].badge} {HOUSE_META[h].label}
-        </button>
-      ))}
-    </div>
-    <p className="hero-tagline">✦ {HOUSE_META[house].tagline} ✦</p>
-  </>
-);
+  return (
+    <>
+      <div className="house-selector">
+        {(Object.keys(HOUSE_META) as House[]).map((h) => (
+          <button
+            key={h}
+            className={`house-btn ${house === h ? "active" : ""}`}
+            onClick={() => selectHouse(h)}
+            style={{
+              borderColor: house === h ? "var(--accent)" : "transparent",
+              color: house === h ? "var(--accent)" : undefined,
+              background: house === h ? "var(--card-bg)" : undefined,
+            }}
+          >
+            {HOUSE_META[h].badge} {HOUSE_META[h].label}
+          </button>
+        ))}
+      </div>
+      <p className="hero-tagline">✦ {HOUSE_META[house].tagline} ✦</p>
+    </>
+  );
 }

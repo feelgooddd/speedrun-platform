@@ -9,6 +9,10 @@ import {
   getStats,
   createPlatform,
   createCategory,
+  createSubcategory,
+  deleteCategory,
+  deletePlatform,
+  deleteSubcategory,
 } from "../controllers/games";
 import { requireAuth } from "../middleware/auth";
 import { isAdmin } from "../middleware/checkRole";
@@ -25,3 +29,7 @@ gamesRouter.post("/", requireAuth, isAdmin, createGame);
 gamesRouter.delete("/:slug", requireAuth, isAdmin, deleteGame);
 gamesRouter.post("/:slug/platforms", requireAuth, isAdmin, createPlatform);
 gamesRouter.post("/:slug/:platform/categories", requireAuth, isAdmin, createCategory);
+gamesRouter.post("/:slug/:platform/:category/subcategories", requireAuth, isAdmin, createSubcategory);
+gamesRouter.delete("/:slug/:platform", requireAuth, isAdmin, deletePlatform);
+gamesRouter.delete("/:slug/:platform/:category", requireAuth, isAdmin, deleteCategory);
+gamesRouter.delete("/:slug/:platform/:category/:subcategory", requireAuth, isAdmin, deleteSubcategory);

@@ -1,0 +1,1262 @@
+{
+  "game": {
+    "id": "29d30ydl",
+    "name": "Harry Potter and the Philosopher's Stone (GBC)",
+    "slug": "hp1gbc"
+  },
+  "category": {
+    "id": "jdz593dv",
+    "name": "Any%"
+  },
+  "subcategory": [
+    {
+      "varId": "kn091jon",
+      "varName": "ACE",
+      "valueId": "1py4pnv1",
+      "valueLabel": "No ACE"
+    }
+  ],
+  "runCount": 24,
+  "runs": [
+    {
+      "place": 1,
+      "run": {
+        "id": "zqdgvw9m",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/zqdgvw9m",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=A98SCTz061I"
+            }
+          ]
+        },
+        "comment": null,
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-10-16T11:19:22Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "48gl4k2x",
+            "uri": "http://www.speedrun.com/api/v1/users/48gl4k2x"
+          }
+        ],
+        "date": "2023-07-29",
+        "submitted": "2023-10-16T11:19:22Z",
+        "times": {
+          "primary": "PT1H12M18S",
+          "primary_t": 4338,
+          "realtime": "PT1H12M18S",
+          "realtime_t": 4338,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 2,
+      "run": {
+        "id": "zqd38q9m",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/zqd38q9m",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=whdEG30H3es"
+            },
+            {
+              "uri": "https://www.twitch.tv/videos/635202770"
+            }
+          ]
+        },
+        "comment": "1st try lighting and I didn't have to set up again. Average battles, 2nd try snake fangs, no Snape skip and poor broom so plenty to improve.\nhttps://www.youtube.com/watch?v=whdEG30H3es\n*MOD NOTE: Frame counted to late 1:12:11 despite timer in VoD*",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-09-22T08:26:40Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "v816v5xp",
+            "uri": "http://www.speedrun.com/api/v1/users/v816v5xp"
+          }
+        ],
+        "date": "2020-05-27",
+        "submitted": "2023-09-22T08:26:40Z",
+        "times": {
+          "primary": "PT1H13M3S",
+          "primary_t": 4383,
+          "realtime": "PT1H13M3S",
+          "realtime_t": 4383,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 3,
+      "run": {
+        "id": "z0x3dqjz",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/z0x3dqjz",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/627281176"
+            }
+          ]
+        },
+        "comment": "Left the game too early and didn't get the IGT. This is the run that shouldn't have. Terrible beginning and painfully average fights that had no good crits all run. Perfect lighting and FF until we got hit and lost 35 seconds on the last bad screen. Had a singular thing gone slightly better Devil's Snare onward this would've tied/beaten WR. We continue on...",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-09-22T08:29:28Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "68wk9dq8",
+            "uri": "http://www.speedrun.com/api/v1/users/68wk9dq8"
+          }
+        ],
+        "date": "2020-05-19",
+        "submitted": "2023-09-22T08:29:28Z",
+        "times": {
+          "primary": "PT1H13M11S",
+          "primary_t": 4391,
+          "realtime": "PT1H13M11S",
+          "realtime_t": 4391,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "7m6yvw6p",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 4,
+      "run": {
+        "id": "y6qpveqz",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/y6qpveqz",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/XAJsswyclX8"
+            }
+          ]
+        },
+        "comment": "Well, first PB since February 2017, and managed to jump from 8th to 4th, gonna keep going for at least the 1:13, and maybe WR?",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-09-22T08:30:37Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "p18vvn8l",
+            "uri": "http://www.speedrun.com/api/v1/users/p18vvn8l"
+          }
+        ],
+        "date": "2021-06-19",
+        "submitted": "2023-09-22T08:30:37Z",
+        "times": {
+          "primary": "PT1H14M",
+          "primary_t": 4440,
+          "realtime": "PT1H14M",
+          "realtime_t": 4440,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "7m6yvw6p",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 5,
+      "run": {
+        "id": "y8k9wpwy",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/y8k9wpwy",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=XnXsP8xUz9Y"
+            }
+          ]
+        },
+        "comment": "Been a bit surprised that I saved that much time and even golded a few splits. All in all I'm very satisfied with the run, though I missed Malfoy Skip and lost Lighting.",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-09-22T08:33:11Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "814mwqr8",
+            "uri": "http://www.speedrun.com/api/v1/users/814mwqr8"
+          }
+        ],
+        "date": "2020-09-05",
+        "submitted": "2023-09-22T08:33:11Z",
+        "times": {
+          "primary": "PT1H14M33S",
+          "primary_t": 4473,
+          "realtime": "PT1H14M33S",
+          "realtime_t": 4473,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 6,
+      "run": {
+        "id": "zne42x9z",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/zne42x9z",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/pmzBTFMAySE"
+            }
+          ]
+        },
+        "comment": null,
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-09-22T08:34:30Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "pj0vgmxw",
+            "uri": "http://www.speedrun.com/api/v1/users/pj0vgmxw"
+          }
+        ],
+        "date": "2022-10-23",
+        "submitted": "2023-09-22T08:34:30Z",
+        "times": {
+          "primary": "PT1H15M21S",
+          "primary_t": 4521,
+          "realtime": "PT1H15M21S",
+          "realtime_t": 4521,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 7,
+      "run": {
+        "id": "pzgdrgjz",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/pzgdrgjz",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=MIkDYaIOdKg"
+            }
+          ]
+        },
+        "comment": "New glitch FTW!",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2016-01-14T21:15:26Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "dx36gqxl",
+            "uri": "http://www.speedrun.com/api/v1/users/dx36gqxl"
+          }
+        ],
+        "date": "2016-01-14",
+        "submitted": "2016-01-14T21:15:26Z",
+        "times": {
+          "primary": "PT1H15M41S",
+          "primary_t": 4541,
+          "realtime": "PT1H15M41S",
+          "realtime_t": 4541,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H10M45S",
+          "ingame_t": 4245
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/f1v"
+        },
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 8,
+      "run": {
+        "id": "y2gw0w7z",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/y2gw0w7z",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/1882036262"
+            }
+          ]
+        },
+        "comment": "Very pleased to get Top 10 in this, at least it didn't take as long as HP2 GBC did in the end and I'm actually quite happy with my time given how much RNG is in this game. Please don't bop me out of this Top 10 k thx  ",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-07-26T10:25:11Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "7j4ozn58",
+            "uri": "http://www.speedrun.com/api/v1/users/7j4ozn58"
+          }
+        ],
+        "date": "2023-07-16",
+        "submitted": "2023-07-26T09:37:42Z",
+        "times": {
+          "primary": "PT1H16M26S",
+          "primary_t": 4586,
+          "realtime": "PT1H16M26S",
+          "realtime_t": 4586,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/b0nq"
+        },
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 9,
+      "run": {
+        "id": "yj18xwoy",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/yj18xwoy",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/927122914"
+            }
+          ]
+        },
+        "comment": "Sub SLS Pog",
+        "status": {
+          "status": "verified",
+          "examiner": "o8663w8z",
+          "verify-date": "2021-02-24T22:24:36Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "o8663w8z",
+            "uri": "http://www.speedrun.com/api/v1/users/o8663w8z"
+          }
+        ],
+        "date": "2021-02-24",
+        "submitted": "2021-02-24T22:24:36Z",
+        "times": {
+          "primary": "PT1H16M35S",
+          "primary_t": 4595,
+          "realtime": "PT1H16M35S",
+          "realtime_t": 4595,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 10,
+      "run": {
+        "id": "m7pg060m",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/m7pg060m",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=BErjYE3TPvM&feature=youtu.be"
+            }
+          ]
+        },
+        "comment": "- I was a little bit busy by Hermione's bug - I never see that before and Hermione's head is my visual inde -, and until Flitwick, I get this lost-time bug in my mind. \r\nAnd I completely troll Flitwick and Key's Room in the End - and Fred & George Market. \r\n- But I get a pretty good RNG for SW and some encounters, but the last in Forbidden Forest made me angry. Without my troll at Flitwick & F/G's Market, it was under 1.17 run by far or maybe even under 1.16 run.\r\n\r\nBefore the story of this re-timed run, i make a summary of this for everyone who doesn't want to got the full story :p\r\n\r\nSo:\r\n- I record a new PB which was 1.17.02.6x but my LiveSplit's record failed (it was deleted i don't know why).\r\n- I re-timed it but I fucked up LiveSplit Settings (which was already fucked up in video, I commented it since the begining, that explain the sound \"It's Levioosa, not Leviosaa\", I can't delete this sound without delete the in-game sound)\r\n- I decided to change my LiveSplit Profile with another and re-timed it another with rights settings and video record.\r\n- And I retimed the final Split that explain why the PB is 1.17.03 and not 1.17.02.\r\n- It was 1.17.03.18 which is the right frames who count, in video we can see the timer was 1.17.03.57. But when the run starts, I press my Start button on LiveSplit a little bit late, so I calculated that time lost was 0.25ms so it's 1.17.03.18 + 0.0.0.25 = 1.17.03.43.\r\n\r\n\r\nDetailed Story available when you click on the title of this video and to look the description below the YouTube video: (which is not rly more detailed thank you think)\r\n\r\n",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2018-07-30T20:23:30Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "zxzozo08",
+            "uri": "http://www.speedrun.com/api/v1/users/zxzozo08"
+          }
+        ],
+        "date": "2018-07-25",
+        "submitted": "2018-07-29T20:01:43Z",
+        "times": {
+          "primary": "PT1H17M3S",
+          "primary_t": 4623,
+          "realtime": "PT1H17M3S",
+          "realtime_t": 4623,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H13M59S",
+          "ingame_t": 4439
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/2w6m"
+        },
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 11,
+      "run": {
+        "id": "z091gnjz",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/z091gnjz",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=NfvqKSDI8hs"
+            }
+          ]
+        },
+        "comment": "First run that I'm happy enough with to submit. Lighting first time all 3 times and some very unfortunate encounters that made me drop it in the first place.",
+        "status": {
+          "status": "verified",
+          "examiner": "v8l44kvj",
+          "verify-date": "2020-10-08T21:54:16Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "x359d47j",
+            "uri": "http://www.speedrun.com/api/v1/users/x359d47j"
+          }
+        ],
+        "date": "2020-10-03",
+        "submitted": "2020-10-03T23:54:01Z",
+        "times": {
+          "primary": "PT1H18M8S",
+          "primary_t": 4688,
+          "realtime": "PT1H18M8S",
+          "realtime_t": 4688,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 12,
+      "run": {
+        "id": "z1xpw37m",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/z1xpw37m",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=UJoPg9fT5Ok"
+            }
+          ]
+        },
+        "comment": "uuh",
+        "status": {
+          "status": "verified",
+          "examiner": "o8663w8z",
+          "verify-date": "2021-09-15T01:48:04Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "86nmgoqx",
+            "uri": "http://www.speedrun.com/api/v1/users/86nmgoqx"
+          }
+        ],
+        "date": "2021-09-14",
+        "submitted": "2021-09-14T22:42:30Z",
+        "times": {
+          "primary": "PT1H18M59S",
+          "primary_t": 4739,
+          "realtime": "PT1H18M59S",
+          "realtime_t": 4739,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 13,
+      "run": {
+        "id": "zn72kv9m",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/zn72kv9m",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/fL0kj-bSCFQ"
+            }
+          ]
+        },
+        "comment": "First part was pretty good, everything after troll was mediocre",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2025-04-27T01:27:41Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "3qjooej6",
+            "uri": "http://www.speedrun.com/api/v1/users/3qjooej6"
+          }
+        ],
+        "date": "2022-02-05",
+        "submitted": "2022-02-12T20:03:32Z",
+        "times": {
+          "primary": "PT1H20M17S",
+          "primary_t": 4817,
+          "realtime": "PT1H20M17S",
+          "realtime_t": 4817,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 14,
+      "run": {
+        "id": "yd5d12xm",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/yd5d12xm",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/644698220"
+            }
+          ]
+        },
+        "comment": "I'm pretty happy with it considering it was my second finished run. Still a lot of movement/menu errors but overall pretty solid.",
+        "status": {
+          "status": "verified",
+          "examiner": "v8l44kvj",
+          "verify-date": "2020-06-10T03:06:41Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "v81ee1pj",
+            "uri": "http://www.speedrun.com/api/v1/users/v81ee1pj"
+          }
+        ],
+        "date": "2020-06-08",
+        "submitted": "2020-06-08T08:07:44Z",
+        "times": {
+          "primary": "PT1H22M29S",
+          "primary_t": 4949,
+          "realtime": "PT1H22M29S",
+          "realtime_t": 4949,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 15,
+      "run": {
+        "id": "jy90xjry",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/jy90xjry",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/gand988/v/59763613"
+            }
+          ]
+        },
+        "comment": "first race with the new FrogEXP glitch, like playing a NG+.\r\n\r\nedit(forgot to change the date)",
+        "status": {
+          "status": "verified",
+          "examiner": "p18vvn8l",
+          "verify-date": "2016-04-11T11:45:14Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "18v4m28l",
+            "uri": "http://www.speedrun.com/api/v1/users/18v4m28l"
+          }
+        ],
+        "date": "2016-04-10",
+        "submitted": "2015-05-28T17:52:03Z",
+        "times": {
+          "primary": "PT1H22M42S",
+          "primary_t": 4962,
+          "realtime": "PT1H22M42S",
+          "realtime_t": 4962,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H17M41S",
+          "ingame_t": 4661
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/k3k"
+        },
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 16,
+      "run": {
+        "id": "y8k521xy",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/y8k521xy",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=wexo4yHK1zI&t=2593s"
+            }
+          ]
+        },
+        "comment": "May have forgot to ever submit this lol",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2024-02-09T08:57:08Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "j2yzy968",
+            "uri": "http://www.speedrun.com/api/v1/users/j2yzy968"
+          }
+        ],
+        "date": "2023-07-11",
+        "submitted": "2024-02-07T15:28:14Z",
+        "times": {
+          "primary": "PT1H22M56S",
+          "primary_t": 4976,
+          "realtime": "PT1H22M56S",
+          "realtime_t": 4976,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 17,
+      "run": {
+        "id": "yj5go9gm",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/yj5go9gm",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/PXDgt3NHZuU"
+            }
+          ]
+        },
+        "comment": "Got Lighting first try and kept it, much hype!\r\nMessed up nearly half of the splits xD And the last one may be a bit late, I was already at the owl flying screen.\r\n\r\n**MOD NOTE: Edited to 1:25:20 to fit proper ending split. GG on the run! :)**",
+        "status": {
+          "status": "verified",
+          "examiner": "v8l44kvj",
+          "verify-date": "2021-08-30T05:42:05Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "8e6npmoj",
+            "uri": "http://www.speedrun.com/api/v1/users/8e6npmoj"
+          }
+        ],
+        "date": "2021-08-29",
+        "submitted": "2021-08-29T17:09:14Z",
+        "times": {
+          "primary": "PT1H25M20S",
+          "primary_t": 5120,
+          "realtime": "PT1H25M20S",
+          "realtime_t": 5120,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 18,
+      "run": {
+        "id": "1zq4nlrm",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/1zq4nlrm",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=Y1E3Zqgbslk"
+            }
+          ]
+        },
+        "comment": "Two pbs in one day. This started out poorly with a death against the suit of armor because I wasn't paying attention and also lost 1 min 25 sec to me trying to get a save & quit deathwarp, which are still really inconsistent. This possibly could have been a 1:24. That will happen later.",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2015-08-02T18:15:28Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "18qzzlq8",
+            "uri": "http://www.speedrun.com/api/v1/users/18qzzlq8"
+          }
+        ],
+        "date": "2015-09-26",
+        "submitted": "2015-08-02T18:15:28Z",
+        "times": {
+          "primary": "PT1H28M6S",
+          "primary_t": 5286,
+          "realtime": "PT1H28M6S",
+          "realtime_t": 5286,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H21M56S",
+          "ingame_t": 4916
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 19,
+      "run": {
+        "id": "z0l5on4z",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/z0l5on4z",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=sVsd9PO7fIU"
+            }
+          ]
+        },
+        "comment": "I will never come back to this",
+        "status": {
+          "status": "verified",
+          "examiner": "dx36gqxl",
+          "verify-date": "2025-03-04T20:41:56Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "5j5lwknx",
+            "uri": "http://www.speedrun.com/api/v1/users/5j5lwknx"
+          }
+        ],
+        "date": "2022-08-13",
+        "submitted": "2022-08-13T20:47:33Z",
+        "times": {
+          "primary": "PT1H30M57S",
+          "primary_t": 5457,
+          "realtime": "PT1H30M57S",
+          "realtime_t": 5457,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 20,
+      "run": {
+        "id": "z1q1v87y",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/z1q1v87y",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/1679607967"
+            }
+          ]
+        },
+        "comment": "Timewise a better first run than I expected, but I left a LOT of free timesave for next run. Sub 1:30 next time!\r\n\r\nRan on BizHawk 2.8\r\n\r\n**MOD NOTE: Retimed to 1:31:55**",
+        "status": {
+          "status": "verified",
+          "examiner": "v8l44kvj",
+          "verify-date": "2022-12-15T16:35:45Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "jp49d70j",
+            "uri": "http://www.speedrun.com/api/v1/users/jp49d70j"
+          }
+        ],
+        "date": "2022-12-14",
+        "submitted": "2022-12-15T11:41:53Z",
+        "times": {
+          "primary": "PT1H31M55S",
+          "primary_t": 5515,
+          "realtime": "PT1H31M55S",
+          "realtime_t": 5515,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 21,
+      "run": {
+        "id": "pyd2q6qm",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/pyd2q6qm",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/76646363"
+            }
+          ]
+        },
+        "comment": "First HP1 GBC run and it was pretty good",
+        "status": {
+          "status": "verified",
+          "examiner": "dx3qe2jl",
+          "verify-date": "2016-07-07T02:56:52Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "qjo3r50j",
+            "uri": "http://www.speedrun.com/api/v1/users/qjo3r50j"
+          }
+        ],
+        "date": "2016-07-06",
+        "submitted": "2016-07-07T00:43:54Z",
+        "times": {
+          "primary": "PT1H34M40S",
+          "primary_t": 5680,
+          "realtime": "PT1H34M40S",
+          "realtime_t": 5680,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H28M28S",
+          "ingame_t": 5308
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 22,
+      "run": {
+        "id": "oy2qro5y",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/oy2qro5y",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/cactusjacques/v/47437376"
+            }
+          ]
+        },
+        "comment": "Can't remember how was the run. I mean, I know I can get 5 mins better with better RNG, but I forgot if I played well and the lost was almost all due to RNG or if I made a lot of mistakes.",
+        "status": {
+          "status": "verified",
+          "examiner": "y8dwelj6",
+          "verify-date": "2015-06-15T15:27:14Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "48grz2xp",
+            "uri": "http://www.speedrun.com/api/v1/users/48grz2xp"
+          }
+        ],
+        "date": "2014-04-21",
+        "submitted": "2015-03-04T20:18:13Z",
+        "times": {
+          "primary": "PT1H54M22S",
+          "primary_t": 6862,
+          "realtime": "PT1H54M22S",
+          "realtime_t": 6862,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H48M15S",
+          "ingame_t": 6495
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 23,
+      "run": {
+        "id": "0y67oj6m",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/0y67oj6m",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=Dl1S8yPvZVg"
+            }
+          ]
+        },
+        "comment": "This was the first time I managed to finish under two hours. Following a really good run dying to the Chicken Freeze, I managed to bring this out.",
+        "status": {
+          "status": "verified",
+          "examiner": "y8dwelj6",
+          "verify-date": "2015-06-15T15:28:49Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "qxkkle2x",
+            "uri": "http://www.speedrun.com/api/v1/users/qxkkle2x"
+          }
+        ],
+        "date": "2014-10-19",
+        "submitted": "2014-12-30T10:52:23Z",
+        "times": {
+          "primary": "PT1H56M1S",
+          "primary_t": 6961,
+          "realtime": "PT1H56M1S",
+          "realtime_t": 6961,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT1H50M28S",
+          "ingame_t": 6628
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    },
+    {
+      "place": 24,
+      "run": {
+        "id": "1zx41lgy",
+        "weblink": "http://www.speedrun.com/hp1gbc/run/1zx41lgy",
+        "game": "29d30ydl",
+        "level": null,
+        "category": "jdz593dv",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/lost_rd/v/47469298"
+            }
+          ]
+        },
+        "comment": "Only run I have video of, I have done 2:07 in practice which is still a long way off being good.",
+        "status": {
+          "status": "verified",
+          "examiner": "y8dwelj6",
+          "verify-date": "2015-06-15T15:31:19Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "qxkqykx0",
+            "uri": "http://www.speedrun.com/api/v1/users/qxkqykx0"
+          }
+        ],
+        "date": "2014-10-11",
+        "submitted": "2015-03-10T02:43:20Z",
+        "times": {
+          "primary": "PT2H41M18S",
+          "primary_t": 9678,
+          "realtime": "PT2H41M18S",
+          "realtime_t": 9678,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": "PT2H35M4S",
+          "ingame_t": 9304
+        },
+        "system": {
+          "platform": "gde3g9k1",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn091jon": "1py4pnv1"
+        }
+      }
+    }
+  ],
+  "scrapedAt": "2026-03-02T00:09:12.752Z"
+}

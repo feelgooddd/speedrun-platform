@@ -76,12 +76,12 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
-const where = {
-  category_id: category.id,
-  platform_id: platform.id,
-  ...(subcategory ? { subcategory_id: subcategory.id } : {}),
-  verified: true,
-};
+    const where = {
+      category_id: category.id,
+      platform_id: platform.id,
+      ...(subcategory ? { subcategory_id: subcategory.id } : {}),
+      verified: true,
+    };
 
     // Use platform.timing_method
     const timingField =
@@ -103,13 +103,14 @@ const where = {
       orderBy: { [timingField]: "asc" as const },
     });
 
-const seen = new Set<string>();
-const dedupedRuns = allRuns.filter((run) => {
-  const key = `${run.user.id}-${run.subcategory_id ?? 'none'}`;
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return true;
-});
+    const seen = new Set<string>();
+    const dedupedRuns = subcategory
+      ? allRuns.filter((run) => {
+          if (seen.has(run.user.id)) return false;
+          seen.add(run.user.id);
+          return true;
+        })
+      : allRuns; // no dedup, show everything
 
     const total = dedupedRuns.length;
     const paginatedRuns = dedupedRuns.slice(skip, skip + limitNum);
@@ -118,7 +119,7 @@ const dedupedRuns = allRuns.filter((run) => {
       rank: skip + index + 1,
       user: run.user,
       id: run.id,
-      ubcategory_id: run.subcategory_id,
+      subcategory_id: run.subcategory_id,
       comment: run.comment,
       realtime_ms: run.realtime_ms,
       gametime_ms: run.gametime_ms,
@@ -164,11 +165,18 @@ export const getPlatformCategories = async (req: Request, res: Response) => {
     if (!game) return res.status(404).json({ error: "Game not found" });
 
     const platform = await prisma.platform.findFirst({
-      where: { slug: platformSlug, game_id: game.id },
+      where: {
+        slug: platformSlug,
+        game_id: game.id,
+        deleted_at: null,
+      },
       include: {
         categories: {
+          where: { deleted_at: null },
           include: {
-            subcategories: true,
+            subcategories: {
+              where: { deleted_at: null },
+            },
           },
         },
       },
@@ -217,34 +225,11 @@ export const deleteGame = async (req: AuthRequest, res: Response) => {
     const slug = req.params.slug as string;
 
     const game = await prisma.game.findUnique({ where: { slug } });
-    if (!game) {
-      return res.status(404).json({ error: "Game not found" });
-    }
+    if (!game) return res.status(404).json({ error: "Game not found" });
 
-    // Delete all related data (cascading delete)
-    // Runs -> Categories -> Platforms -> Game
-    await prisma.run.deleteMany({
-      where: { platform: { game_id: game.id } },
-    });
-
-    await prisma.subcategory.deleteMany({
-      where: { category: { platform: { game_id: game.id } } },
-    });
-
-    await prisma.category.deleteMany({
-      where: { platform: { game_id: game.id } },
-    });
-
-    await prisma.platform.deleteMany({
-      where: { game_id: game.id },
-    });
-
-    await prisma.gameModerator.deleteMany({
-      where: { game_id: game.id },
-    });
-
-    await prisma.game.delete({
+    await prisma.game.update({
       where: { id: game.id },
+      data: { deleted_at: new Date() },
     });
 
     res.json({ message: "Game deleted successfully" });
@@ -337,5 +322,154 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
     res.status(201).json({ category });
   } catch (error) {
     res.status(500).json({ error: "Failed to create category" });
+  }
+};
+
+export const createSubcategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const categorySlug = req.params.category as string;
+    const { name, subcategory_slug } = req.body;
+
+    if (!name || !subcategory_slug) {
+      return res.status(400).json({ error: "Name and slug are required" });
+    }
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const category = await prisma.category.findFirst({
+      where: { slug: categorySlug, platform_id: platform.id },
+      include: { subcategories: true },
+    });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    const hadNoSubcategories = category.subcategories.length === 0;
+
+    const subcategory = await prisma.subcategory.create({
+      data: {
+        name,
+        slug: subcategory_slug,
+        category_id: category.id,
+      },
+    });
+
+    // If this is the first subcategory, migrate all existing runs to it
+    if (hadNoSubcategories) {
+      const migrated = await prisma.run.updateMany({
+        where: {
+          category_id: category.id,
+          subcategory_id: null,
+        },
+        data: {
+          subcategory_id: subcategory.id,
+        },
+      });
+      return res.status(201).json({
+        subcategory,
+        migrated_runs: migrated.count,
+      });
+    }
+
+    res.status(201).json({ subcategory });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create subcategory" });
+  }
+};
+
+export const deletePlatform = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    await prisma.platform.update({
+      where: { id: platform.id },
+      data: { deleted_at: new Date() },
+    });
+
+    res.json({ message: "Platform deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete platform" });
+  }
+};
+
+export const deleteCategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const categorySlug = req.params.category as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const category = await prisma.category.findFirst({
+      where: { slug: categorySlug, platform_id: platform.id },
+    });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    await prisma.category.update({
+      where: { id: category.id },
+      data: { deleted_at: new Date() },
+    });
+
+    res.json({ message: "Category deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete category" });
+  }
+};
+
+export const deleteSubcategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const categorySlug = req.params.category as string;
+    const subcategorySlug = req.params.subcategory as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const category = await prisma.category.findFirst({
+      where: { slug: categorySlug, platform_id: platform.id },
+    });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    const subcategory = await prisma.subcategory.findFirst({
+      where: { slug: subcategorySlug, category_id: category.id },
+    });
+    if (!subcategory)
+      return res.status(404).json({ error: "Subcategory not found" });
+
+    await prisma.subcategory.update({
+      where: { id: subcategory.id },
+      data: { deleted_at: new Date() },
+    });
+
+    res.json({ message: "Subcategory deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete subcategory" });
   }
 };

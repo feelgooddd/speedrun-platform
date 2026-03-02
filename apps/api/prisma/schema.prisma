@@ -34,6 +34,8 @@ model Game {
 
   platforms  Platform[]
   moderators GameModerator[]
+  deleted_at DateTime?
+
 }
 
 model Platform {
@@ -46,6 +48,8 @@ model Platform {
   game       Game       @relation(fields: [game_id], references: [id])
   runs       Run[]
   categories Category[]
+  deleted_at DateTime?
+
 }
 
 model Category {
@@ -57,6 +61,8 @@ model Category {
   platform      Platform      @relation(fields: [platform_id], references: [id])
   runs          Run[]
   subcategories Subcategory[]
+  deleted_at DateTime?
+
 }
 
 model Subcategory {
@@ -67,6 +73,8 @@ model Subcategory {
 
   category Category @relation(fields: [category_id], references: [id])
   runs     Run[]
+  deleted_at DateTime?
+
 }
 
 model Run {

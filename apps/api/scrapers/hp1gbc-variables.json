@@ -1,0 +1,18 @@
+{
+  "allowedIds": ["kn091jon"],
+  "categoryNames": ["Any%"],
+  "variables": [
+    {
+      "id": "kn091jon",
+      "name": "ACE",
+      "is-subcategory": true,
+      "scope": { "type": "global" },
+      "values": {
+        "values": {
+          "12vodzdq": { "label": "ACE" },
+          "1py4pnv1": { "label": "No ACE" }
+        }
+      }
+    }
+  ]
+}

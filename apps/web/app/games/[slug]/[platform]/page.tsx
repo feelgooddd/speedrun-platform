@@ -4,6 +4,7 @@ import LeaderboardTabs from "@/app/components/leaderboard/LeaderboardTabs";
 interface Run {
   rank: number;
   id: string;
+  system: string | null;
   comment: string | null;
   realtime_ms: number | null;
   gametime_ms: number | null;

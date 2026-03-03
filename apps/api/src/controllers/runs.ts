@@ -18,6 +18,7 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
       gametime_ms,
       video_url,
       comment,
+      system_id,
     } = req.body;
 
     if (!game_slug || !platform_slug || !category_slug) {
@@ -36,15 +37,13 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
     const platform = await prisma.platform.findFirst({
       where: { slug: platform_slug, game_id: game.id },
     });
-    if (!platform)
-      return res.status(404).json({ error: "Platform not found" });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
 
     // Find category
     const category = await prisma.category.findFirst({
       where: { slug: category_slug, platform_id: platform.id },
     });
-    if (!category)
-      return res.status(404).json({ error: "Category not found" });
+    if (!category) return res.status(404).json({ error: "Category not found" });
 
     // Find subcategory if provided
     let subcategory_id = null;
@@ -64,6 +63,7 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
         user_id: req.userId,
         category_id: category.id,
         platform_id: platform.id,
+        system_id: system_id ? system_id : null,
         subcategory_id,
         realtime_ms: realtime_ms ? parseInt(realtime_ms) : null,
         gametime_ms: gametime_ms ? parseInt(gametime_ms) : null,
@@ -76,6 +76,7 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
         category: true,
         platform: true,
         subcategory: true,
+        system: true,
       },
     });
 
@@ -117,8 +118,7 @@ export const rejectRun = async (req: AuthRequest, res: Response) => {
     const id = req.params.id as string;
 
     const run = await prisma.run.findUnique({ where: { id } });
-    if (!run)
-      return res.status(404).json({ error: "Run not found" });
+    if (!run) return res.status(404).json({ error: "Run not found" });
 
     await prisma.run.delete({ where: { id } });
 
@@ -149,8 +149,7 @@ export const getRun = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    if (!run)
-      return res.status(404).json({ error: "Run not found" });
+    if (!run) return res.status(404).json({ error: "Run not found" });
 
     if (!run.category.platform)
       return res.status(500).json({ error: "Invalid run data" });
@@ -163,12 +162,8 @@ export const getRun = async (req: AuthRequest, res: Response) => {
       platform: run.platform.name,
       realtime_ms: run.realtime_ms,
       gametime_ms: run.gametime_ms,
-      realtime_display: run.realtime_ms
-        ? formatTime(run.realtime_ms)
-        : null,
-      gametime_display: run.gametime_ms
-        ? formatTime(run.gametime_ms)
-        : null,
+      realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+      gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
       verified: run.verified,
       video_url: run.video_url,
       comment: run.comment,
@@ -179,7 +174,6 @@ export const getRun = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Failed to fetch run" });
   }
 };
-
 
 export const updateRun = async (req: AuthRequest, res: Response) => {
   try {
@@ -192,8 +186,12 @@ export const updateRun = async (req: AuthRequest, res: Response) => {
     const updated = await prisma.run.update({
       where: { id },
       data: {
-        ...(realtime_ms !== undefined && { realtime_ms: parseInt(realtime_ms) }),
-        ...(gametime_ms !== undefined && { gametime_ms: gametime_ms ? parseInt(gametime_ms) : null }),
+        ...(realtime_ms !== undefined && {
+          realtime_ms: parseInt(realtime_ms),
+        }),
+        ...(gametime_ms !== undefined && {
+          gametime_ms: gametime_ms ? parseInt(gametime_ms) : null,
+        }),
         ...(video_url !== undefined && { video_url }),
         ...(comment !== undefined && { comment }),
       },

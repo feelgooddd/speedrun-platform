@@ -1,42 +1,51 @@
-import { Request, Response } from 'express'
-import prisma from '../lib/prisma'
+import { Request, Response } from "express";
+import prisma from "../lib/prisma";
 import { formatTime } from "../lib/utils";
-import { AuthRequest } from '../middleware/auth';
+import { AuthRequest } from "../middleware/auth";
 
 export const getModQueue = async (req: Request, res: Response) => {
   try {
-    const gameSlug = req.params.gameSlug as string
+    const gameSlug = req.params.gameSlug as string;
 
-    const game = await prisma.game.findUnique({ where: { slug: gameSlug } })
-    if (!game) return res.status(404).json({ error: 'Game not found' })
+    const game = await prisma.game.findUnique({ where: { slug: gameSlug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
 
     // Get all platforms for this game
     const platforms = await prisma.platform.findMany({
       where: { game_id: game.id },
-      select: { id: true }
-    })
+      select: { id: true },
+    });
 
-    const platformIds = platforms.map(p => p.id)
+    const platformIds = platforms.map((p) => p.id);
 
     const runs = await prisma.run.findMany({
       where: {
         verified: false,
-        platform_id: { in: platformIds }
+        platform_id: { in: platformIds },
       },
       include: {
-        user: { select: { id: true, username: true, country: true, display_name: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            country: true,
+            display_name: true,
+          },
+        },
         category: true,
         platform: true,
+        system: true,
       },
-      orderBy: { submitted_at: 'asc' }
-    })
+      orderBy: { submitted_at: "asc" },
+    });
 
     res.json({
       game: game.name,
       pending: runs.length,
-      runs: runs.map(run => ({
+      runs: runs.map((run) => ({
         id: run.id,
         user: run.user,
+        system: run.system?.name ?? null,
         category: run.category.name,
         platform: run.platform.name,
         realtime_ms: run.realtime_ms,
@@ -48,12 +57,12 @@ export const getModQueue = async (req: Request, res: Response) => {
         rejected: run.rejected,
         reject_reason: run.reject_reason,
         comment: run.comment,
-      }))
-    })
+      })),
+    });
   } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch mod queue' })
+    res.status(500).json({ error: "Failed to fetch mod queue" });
   }
-}
+};
 export const getGlobalModQueue = async (req: Request, res: Response) => {
   try {
     const runs = await prisma.run.findMany({
@@ -62,7 +71,14 @@ export const getGlobalModQueue = async (req: Request, res: Response) => {
         rejected: false,
       },
       include: {
-        user: { select: { id: true, username: true, country: true, display_name: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            country: true,
+            display_name: true,
+          },
+        },
         category: { include: { platform: { include: { game: true } } } },
         platform: true,
       },
@@ -98,8 +114,10 @@ export const verifyRun = async (req: AuthRequest, res: Response) => {
     const runId = req.params.id as string;
     const { verified, reject_reason } = req.body;
 
-    if (typeof verified !== 'boolean') {
-      return res.status(400).json({ error: 'verified field is required (true/false)' });
+    if (typeof verified !== "boolean") {
+      return res
+        .status(400)
+        .json({ error: "verified field is required (true/false)" });
     }
 
     const run = await prisma.run.findUnique({
@@ -109,16 +127,16 @@ export const verifyRun = async (req: AuthRequest, res: Response) => {
           include: {
             platform: {
               include: {
-                game: true
-              }
-            }
-          }
-        }
-      }
+                game: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (!run) {
-      return res.status(404).json({ error: 'Run not found' });
+      return res.status(404).json({ error: "Run not found" });
     }
 
     // Update run verification/rejection status
@@ -130,15 +148,15 @@ export const verifyRun = async (req: AuthRequest, res: Response) => {
         reject_reason: !verified ? reject_reason : null,
         comment: run.comment,
         verified_at: verified ? new Date() : null,
-      }
+      },
     });
 
-    res.json({ 
+    res.json({
       run: updatedRun,
-      message: verified ? 'Run verified successfully' : 'Run rejected'
+      message: verified ? "Run verified successfully" : "Run rejected",
     });
   } catch (error) {
-    console.error('Error verifying run:', error);
-    res.status(500).json({ error: 'Failed to verify run' });
+    console.error("Error verifying run:", error);
+    res.status(500).json({ error: "Failed to verify run" });
   }
 };

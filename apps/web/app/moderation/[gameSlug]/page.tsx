@@ -17,7 +17,7 @@ interface PendingRun {
   category: string;
   platform: string;
   comment: string | null;
-
+  system: string | null;
   realtime_ms?: number | null;
   gametime_ms?: number | null;
 
@@ -210,6 +210,7 @@ export default function ModQueuePage({
                   <th>RTA</th>
                   <th>IGT</th>
                   <th>Video</th>
+                  <th>System</th>
                   {!isPending && <th>Reason</th>}
                   {isPending && <th>Actions</th>}
                 </tr>
@@ -261,6 +262,15 @@ href={`/profile/${run.user.username}`}
                             <span className="no-video">—</span>
                           )}
                         </td>
+                            <td className="system-cell">
+                              {run.system ? (
+                                <span className="run-system-badge">
+                                  {run.system}
+                                </span>
+                              ) : (
+                                "—"
+                              )}
+                            </td>
                         {!isPending && (
                           <td
                             style={{

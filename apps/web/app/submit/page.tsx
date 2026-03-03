@@ -35,11 +35,13 @@ export default function SubmitRunPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [systems, setSystems] = useState<{ id: string; name: string }[]>([]);
 
   const [selectedGame, setSelectedGame] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
+  const [selectedSystem, setSelectedSystem] = useState("");
 
   const [hours, setHours] = useState("");
   const [minutes, setMinutes] = useState("");
@@ -63,6 +65,19 @@ export default function SubmitRunPage() {
   );
   const isGametime = selectedPlatformData?.timing_method === "gametime";
 
+  useEffect(() => {
+    if (!selectedGame || !selectedPlatform) {
+      setSystems([]);
+      setSelectedSystem("");
+      return;
+    }
+    fetch(
+      `${process.env.NEXT_PUBLIC_API_URL}/games/${selectedGame}/${selectedPlatform}/systems`,
+    )
+      .then((res) => res.json())
+      .then((data) => setSystems(data.systems || []))
+      .catch((err) => console.error(err));
+  }, [selectedGame, selectedPlatform]);
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/games`)
       .then((res) => res.json())
@@ -154,6 +169,7 @@ export default function SubmitRunPage() {
           gametime_ms: igt > 0 ? igt : null,
           video_url: videoUrl,
           comment,
+          system_id: selectedSystem || undefined,
         }),
       });
 
@@ -178,6 +194,7 @@ export default function SubmitRunPage() {
       setIgtMilliseconds("");
       setVideoUrl("");
       setComment("");
+      setSelectedSystem("");
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -327,6 +344,24 @@ export default function SubmitRunPage() {
                   {selectedCategoryData?.subcategories?.map((sub) => (
                     <option key={sub.id} value={sub.slug}>
                       {sub.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+            {systems.length > 0 && (
+              <div className="form-group">
+                <label className="form-label">System *</label>
+                <select
+                  value={selectedSystem}
+                  onChange={(e) => setSelectedSystem(e.target.value)}
+                  required
+                  className="auth-input"
+                >
+                  <option value="">Select a system</option>
+                  {systems.map((system) => (
+                    <option key={system.id} value={system.id}>
+                      {system.name}
                     </option>
                   ))}
                 </select>

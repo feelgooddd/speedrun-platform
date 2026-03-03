@@ -1,0 +1,558 @@
+{
+  "game": {
+    "id": "om1m9k62",
+    "name": "Harry Potter and the Prisoner of Azkaban (GBA)",
+    "slug": "hp3gba"
+  },
+  "platform": "GBA",
+  "category": {
+    "id": "9d8gow3k",
+    "name": "100%"
+  },
+  "runCount": 11,
+  "runs": [
+    {
+      "place": 1,
+      "run": {
+        "id": "m700j65y",
+        "weblink": "http://www.speedrun.com/hp3gba/run/m700j65y",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=i_6TOZkT7vc"
+            }
+          ]
+        },
+        "comment": null,
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-07-14T07:47:27Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "48gl4k2x",
+            "uri": "http://www.speedrun.com/api/v1/users/48gl4k2x"
+          }
+        ],
+        "date": "2023-07-13",
+        "submitted": "2023-07-14T07:47:27Z",
+        "times": {
+          "primary": "PT1H59M48S",
+          "primary_t": 7188,
+          "realtime": "PT1H59M48S",
+          "realtime_t": 7188,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "7g6m8erk",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 2,
+      "run": {
+        "id": "y9359qry",
+        "weblink": "http://www.speedrun.com/hp3gba/run/y9359qry",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/s7vvX97Qi7k"
+            }
+          ]
+        },
+        "comment": "Mod Note: Retimed to 2:01:09",
+        "status": {
+          "status": "verified",
+          "examiner": "o8663w8z",
+          "verify-date": "2021-08-12T04:36:14Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "0jmrl5z8",
+            "uri": "http://www.speedrun.com/api/v1/users/0jmrl5z8"
+          }
+        ],
+        "date": "2021-08-09",
+        "submitted": "2021-08-09T06:13:41Z",
+        "times": {
+          "primary": "PT2H1M9S",
+          "primary_t": 7269,
+          "realtime": "PT2H1M9S",
+          "realtime_t": 7269,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "3167d6q2",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 3,
+      "run": {
+        "id": "z0781q4y",
+        "weblink": "http://www.speedrun.com/hp3gba/run/z0781q4y",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/1182506712"
+            }
+          ]
+        },
+        "comment": "Why is fleeing from encounters so hard?",
+        "status": {
+          "status": "verified",
+          "examiner": "e8en5p80",
+          "verify-date": "2021-10-21T01:32:09Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "e8en5p80",
+            "uri": "http://www.speedrun.com/api/v1/users/e8en5p80"
+          }
+        ],
+        "date": "2021-10-21",
+        "submitted": "2021-10-21T01:32:09Z",
+        "times": {
+          "primary": "PT2H1M44S",
+          "primary_t": 7304,
+          "realtime": "PT2H1M44S",
+          "realtime_t": 7304,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "3167d6q2",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 4,
+      "run": {
+        "id": "ylv8wx2m",
+        "weblink": "http://www.speedrun.com/hp3gba/run/ylv8wx2m",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/rMBAbjJvRG0"
+            }
+          ]
+        },
+        "comment": "This category is now hell in terms of RNG, as you have to get all the Folio Bruti entries on the 1st playthrough, which means that any miss of flee leads to potential death at any point. Sub 2, and likely Sub 1:55, is possible",
+        "status": {
+          "status": "verified",
+          "examiner": "o8663w8z",
+          "verify-date": "2021-01-08T02:48:24Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "p18vvn8l",
+            "uri": "http://www.speedrun.com/api/v1/users/p18vvn8l"
+          }
+        ],
+        "date": "2021-01-07",
+        "submitted": "2021-01-07T23:39:09Z",
+        "times": {
+          "primary": "PT2H1M45S",
+          "primary_t": 7305,
+          "realtime": "PT2H1M45S",
+          "realtime_t": 7305,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "3167d6q2",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 5,
+      "run": {
+        "id": "zp2vwq8y",
+        "weblink": "http://www.speedrun.com/hp3gba/run/zp2vwq8y",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/8zgexzmAPiw"
+            }
+          ]
+        },
+        "comment": "Interesting run, not better than 2GBC though",
+        "status": {
+          "status": "verified",
+          "examiner": "j5v9dw68",
+          "verify-date": "2025-04-01T23:04:44Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "3qjooej6",
+            "uri": "http://www.speedrun.com/api/v1/users/3qjooej6"
+          }
+        ],
+        "date": "2022-03-10",
+        "submitted": "2022-03-13T13:04:27Z",
+        "times": {
+          "primary": "PT2H8M31S",
+          "primary_t": 7711,
+          "realtime": "PT2H8M31S",
+          "realtime_t": 7711,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "3167d6q2",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 6,
+      "run": {
+        "id": "zg826xjy",
+        "weblink": "http://www.speedrun.com/hp3gba/run/zg826xjy",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/NZXZrKN3-xo"
+            }
+          ]
+        },
+        "comment": "your escape has been blocked\n\nyour escape has been blocked\n\nyour escape has been blocked\n\nyour escape has been blocked\n\nyour escape has been blocked\n\nyour escape has been blocked\n\nyour escape has been blocked",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-12-07T22:04:28Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "o86zgq3x",
+            "uri": "http://www.speedrun.com/api/v1/users/o86zgq3x"
+          }
+        ],
+        "date": "2023-12-03",
+        "submitted": "2023-12-03T22:26:20Z",
+        "times": {
+          "primary": "PT2H9M31S",
+          "primary_t": 7771,
+          "realtime": "PT2H9M31S",
+          "realtime_t": 7771,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "3167d6q2",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 7,
+      "run": {
+        "id": "y6r4pljy",
+        "weblink": "http://www.speedrun.com/hp3gba/run/y6r4pljy",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/847939110"
+            }
+          ]
+        },
+        "comment": "Mod Note: Retimed due to Emu Reset",
+        "status": {
+          "status": "verified",
+          "examiner": "o8663w8z",
+          "verify-date": "2021-01-03T17:05:05Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "o8663w8z",
+            "uri": "http://www.speedrun.com/api/v1/users/o8663w8z"
+          }
+        ],
+        "date": "2020-12-23",
+        "submitted": "2021-01-01T17:34:12Z",
+        "times": {
+          "primary": "PT2H9M33S",
+          "primary_t": 7773,
+          "realtime": "PT2H9M33S",
+          "realtime_t": 7773,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "3167d6q2",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 8,
+      "run": {
+        "id": "mk08ogxz",
+        "weblink": "http://www.speedrun.com/hp3gba/run/mk08ogxz",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/1833659116"
+            }
+          ]
+        },
+        "comment": "Messed up the Potions- and Transfiguration Classroom encounters big time, there are probably multiple minutes in those. Apart from that not amazing RNG but solid run, happy to have PBed this again after a while...  ",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-05-31T08:23:39Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "7j4ozn58",
+            "uri": "http://www.speedrun.com/api/v1/users/7j4ozn58"
+          }
+        ],
+        "date": "2023-05-30",
+        "submitted": "2023-05-31T00:59:16Z",
+        "times": {
+          "primary": "PT2H13M50S",
+          "primary_t": 8030,
+          "realtime": "PT2H13M50S",
+          "realtime_t": 8030,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "3167d6q2",
+          "emulated": true,
+          "region": null
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/at5w"
+        },
+        "values": {}
+      }
+    },
+    {
+      "place": 9,
+      "run": {
+        "id": "mk5r181m",
+        "weblink": "http://www.speedrun.com/hp3gba/run/mk5r181m",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=mUT15xPt_dE"
+            }
+          ]
+        },
+        "comment": "First run",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2025-03-10T18:04:48Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "5j5lwknx",
+            "uri": "http://www.speedrun.com/api/v1/users/5j5lwknx"
+          }
+        ],
+        "date": "2021-11-04",
+        "submitted": "2021-11-04T22:35:57Z",
+        "times": {
+          "primary": "PT2H40M54S",
+          "primary_t": 9654,
+          "realtime": "PT2H40M54S",
+          "realtime_t": 9654,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "7g6m8erk",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 10,
+      "run": {
+        "id": "ylr2r5ky",
+        "weblink": "http://www.speedrun.com/hp3gba/run/ylr2r5ky",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=GgiQBhWxXGEhttps://www.twitch.tv/videos/1199988466"
+            }
+          ]
+        },
+        "comment": "First run. Had to buy missing card at the end so may have split late\n\nNote - Reuploading with Youtube Video due to Twitch Storage Limit",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2025-04-04T06:48:36Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "j2yzy968",
+            "uri": "http://www.speedrun.com/api/v1/users/j2yzy968"
+          }
+        ],
+        "date": "2021-11-08",
+        "submitted": "2021-11-08T22:36:35Z",
+        "times": {
+          "primary": "PT2H44M44S",
+          "primary_t": 9884,
+          "realtime": "PT2H44M44S",
+          "realtime_t": 9884,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "3167d6q2",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    },
+    {
+      "place": 11,
+      "run": {
+        "id": "y418dgny",
+        "weblink": "http://www.speedrun.com/hp3gba/run/y418dgny",
+        "game": "om1m9k62",
+        "level": null,
+        "category": "9d8gow3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.youtube.com/watch?v=tY2qpouJrY8"
+            }
+          ]
+        },
+        "comment": "Awful RNG, probably lost close to 10 minutes because of it",
+        "status": {
+          "status": "verified",
+          "examiner": "68wl14jg",
+          "verify-date": "2020-04-17T20:38:26Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "qjn1lq8m",
+            "uri": "http://www.speedrun.com/api/v1/users/qjn1lq8m"
+          }
+        ],
+        "date": "2019-09-24",
+        "submitted": "2019-09-25T15:31:21Z",
+        "times": {
+          "primary": "PT2H56M33S",
+          "primary_t": 10593,
+          "realtime": "PT2H56M33S",
+          "realtime_t": 10593,
+          "realtime_noloads": null,
+          "realtime_noloads_t": 0,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "3167d6q2",
+          "emulated": false,
+          "region": null
+        },
+        "splits": null,
+        "values": {}
+      }
+    }
+  ],
+  "scrapedAt": "2026-03-03T00:28:07.735Z"
+}

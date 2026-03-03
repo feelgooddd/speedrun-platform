@@ -76,7 +76,7 @@ export default function AdminPage() {
     name: "",
     category_slug: "",
     parent_id: "",
-    parent_slug: "", // add this
+    parent_slug: "",
   });
 
   const [platformCategories, setPlatformCategories] = useState<Category[]>([]); // Add Game

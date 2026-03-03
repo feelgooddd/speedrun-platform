@@ -99,6 +99,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
           },
         },
         platform: true,
+        system: true, // add this
       },
       orderBy: { [timingField]: "asc" as const },
     });
@@ -121,6 +122,8 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       id: run.id,
       subcategory_id: run.subcategory_id,
       comment: run.comment,
+      system: run.system?.name ?? null,
+      system_id: run.system_id,
       realtime_ms: run.realtime_ms,
       gametime_ms: run.gametime_ms,
       realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
@@ -471,5 +474,30 @@ export const deleteSubcategory = async (req: AuthRequest, res: Response) => {
     res.json({ message: "Subcategory deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete subcategory" });
+  }
+};
+
+
+export const getPlatformSystems = async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const platformSystems = await prisma.platformSystem.findMany({
+      where: { platform_id: platform.id },
+      include: { system: true },
+    });
+
+    res.json({ systems: platformSystems.map((ps) => ps.system) });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch systems" });
   }
 };

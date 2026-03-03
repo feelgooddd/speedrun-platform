@@ -50,6 +50,10 @@ model Platform {
   categories Category[]
   deleted_at DateTime?
 
+  platformSystems PlatformSystem[]
+
+
+
 }
 
 model Category {
@@ -98,6 +102,9 @@ model Run {
   category    Category     @relation(fields: [category_id], references: [id])
   platform    Platform     @relation(fields: [platform_id], references: [id])
   subcategory Subcategory? @relation(fields: [subcategory_id], references: [id])
+system_id  String?
+system     System? @relation(fields: [system_id], references: [id])
+
 }
 
 model GameModerator {
@@ -109,4 +116,24 @@ model GameModerator {
   game Game @relation(fields: [game_id], references: [id])
 
   @@id([user_id, game_id])
+}
+
+model System {
+  id   String @id @default(cuid())
+  name String @unique
+
+  runs Run[]
+
+  platformSystems PlatformSystem[]
+
+}
+
+model PlatformSystem {
+  platform_id String
+  system_id   String
+
+  platform Platform @relation(fields: [platform_id], references: [id])
+  system   System   @relation(fields: [system_id], references: [id])
+
+  @@id([platform_id, system_id])
 }

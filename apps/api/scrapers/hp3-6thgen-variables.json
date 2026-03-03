@@ -1,0 +1,16 @@
+{
+  "allowedIds": ["yn2wrvjn"],
+  "variables": [
+    {
+      "id": "yn2wrvjn",
+      "name": "Console or Emulator",
+      "is-subcategory": true,
+      "values": {
+        "values": {
+          "5q8n6vgq": { "label": "Console" },
+          "4qykp241": { "label": "Emulator" }
+        }
+      }
+    }
+  ]
+}

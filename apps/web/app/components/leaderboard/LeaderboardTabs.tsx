@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useAuth } from "../auth/AuthContext";
 import { countryCodeToFlag } from "@/app/lib/flags";
 
-
 interface Run {
   rank: number;
   id: string;
 
   comment: string | null;
 
+  system: string | null;
   realtime_ms: number | null;
   gametime_ms: number | null;
 
@@ -96,7 +96,13 @@ export default function LeaderboardTabs({
     ) ?? false;
 
   // Total number of <th> columns so the accordion row can span all of them
-  const colCount = showSeparateTimes ? 6 : 5;
+const hasSystemColumn = categories.some((cat) => {
+  if (cat.runs?.some((r) => r.system)) return true;
+  if (cat.subcategories?.some((sub) => sub.runs?.some((r) => r.system))) return true;
+  return false;
+});
+
+  const colCount = (showSeparateTimes ? 6 : 5) + (hasSystemColumn ? 1 : 0);
 
   const handleRowClick = (runId: string) => {
     setExpandedRunId((prev) => (prev === runId ? null : runId));
@@ -220,6 +226,8 @@ export default function LeaderboardTabs({
                     ) : (
                       <th>Time</th>
                     )}
+                    {hasSystemColumn && <th>System</th>}
+
                     <th>Date</th>
                     <th>Video</th>
                   </tr>
@@ -250,12 +258,12 @@ export default function LeaderboardTabs({
                               className="runner-link"
                               onClick={(e) => e.stopPropagation()}
                             >
-{run.user.country && (
-  <span className="runner-country">
-    {countryCodeToFlag(run.user.country)}
-  </span>
-)}
-                              
+                              {run.user.country && (
+                                <span className="runner-country">
+                                  {countryCodeToFlag(run.user.country)}
+                                </span>
+                              )}
+
                               {run.user.display_name}
                             </Link>
                           </td>
@@ -289,6 +297,17 @@ export default function LeaderboardTabs({
                                     ({run.realtime_display} RTA)
                                   </span>
                                 )}
+                            </td>
+                          )}
+                          {hasSystemColumn && (
+                            <td className="system-cell">
+                              {run.system ? (
+                                <span className="run-system-badge">
+                                  {run.system}
+                                </span>
+                              ) : (
+                                "—"
+                              )}
                             </td>
                           )}
                           <td className="date-cell">

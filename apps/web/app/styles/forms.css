@@ -80,13 +80,9 @@ textarea.auth-input {
   color: #ff4444;
 }
 
-.runners-form-group {
-  position: relative;
-  z-index: 20;
-}
+
 .runner-search-wrapper {
   position: relative;
-  z-index: 100;
 }
 
 .runner-search-dropdown {
@@ -96,7 +92,6 @@ textarea.auth-input {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 4px;
-  z-index: 9999;
   max-height: 200px;
   overflow-y: auto;
 }

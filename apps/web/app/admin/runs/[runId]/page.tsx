@@ -6,7 +6,21 @@ import Link from "next/link";
 
 interface Run {
   id: string;
-  user: { id: string; username: string; display_name: string | null; country: string | null };
+  is_coop: boolean;
+  user: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    country: string | null;
+  } | null;
+  runners:
+    | {
+        id: string;
+        username: string;
+        display_name: string | null;
+        country: string | null;
+      }[]
+    | null;
   game: string;
   category: string;
   platform: string;
@@ -35,7 +49,12 @@ function msToComponents(ms: number | null) {
   };
 }
 
-function componentsToMs(hours: string, minutes: string, seconds: string, milliseconds: string) {
+function componentsToMs(
+  hours: string,
+  minutes: string,
+  seconds: string,
+  milliseconds: string,
+) {
   return (
     parseInt(hours || "0") * 3600000 +
     parseInt(minutes || "0") * 60000 +
@@ -44,7 +63,11 @@ function componentsToMs(hours: string, minutes: string, seconds: string, millise
   );
 }
 
-export default function RunEditPage({ params }: { params: Promise<{ runId: string }> }) {
+export default function RunEditPage({
+  params,
+}: {
+  params: Promise<{ runId: string }>;
+}) {
   const { user, loading: authLoading, token } = useAuth();
   const router = useRouter();
   const [runId, setRunId] = useState<string | null>(null);
@@ -76,13 +99,22 @@ export default function RunEditPage({ params }: { params: Promise<{ runId: strin
 
   useEffect(() => {
     if (!runId || authLoading) return;
-    if (!user) { router.push("/login"); return; }
-    if (user.role !== "admin") { router.push("/"); return; }
+    if (!user) {
+      router.push("/login");
+      return;
+    }
+    if (user.role !== "admin") {
+      router.push("/");
+      return;
+    }
 
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.error) { setError(data.error); return; }
+        if (data.error) {
+          setError(data.error);
+          return;
+        }
         setRun(data);
 
         const rta = msToComponents(data.realtime_ms);
@@ -106,22 +138,36 @@ export default function RunEditPage({ params }: { params: Promise<{ runId: strin
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError(""); setSuccess(""); setSubmitting(true);
+    setError("");
+    setSuccess("");
+    setSubmitting(true);
+    const url = run?.is_coop
+      ? `${process.env.NEXT_PUBLIC_API_URL}/runs/coop/${runId}`
+      : `${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`;
 
+    console.log("updating url:", url);
     const realtime_ms = componentsToMs(rtaHours, rtaMinutes, rtaSeconds, rtaMs);
     const gametime_ms = componentsToMs(igtHours, igtMinutes, igtSeconds, igtMs);
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          realtime_ms: realtime_ms > 0 ? realtime_ms : null,
-          gametime_ms: gametime_ms > 0 ? gametime_ms : null,
-          video_url: videoUrl || null,
-          comment: comment || null,
-        }),
-      });
+      const res = await fetch(
+        run?.is_coop
+          ? `${process.env.NEXT_PUBLIC_API_URL}/runs/coop/${runId}`
+          : `${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            realtime_ms: realtime_ms > 0 ? realtime_ms : null,
+            gametime_ms: gametime_ms > 0 ? gametime_ms : null,
+            video_url: videoUrl || null,
+            comment: comment || null,
+          }),
+        },
+      );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to update run");
       setSuccess("Run updated successfully.");
@@ -135,10 +181,15 @@ export default function RunEditPage({ params }: { params: Promise<{ runId: strin
   const handleDelete = async () => {
     setDeleting(true);
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(
+        run?.is_coop
+          ? `${process.env.NEXT_PUBLIC_API_URL}/runs/coop/${runId}`
+          : `${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
       if (!res.ok) throw new Error("Failed to delete run");
       router.push("/admin");
     } catch (err: any) {
@@ -150,33 +201,44 @@ export default function RunEditPage({ params }: { params: Promise<{ runId: strin
   if (authLoading || loading) return null;
   if (!user || user.role !== "admin") return null;
 
-if (error && !run) {
-  return (
-    <div className="landing">
-      <div className="section" style={{ paddingTop: "6rem" }}>
-        <div className="section-header">
-          <h1 className="section-title">Edit Run</h1>
-          <p className="section-subtitle" style={{ color: "#ff4444" }}>{error}</p>
-        </div>
-        <div style={{ textAlign: "center", marginTop: "2rem" }}>
-          <Link href="/admin" className="btn btn-primary">← Back to Admin</Link>
+  if (error && !run) {
+    return (
+      <div className="landing">
+        <div className="section" style={{ paddingTop: "6rem" }}>
+          <div className="section-header">
+            <h1 className="section-title">Edit Run</h1>
+            <p className="section-subtitle" style={{ color: "#ff4444" }}>
+              {error}
+            </p>
+          </div>
+          <div style={{ textAlign: "center", marginTop: "2rem" }}>
+            <Link href="/admin" className="btn btn-primary">
+              ← Back to Admin
+            </Link>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
   return (
     <div className="landing">
       <div className="section" style={{ paddingTop: "6rem" }}>
         <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-          <Link href="/admin" style={{ opacity: 0.6, fontSize: "0.9rem" }}>← Back to Admin</Link>
+          <Link href="/admin" style={{ opacity: 0.6, fontSize: "0.9rem" }}>
+            ← Back to Admin
+          </Link>
 
           <div className="section-header" style={{ marginTop: "1rem" }}>
             <h1 className="section-title">Edit Run</h1>
             {run && (
               <p className="section-subtitle">
-                {run.user.display_name || run.user.username} · {run.game} · {run.platform} · {run.category}
+                {run.is_coop && run.runners
+                  ? run.runners
+                      .map((r) => r.display_name || r.username)
+                      .join(" & ")
+                  : run.user?.display_name || run.user?.username}{" "}
+                · {run.game} · {run.platform} · {run.category}
               </p>
             )}
           </div>
@@ -188,57 +250,142 @@ if (error && !run) {
                   <div className="form-group">
                     <label className="form-label">Real Time Attack (RTA)</label>
                     <div className="time-input-group">
-                      <input type="number" placeholder="HH" value={rtaHours} onChange={(e) => setRtaHours(e.target.value)} className="auth-input" />
+                      <input
+                        type="number"
+                        placeholder="HH"
+                        value={rtaHours}
+                        onChange={(e) => setRtaHours(e.target.value)}
+                        className="auth-input"
+                      />
                       <span className="time-separator">:</span>
-                      <input type="number" placeholder="MM" value={rtaMinutes} onChange={(e) => setRtaMinutes(e.target.value)} className="auth-input" />
+                      <input
+                        type="number"
+                        placeholder="MM"
+                        value={rtaMinutes}
+                        onChange={(e) => setRtaMinutes(e.target.value)}
+                        className="auth-input"
+                      />
                       <span className="time-separator">:</span>
-                      <input type="number" placeholder="SS" value={rtaSeconds} onChange={(e) => setRtaSeconds(e.target.value)} className="auth-input" />
+                      <input
+                        type="number"
+                        placeholder="SS"
+                        value={rtaSeconds}
+                        onChange={(e) => setRtaSeconds(e.target.value)}
+                        className="auth-input"
+                      />
                       <span className="time-separator">.</span>
-                      <input type="number" placeholder="MS" value={rtaMs} onChange={(e) => setRtaMs(e.target.value)} className="auth-input" />
+                      <input
+                        type="number"
+                        placeholder="MS"
+                        value={rtaMs}
+                        onChange={(e) => setRtaMs(e.target.value)}
+                        className="auth-input"
+                      />
                     </div>
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">In-Game Time (IGT) — Optional</label>
+                    <label className="form-label">
+                      In-Game Time (IGT) — Optional
+                    </label>
                     <div className="time-input-group">
-                      <input type="number" placeholder="HH" value={igtHours} onChange={(e) => setIgtHours(e.target.value)} className="auth-input" />
+                      <input
+                        type="number"
+                        placeholder="HH"
+                        value={igtHours}
+                        onChange={(e) => setIgtHours(e.target.value)}
+                        className="auth-input"
+                      />
                       <span className="time-separator">:</span>
-                      <input type="number" placeholder="MM" value={igtMinutes} onChange={(e) => setIgtMinutes(e.target.value)} className="auth-input" />
+                      <input
+                        type="number"
+                        placeholder="MM"
+                        value={igtMinutes}
+                        onChange={(e) => setIgtMinutes(e.target.value)}
+                        className="auth-input"
+                      />
                       <span className="time-separator">:</span>
-                      <input type="number" placeholder="SS" value={igtSeconds} onChange={(e) => setIgtSeconds(e.target.value)} className="auth-input" />
+                      <input
+                        type="number"
+                        placeholder="SS"
+                        value={igtSeconds}
+                        onChange={(e) => setIgtSeconds(e.target.value)}
+                        className="auth-input"
+                      />
                       <span className="time-separator">.</span>
-                      <input type="number" placeholder="MS" value={igtMs} onChange={(e) => setIgtMs(e.target.value)} className="auth-input" />
+                      <input
+                        type="number"
+                        placeholder="MS"
+                        value={igtMs}
+                        onChange={(e) => setIgtMs(e.target.value)}
+                        className="auth-input"
+                      />
                     </div>
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">Video URL</label>
-                    <input type="url" className="auth-input" value={videoUrl} onChange={(e) => setVideoUrl(e.target.value)} placeholder="https://youtube.com/watch?v=..." />
+                    <input
+                      type="url"
+                      className="auth-input"
+                      value={videoUrl}
+                      onChange={(e) => setVideoUrl(e.target.value)}
+                      placeholder="https://youtube.com/watch?v=..."
+                    />
                   </div>
 
                   <div className="form-group">
                     <label className="form-label">Comment</label>
-                    <textarea className="auth-input" value={comment} onChange={(e) => setComment(e.target.value)} rows={3} style={{ resize: "vertical", fontFamily: "inherit" }} />
+                    <textarea
+                      className="auth-input"
+                      value={comment}
+                      onChange={(e) => setComment(e.target.value)}
+                      rows={3}
+                      style={{ resize: "vertical", fontFamily: "inherit" }}
+                    />
                   </div>
 
-                  <div className="form-group" style={{ fontSize: "0.85rem", opacity: 0.6 }}>
-                    <div>Submitted: {new Date(run.submitted_at).toLocaleDateString()}</div>
+                  <div
+                    className="form-group"
+                    style={{ fontSize: "0.85rem", opacity: 0.6 }}
+                  >
+                    <div>
+                      Submitted:{" "}
+                      {new Date(run.submitted_at).toLocaleDateString()}
+                    </div>
                     <div>Status: {run.verified ? "✓ Verified" : "Pending"}</div>
-                    {run.verified_at && <div>Verified: {new Date(run.verified_at).toLocaleDateString()}</div>}
+                    {run.verified_at && (
+                      <div>
+                        Verified:{" "}
+                        {new Date(run.verified_at).toLocaleDateString()}
+                      </div>
+                    )}
                   </div>
 
                   {error && <p className="auth-error">{error}</p>}
                   {success && <p className="auth-success">{success}</p>}
 
-                  <button className="btn btn-primary btn-full" type="submit" disabled={submitting}>
+                  <button
+                    className="btn btn-primary btn-full"
+                    type="submit"
+                    disabled={submitting}
+                  >
                     {submitting ? "Saving..." : "Save Changes"}
                   </button>
                 </form>
               </div>
 
               {/* Delete */}
-              <div className="profile-section" style={{ marginTop: "2rem", borderColor: "rgba(255,0,0,0.2)" }}>
-                <h2 className="profile-section-title" style={{ color: "#ff4444" }}>Danger Zone</h2>
+              <div
+                className="profile-section"
+                style={{ marginTop: "2rem", borderColor: "rgba(255,0,0,0.2)" }}
+              >
+                <h2
+                  className="profile-section-title"
+                  style={{ color: "#ff4444" }}
+                >
+                  Danger Zone
+                </h2>
                 {!confirmDelete ? (
                   <button
                     className="btn btn-full"
@@ -261,7 +408,10 @@ if (error && !run) {
                       >
                         {deleting ? "Deleting..." : "Yes, Delete"}
                       </button>
-                      <button className="btn btn-full" onClick={() => setConfirmDelete(false)}>
+                      <button
+                        className="btn btn-full"
+                        onClick={() => setConfirmDelete(false)}
+                      >
                         Cancel
                       </button>
                     </div>

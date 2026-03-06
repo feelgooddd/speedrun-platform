@@ -79,6 +79,7 @@ model Subcategory {
   category  Category  @relation(fields: [category_id], references: [id])
   runs      Run[]
   coop_runs CoopRun[]
+required_players Int?
 }
 
 model Run {

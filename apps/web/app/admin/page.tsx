@@ -77,6 +77,9 @@ export default function AdminPage() {
     category_slug: "",
     parent_id: "",
     parent_slug: "",
+
+    is_coop: false,
+    required_players: 2,
   });
 
   const [platformCategories, setPlatformCategories] = useState<Category[]>([]); // Add Game
@@ -293,6 +296,8 @@ export default function AdminPage() {
         ? {
             name: categoryForm.name,
             subcategory_slug: categoryForm.category_slug,
+            is_coop: categoryForm.is_coop,
+            required_players: categoryForm.is_coop ? categoryForm.required_players : null,
           }
         : {
             name: categoryForm.name,
@@ -319,6 +324,8 @@ export default function AdminPage() {
         category_slug: "",
         parent_id: "",
         parent_slug: "",
+        is_coop: false,
+        required_players: 2,
       }));
 
       if (!isSubcategory) {
@@ -681,7 +688,55 @@ export default function AdminPage() {
                       ))}
                     </select>
                   </div>
-
+                  {categoryForm.parent_id && (
+                    <div
+                      className="form-group"
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        id="is_coop"
+                        checked={categoryForm.is_coop}
+                        onChange={(e) =>
+                          setCategoryForm({
+                            ...categoryForm,
+                            is_coop: e.target.checked,
+                          })
+                        }
+                      />
+                      <label
+                        htmlFor="is_coop"
+                        className="form-label"
+                        style={{ margin: 0 }}
+                      >
+                        Co-op subcategory
+                      </label>
+                      {categoryForm.is_coop && (
+                        <div
+                          className="form-group"
+                          style={{ marginTop: "0.5rem" }}
+                        >
+                          <label className="form-label">Required Players</label>
+                          <input
+                            type="number"
+                            className="auth-input"
+                            min={2}
+                            value={categoryForm.required_players}
+                            onChange={(e) =>
+                              setCategoryForm({
+                                ...categoryForm,
+                                required_players: parseInt(e.target.value),
+                              })
+                            }
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                   <div
                     className="form-row"
                     style={{
@@ -694,7 +749,7 @@ export default function AdminPage() {
                       <label className="form-label">Category Name</label>
                       <input
                         className="auth-input"
-                        placeholder="e.g. Console"
+                        placeholder="e.g console/emu/1player/2player/ace/noace etc"
                         value={categoryForm.name}
                         onChange={(e) =>
                           setCategoryForm({
@@ -705,6 +760,7 @@ export default function AdminPage() {
                         required
                       />
                     </div>
+
                     <div style={{ flex: 1 }}>
                       <label className="form-label">Slug</label>
                       <input

@@ -4,6 +4,8 @@
 
 .form-group {
   margin-bottom: 1.5rem;
+  z-index: 1;
+  position: relative;
 }
 
 .form-label {
@@ -21,7 +23,9 @@
   border-radius: 4px;
   color: var(--text);
   font-size: 1rem;
-  transition: border 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .auth-input:focus {
@@ -54,7 +58,6 @@ textarea.auth-input {
   font-weight: 500;
 }
 
-
 /* Success + Error Boxes */
 
 .submit-success,
@@ -75,4 +78,25 @@ textarea.auth-input {
   background: rgba(255, 0, 0, 0.1);
   border: 1px solid rgba(255, 0, 0, 0.3);
   color: #ff4444;
+}
+
+.runners-form-group {
+  position: relative;
+  z-index: 20;
+}
+.runner-search-wrapper {
+  position: relative;
+  z-index: 100;
+}
+
+.runner-search-dropdown {
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  z-index: 9999;
+  max-height: 200px;
+  overflow-y: auto;
 }

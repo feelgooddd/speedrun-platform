@@ -36,7 +36,9 @@ export const getUserProfile = async (req: Request, res: Response) => {
     for (const run of runs) {
       const timingMethod = run.platform.timing_method;
       const time =
-        timingMethod === "gametime" ? run.gametime_ms : run.realtime_ms;
+        timingMethod === "gametime"
+          ? (run.gametime_ms ?? run.realtime_ms)
+          : run.realtime_ms;
       if (!time) continue;
 
       const existing = pbMap.get(run.category_id);
@@ -95,9 +97,13 @@ export const getUserProfile = async (req: Request, res: Response) => {
           platform_slug: run.platform.slug,
           timing_method: timingMethod,
           realtime_ms: run.realtime_ms,
-          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+          realtime_display: run.realtime_ms
+            ? formatTime(run.realtime_ms)
+            : null,
           gametime_ms: run.gametime_ms,
-          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+          gametime_display: run.gametime_ms
+            ? formatTime(run.gametime_ms)
+            : null,
           video_url: run.video_url,
           comment: run.comment,
           rank,
@@ -142,9 +148,11 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
     for (const run of verifiedCoopRuns) {
       const timingMethod = run.platform.timing_method;
-      const time =
-        timingMethod === "gametime" ? run.gametime_ms : run.realtime_ms;
-      if (!time) continue;
+const time =
+  timingMethod === "gametime"
+    ? (run.gametime_ms ?? run.realtime_ms)
+    : run.realtime_ms;
+if (!time) continue;
 
       const key = run.subcategory_id ?? run.category_id;
       const existing = coopPBMap.get(key);
@@ -196,7 +204,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
         const dedupedCoopRuns = allCoopRuns.filter((cr) => {
           const t = (cr as any)[timeField] ?? Infinity;
           return cr.runners.some(
-            (runner) => userBestTime.get(runner.user_id) === t
+            (runner) => userBestTime.get(runner.user_id) === t,
           );
         });
 
@@ -215,9 +223,13 @@ export const getUserProfile = async (req: Request, res: Response) => {
           platform_slug: run.platform.slug,
           timing_method: timingMethod,
           realtime_ms: run.realtime_ms,
-          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+          realtime_display: run.realtime_ms
+            ? formatTime(run.realtime_ms)
+            : null,
           gametime_ms: run.gametime_ms,
-          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+          gametime_display: run.gametime_ms
+            ? formatTime(run.gametime_ms)
+            : null,
           video_url: run.video_url,
           comment: run.comment,
           rank,
@@ -351,17 +363,19 @@ export const getMyModeratedGames = async (req: AuthRequest, res: Response) => {
     }
 
     const addPendingCounts = async (games: any[]) => {
-      return Promise.all(games.map(async (game) => {
-        const platformIds = game.platforms.map((p: any) => p.id);
-        const pending_runs = await prisma.run.count({
-          where: {
-            platform_id: { in: platformIds },
-            verified: false,
-            rejected: false,
-          },
-        });
-        return { ...game, pending_runs };
-      }));
+      return Promise.all(
+        games.map(async (game) => {
+          const platformIds = game.platforms.map((p: any) => p.id);
+          const pending_runs = await prisma.run.count({
+            where: {
+              platform_id: { in: platformIds },
+              verified: false,
+              rejected: false,
+            },
+          });
+          return { ...game, pending_runs };
+        }),
+      );
     };
 
     if (user.role === "admin") {
@@ -380,7 +394,6 @@ export const getMyModeratedGames = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Failed to fetch moderated games" });
   }
 };
-
 
 export const getMe = async (req: AuthRequest, res: Response) => {
   try {
@@ -460,24 +473,24 @@ export const searchUsers = async (req: AuthRequest, res: Response) => {
     const q = req.query.q as string;
     if (!q) return res.status(400).json({ error: "Query required" });
 
-const users = await prisma.user.findMany({
-  where: {
-    username: { contains: q.toLowerCase() },
-  },
-  select: {
-    id: true,
-    username: true,
-    display_name: true,
-    email: true,
-    role: true,
-    country: true,
-    created_at: true,
-    moderated_games: {
-      include: { game: true },
-    },
-  },
-  take: 20,
-});
+    const users = await prisma.user.findMany({
+      where: {
+        username: { contains: q.toLowerCase() },
+      },
+      select: {
+        id: true,
+        username: true,
+        display_name: true,
+        email: true,
+        role: true,
+        country: true,
+        created_at: true,
+        moderated_games: {
+          include: { game: true },
+        },
+      },
+      take: 20,
+    });
 
     res.json({ users });
   } catch (error) {

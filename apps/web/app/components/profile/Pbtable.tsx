@@ -161,10 +161,12 @@ export default function PBTable({
                                     className="runner-link"
                                     onClick={(e) => e.stopPropagation()}
                                   >
-                                    {r.country && (
+                                    {r.country ? (
                                       <span className="runner-country">
                                         {countryCodeToFlag(r.country)}
                                       </span>
+                                    ) : (
+                                      <span className="runner-country">🏁</span>
                                     )}
                                     {r.display_name || r.username}
                                   </Link>

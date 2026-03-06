@@ -258,7 +258,7 @@ export default function LeaderboardTabs({
                           <td className="rank-cell">#{run.rank}</td>
                           <td className="runner-cell">
                             {run.runners ? (
-                              <div className="runner-link-group">
+                              <div className="runner-link-group flex flex-col">
                                 {run.runners.map((runner, i) => (
                                   <span key={runner.id}>
                                     <Link
@@ -266,10 +266,12 @@ export default function LeaderboardTabs({
                                       className="runner-link"
                                       onClick={(e) => e.stopPropagation()}
                                     >
-                                      {runner.country && (
+                                      {runner.country ? (
                                         <span className="runner-country">
                                           {countryCodeToFlag(runner.country)}
                                         </span>
+                                      ): (
+                                        <span>🏁</span>
                                       )}
                                       {runner.display_name}
                                     </Link>

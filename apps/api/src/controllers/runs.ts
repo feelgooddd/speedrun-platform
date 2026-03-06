@@ -95,16 +95,15 @@ export const getRun = async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
 
+    // Try solo run first
     const run = await prisma.run.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, username: true, country: true } },
+        user: { select: { id: true, username: true, display_name: true, country: true } },
         category: {
           include: {
             platform: {
-              include: {
-                game: true,
-              },
+              include: { game: true },
             },
           },
         },
@@ -112,26 +111,66 @@ export const getRun = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    if (!run) return res.status(404).json({ error: "Run not found" });
+    if (run) {
+      return res.json({
+        id: run.id,
+        is_coop: false,
+        user: run.user,
+        runners: null,
+        game: run.category.platform!.game.name,
+        category: run.category.name,
+        platform: run.platform.name,
+        realtime_ms: run.realtime_ms,
+        gametime_ms: run.gametime_ms,
+        realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+        gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+        verified: run.verified,
+        video_url: run.video_url,
+        comment: run.comment,
+        submitted_at: run.submitted_at,
+        verified_at: run.verified_at,
+      });
+    }
 
-    if (!run.category.platform)
-      return res.status(500).json({ error: "Invalid run data" });
+    // Fall back to co-op run
+    const coopRun = await prisma.coopRun.findUnique({
+      where: { id },
+      include: {
+        runners: {
+          include: {
+            user: { select: { id: true, username: true, display_name: true, country: true } },
+          },
+        },
+        category: {
+          include: {
+            platform: {
+              include: { game: true },
+            },
+          },
+        },
+        platform: true,
+      },
+    });
+
+    if (!coopRun) return res.status(404).json({ error: "Run not found" });
 
     res.json({
-      id: run.id,
-      user: run.user,
-      game: run.category.platform.game.name,
-      category: run.category.name,
-      platform: run.platform.name,
-      realtime_ms: run.realtime_ms,
-      gametime_ms: run.gametime_ms,
-      realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
-      gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
-      verified: run.verified,
-      video_url: run.video_url,
-      comment: run.comment,
-      submitted_at: run.submitted_at,
-      verified_at: run.verified_at,
+      id: coopRun.id,
+      is_coop: true,
+      user: null,
+      runners: coopRun.runners.map((r) => r.user),
+      game: coopRun.category.platform!.game.name,
+      category: coopRun.category.name,
+      platform: coopRun.platform.name,
+      realtime_ms: coopRun.realtime_ms,
+      gametime_ms: coopRun.gametime_ms,
+      realtime_display: coopRun.realtime_ms ? formatTime(coopRun.realtime_ms) : null,
+      gametime_display: coopRun.gametime_ms ? formatTime(coopRun.gametime_ms) : null,
+      verified: coopRun.verified,
+      video_url: coopRun.video_url,
+      comment: coopRun.comment,
+      submitted_at: coopRun.submitted_at,
+      verified_at: coopRun.verified_at,
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch run" });
@@ -163,6 +202,57 @@ export const updateRun = async (req: AuthRequest, res: Response) => {
     res.json({ run: updated });
   } catch (error) {
     res.status(500).json({ error: "Failed to update run" });
+  }
+};
+
+export const updateCoopRun = async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+    const { realtime_ms, gametime_ms, video_url, comment } = req.body;
+
+    const run = await prisma.coopRun.findUnique({ where: { id } });
+    if (!run) return res.status(404).json({ error: "Co-op run not found" });
+
+    const updated = await prisma.coopRun.update({
+      where: { id },
+      data: {
+        ...(realtime_ms !== undefined && {
+          realtime_ms: parseInt(realtime_ms),
+        }),
+        ...(gametime_ms !== undefined && {
+          gametime_ms: gametime_ms ? parseInt(gametime_ms) : null,
+        }),
+        ...(video_url !== undefined && { video_url }),
+        ...(comment !== undefined && { comment }),
+      },
+    });
+
+    res.json({ run: updated });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update co-op run" });
+  }
+};
+export const deleteCoopRun = async (req: AuthRequest, res: Response) => {
+  try {
+    const id = req.params.id as string;
+
+    const run = await prisma.coopRun.findUnique({ where: { id } });
+    if (!run) return res.status(404).json({ error: "Co-op run not found" });
+
+    // Only submitter or admin can delete
+    if (run.submitted_by_id !== req.userId) {
+      const user = await prisma.user.findUnique({ where: { id: req.userId } });
+      if (user?.role !== "admin") {
+        return res.status(403).json({ error: "Not authorized to delete this run" });
+      }
+    }
+
+    await prisma.coopRunRunner.deleteMany({ where: { coop_run_id: id } });
+    await prisma.coopRun.delete({ where: { id } });
+
+    res.json({ message: "Co-op run deleted" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete co-op run" });
   }
 };
 
@@ -239,6 +329,11 @@ export const submitCoopRun = async (req: AuthRequest, res: Response) => {
     if (!subcategory.is_coop) {
       return res.status(400).json({ error: "This subcategory is not a co-op category" });
     }
+    if (subcategory.required_players && runner_ids.length !== subcategory.required_players) {
+  return res.status(400).json({ 
+    error: `This subcategory requires exactly ${subcategory.required_players} runners` 
+  });
+}
 
     // Verify all runner_ids exist
     const users = await prisma.user.findMany({

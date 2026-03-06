@@ -121,7 +121,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       const dedupedRuns = coopRuns.filter((run) => {
         const time = (run as any)[timingField] ?? Infinity;
         return run.runners.some(
-          (runner) => bestTimePerUser.get(runner.user_id) === time
+          (runner) => bestTimePerUser.get(runner.user_id) === time,
         );
       });
 
@@ -325,23 +325,44 @@ export const deleteGame = async (req: AuthRequest, res: Response) => {
 
 export const getStats = async (req: Request, res: Response) => {
   try {
-    const [totalRuns, runners, categories, pbs] = await Promise.all([
+    const [
+      totalRuns,
+      totalCoopRuns,
+      runners,
+      coopRunners,
+      categories,
+      pbs,
+      coopPbs,
+    ] = await Promise.all([
       prisma.run.count(),
+      prisma.coopRun.count({ where: { verified: true } }),
       prisma.run.groupBy({
         by: ["user_id"],
         where: { verified: true },
+      }),
+      prisma.coopRunRunner.groupBy({
+        by: ["user_id"],
       }),
       prisma.category.count(),
       prisma.run.groupBy({
         by: ["user_id", "category_id", "platform_id"],
         where: { verified: true },
       }),
+      prisma.coopRun.groupBy({
+        by: ["subcategory_id", "category_id", "platform_id"],
+        where: { verified: true },
+      }),
     ]);
 
+    // Merge unique runners across solo and co-op
+    const soloRunnerIds = new Set(runners.map((r) => r.user_id));
+    const coopRunnerIds = new Set(coopRunners.map((r) => r.user_id));
+    const allRunnerIds = new Set([...soloRunnerIds, ...coopRunnerIds]);
+
     res.json({
-      total_runs: totalRuns,
-      total_pbs: pbs.length,
-      runners: runners.length,
+      total_runs: totalRuns + totalCoopRuns,
+      total_pbs: pbs.length + coopPbs.length,
+      runners: allRunnerIds.size,
       world_records: categories,
     });
   } catch (error) {
@@ -414,7 +435,8 @@ export const createSubcategory = async (req: AuthRequest, res: Response) => {
     const slug = req.params.slug as string;
     const platformSlug = req.params.platform as string;
     const categorySlug = req.params.category as string;
-    const { name, subcategory_slug } = req.body;
+const { name, subcategory_slug, is_coop, required_players } = req.body;
+
 
     if (!name || !subcategory_slug) {
       return res.status(400).json({ error: "Name and slug are required" });
@@ -436,13 +458,15 @@ export const createSubcategory = async (req: AuthRequest, res: Response) => {
 
     const hadNoSubcategories = category.subcategories.length === 0;
 
-    const subcategory = await prisma.subcategory.create({
-      data: {
-        name,
-        slug: subcategory_slug,
-        category_id: category.id,
-      },
-    });
+const subcategory = await prisma.subcategory.create({
+  data: {
+    name,
+    slug: subcategory_slug,
+    category_id: category.id,
+    is_coop: is_coop ?? false,
+    required_players: required_players ? parseInt(required_players) : null,
+  },
+});
 
     // If this is the first subcategory, migrate all existing runs to it
     if (hadNoSubcategories) {
@@ -557,7 +581,6 @@ export const deleteSubcategory = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Failed to delete subcategory" });
   }
 };
-
 
 export const getPlatformSystems = async (req: Request, res: Response) => {
   try {

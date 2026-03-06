@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap");
 
 @import "tailwindcss";
 
@@ -42,7 +42,7 @@
   background: var(--bg-gradient);
   font-family: "Crimson Text", Georgia, serif;
   color: #e8e0d0;
-  overflow-x: hidden;
+  overflow: visible;
   transition: background 0.8s ease;
 }
 

@@ -7,7 +7,6 @@ export const getUserProfile = async (req: Request, res: Response) => {
   try {
     const identifier = req.params.id as string;
 
-    // Try to find by username first, then fall back to ID
     const user = await prisma.user.findFirst({
       where: {
         OR: [{ username: identifier.toLowerCase() }, { id: identifier }],
@@ -23,6 +22,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
     const id = user.id;
 
+    // Solo runs
     const runs = await prisma.run.findMany({
       where: { user_id: id, verified: true },
       include: {
@@ -53,7 +53,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
       }
     }
 
-    const personalBests = await Promise.all(
+    const soloPBs = await Promise.all(
       Array.from(pbMap.values()).map(async (run) => {
         const timingMethod = run.platform.timing_method;
         const timeField =
@@ -84,29 +84,149 @@ export const getUserProfile = async (req: Request, res: Response) => {
         const rank = dedupedRuns.findIndex((r) => r.user_id === id) + 1;
 
         return {
+          is_coop: false,
           game_id: run.category.platform!.game.id,
           game_name: run.category.platform!.game.name,
           game_slug: run.category.platform!.game.slug,
           category_id: run.category_id,
           category_name: run.category.name,
+          category_slug: run.category.slug,
           platform: run.platform.name,
+          platform_slug: run.platform.slug,
           timing_method: timingMethod,
           realtime_ms: run.realtime_ms,
-          realtime_display: run.realtime_ms
-            ? formatTime(run.realtime_ms)
-            : null,
+          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
           gametime_ms: run.gametime_ms,
-          gametime_display: run.gametime_ms
-            ? formatTime(run.gametime_ms)
-            : null,
+          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
           video_url: run.video_url,
           comment: run.comment,
           rank,
-          category_slug: run.category.slug,
-          platform_slug: run.platform.slug,
+          runners: null,
         };
       }),
     );
+
+    // Co-op PBs
+    const coopParticipations = await prisma.coopRunRunner.findMany({
+      where: { user_id: id },
+      include: {
+        coop_run: {
+          include: {
+            category: { include: { platform: { include: { game: true } } } },
+            platform: true,
+            subcategory: true,
+            runners: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    username: true,
+                    display_name: true,
+                    country: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Filter to verified only
+    const verifiedCoopRuns = coopParticipations
+      .map((p) => p.coop_run)
+      .filter((r) => r.verified);
+
+    // Deduplicate to PB per subcategory
+    const coopPBMap = new Map<string, (typeof verifiedCoopRuns)[0]>();
+
+    for (const run of verifiedCoopRuns) {
+      const timingMethod = run.platform.timing_method;
+      const time =
+        timingMethod === "gametime" ? run.gametime_ms : run.realtime_ms;
+      if (!time) continue;
+
+      const key = run.subcategory_id ?? run.category_id;
+      const existing = coopPBMap.get(key);
+      if (!existing) {
+        coopPBMap.set(key, run);
+      } else {
+        const existingTime =
+          timingMethod === "gametime"
+            ? existing.gametime_ms
+            : existing.realtime_ms;
+        if (existingTime && time < existingTime) {
+          coopPBMap.set(key, run);
+        }
+      }
+    }
+
+    const coopPBs = await Promise.all(
+      Array.from(coopPBMap.values()).map(async (run) => {
+        const timingMethod = run.platform.timing_method;
+        const timeField =
+          timingMethod === "gametime" ? "gametime_ms" : "realtime_ms";
+
+        // Rank: count coop runs in this subcategory where user has a faster PB
+        const allCoopRuns = await prisma.coopRun.findMany({
+          where: {
+            subcategory_id: run.subcategory_id ?? undefined,
+            category_id: run.category_id,
+            platform_id: run.platform_id,
+            verified: true,
+          },
+          include: {
+            runners: true,
+          },
+          orderBy: { [timeField]: "asc" as const },
+        });
+
+        // Build PB per user across all coop runs in this subcategory
+        const userBestTime = new Map<string, number>();
+        for (const cr of allCoopRuns) {
+          const t = (cr as any)[timeField] ?? Infinity;
+          for (const runner of cr.runners) {
+            const existing = userBestTime.get(runner.user_id);
+            if (existing === undefined || t < existing) {
+              userBestTime.set(runner.user_id, t);
+            }
+          }
+        }
+
+        const dedupedCoopRuns = allCoopRuns.filter((cr) => {
+          const t = (cr as any)[timeField] ?? Infinity;
+          return cr.runners.some(
+            (runner) => userBestTime.get(runner.user_id) === t
+          );
+        });
+
+        const rank = dedupedCoopRuns.findIndex((cr) => cr.id === run.id) + 1;
+
+        return {
+          is_coop: true,
+          game_id: run.category.platform!.game.id,
+          game_name: run.category.platform!.game.name,
+          game_slug: run.category.platform!.game.slug,
+          category_id: run.category_id,
+          category_name: run.category.name,
+          category_slug: run.category.slug,
+          subcategory_name: run.subcategory?.name ?? null,
+          platform: run.platform.name,
+          platform_slug: run.platform.slug,
+          timing_method: timingMethod,
+          realtime_ms: run.realtime_ms,
+          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+          gametime_ms: run.gametime_ms,
+          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+          video_url: run.video_url,
+          comment: run.comment,
+          rank,
+          runners: run.runners.map((r) => r.user),
+        };
+      }),
+    );
+
+    const personalBests = [...soloPBs, ...coopPBs];
 
     const totalRuns = await prisma.run.count({ where: { user_id: id } });
     const verifiedRuns = await prisma.run.count({

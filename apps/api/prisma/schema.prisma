@@ -16,69 +16,69 @@ model User {
   avatar_url       String?
   country          String?
   twitch           String?
-  role             String   @default("user") // "admin" or mod or "user"
+  role             String   @default("user")
   is_placeholder   Boolean  @default(false)
   speedrun_com_id  String?  @unique
   created_at       DateTime @default(now())
 
   runs            Run[]
+  coop_runs       CoopRunRunner[]
   moderated_games GameModerator[]
+
+  submitted_coop_runs  CoopRun[]  @relation("CoopRunSubmitter")
 }
 
 model Game {
-  id                  String   @id @default(cuid())
-  slug                String   @unique
+  id                  String    @id @default(cuid())
+  slug                String    @unique
   name                String
-  created_at          DateTime @default(now())
+  created_at          DateTime  @default(now())
   default_platform_id String?
+  deleted_at          DateTime?
 
   platforms  Platform[]
   moderators GameModerator[]
-  deleted_at DateTime?
-
 }
 
 model Platform {
-  id      String @id @default(cuid())
-  game_id String
-  name    String
-  slug    String
-  timing_method String @default("realtime") // "realtime" or "gametime"
+  id            String    @id @default(cuid())
+  game_id       String
+  name          String
+  slug          String
+  timing_method String    @default("realtime")
+  deleted_at    DateTime?
 
-  game       Game       @relation(fields: [game_id], references: [id])
-  runs       Run[]
-  categories Category[]
-  deleted_at DateTime?
-
+  game            Game             @relation(fields: [game_id], references: [id])
+  runs            Run[]
+  coop_runs       CoopRun[]
+  categories      Category[]
   platformSystems PlatformSystem[]
-
-
-
 }
 
 model Category {
-  id          String @id @default(cuid())
+  id          String    @id @default(cuid())
   platform_id String
   name        String
   slug        String
+  deleted_at  DateTime?
 
   platform      Platform      @relation(fields: [platform_id], references: [id])
   runs          Run[]
+  coop_runs     CoopRun[]
   subcategories Subcategory[]
-  deleted_at DateTime?
-
 }
 
 model Subcategory {
-  id          String @id @default(cuid())
+  id          String    @id @default(cuid())
   category_id String
   name        String
   slug        String
+  is_coop     Boolean   @default(false)
+  deleted_at  DateTime?
 
-  category Category @relation(fields: [category_id], references: [id])
-  runs     Run[]
-  deleted_at DateTime?
-
+  category  Category  @relation(fields: [category_id], references: [id])
+  runs      Run[]
+  coop_runs CoopRun[]
 }
 
 model Run {
@@ -87,8 +87,8 @@ model Run {
   category_id     String
   platform_id     String
   subcategory_id  String?
-  realtime_ms     Int?      // Keep
-  gametime_ms     Int?      // Keep
+  realtime_ms     Int?
+  gametime_ms     Int?
   comment         String?
   video_url       String?
   verified        Boolean   @default(false)
@@ -97,14 +97,49 @@ model Run {
   submitted_at    DateTime  @default(now())
   verified_at     DateTime?
   speedrun_com_id String?   @unique
+  system_id       String?
 
   user        User         @relation(fields: [user_id], references: [id])
   category    Category     @relation(fields: [category_id], references: [id])
   platform    Platform     @relation(fields: [platform_id], references: [id])
   subcategory Subcategory? @relation(fields: [subcategory_id], references: [id])
-system_id  String?
-system     System? @relation(fields: [system_id], references: [id])
+  system      System?      @relation(fields: [system_id], references: [id])
+}
 
+model CoopRun {
+  id             String    @id @default(cuid())
+  category_id    String
+  platform_id    String
+  subcategory_id String
+  realtime_ms    Int?
+  gametime_ms    Int?
+  comment        String?
+  video_url      String?
+  verified       Boolean   @default(false)
+  rejected       Boolean   @default(false)
+  reject_reason  String?
+  submitted_at   DateTime  @default(now())
+  verified_at    DateTime?
+  system_id      String?
+
+  category    Category        @relation(fields: [category_id], references: [id])
+  platform    Platform        @relation(fields: [platform_id], references: [id])
+  subcategory Subcategory     @relation(fields: [subcategory_id], references: [id])
+  system      System?         @relation(fields: [system_id], references: [id])
+  runners     CoopRunRunner[]
+
+  submitted_by_id  String?
+  submitted_by  User?  @relation("CoopRunSubmitter", fields: [submitted_by_id], references: [id])
+}
+
+model CoopRunRunner {
+  coop_run_id String
+  user_id     String
+
+  coop_run CoopRun @relation(fields: [coop_run_id], references: [id])
+  user     User    @relation(fields: [user_id], references: [id])
+
+  @@id([coop_run_id, user_id])
 }
 
 model GameModerator {
@@ -122,10 +157,10 @@ model System {
   id   String @id @default(cuid())
   name String @unique
 
-  runs Run[]
+  runs      Run[]
+  coop_runs CoopRun[]
 
   platformSystems PlatformSystem[]
-
 }
 
 model PlatformSystem {

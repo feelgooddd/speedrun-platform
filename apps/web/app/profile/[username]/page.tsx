@@ -5,12 +5,14 @@ import RunsTable from "@/app/components/profile/Runstable";
 import SettingsLink from "@/app/components/profile/SetingsLink";
 import { countryCodeToFlag } from "@/app/lib/flags";
 interface PersonalBest {
+  is_coop: boolean;
   game_id: string;
   game_name: string;
   game_slug: string;
   category_id: string;
   category_name: string;
   category_slug: string;
+  subcategory_name?: string | null;
   platform: string;
   platform_slug: string;
   timing_method: string;
@@ -21,6 +23,14 @@ interface PersonalBest {
   video_url: string | null;
   comment: string | null;
   rank: number;
+  runners:
+    | {
+        id: string;
+        username: string;
+        display_name: string | null;
+        country: string | null;
+      }[]
+    | null;
 }
 
 interface Run {
@@ -70,9 +80,12 @@ async function getUserProfile(id: string): Promise<UserProfile | null> {
 }
 
 async function getUserRuns(id: string): Promise<Run[]> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}/runs?limit=100`, {
-    next: { revalidate: 60 },
-  });
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_API_URL}/users/${id}/runs?limit=100`,
+    {
+      next: { revalidate: 60 },
+    },
+  );
   if (!res.ok) return [];
   const data = await res.json();
   return data.runs ?? [];
@@ -131,9 +144,11 @@ export default async function UserProfilePage({
 
             <div className="profile-identity">
               <div className="profile-username-row">
-{profile.country && (
-  <span className="profile-country">{countryCodeToFlag(profile.country)}</span>
-)}
+                {profile.country && (
+                  <span className="profile-country">
+                    {countryCodeToFlag(profile.country)}
+                  </span>
+                )}
                 <h1 className="profile-username">{displayName}</h1>
                 {profile.is_placeholder && (
                   <span className="profile-placeholder-badge">
@@ -210,7 +225,14 @@ export default async function UserProfilePage({
         {/* Personal Bests */}
         <div className="profile-section">
           <h2 className="profile-section-title">Personal Bests</h2>
-          <PBTable gameGroups={gameGroups} />
+          <PBTable
+            gameGroups={gameGroups}
+            profileUser={{
+              username: profile.username,
+              display_name: profile.display_name,
+              country: profile.country,
+            }}
+          />{" "}
         </div>
 
         {/* Other Runs */}

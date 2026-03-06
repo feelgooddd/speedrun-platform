@@ -90,43 +90,6 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const verifyRun = async (req: AuthRequest, res: Response) => {
-  try {
-    const id = req.params.id as string;
-
-    const run = await prisma.run.findUnique({ where: { id } });
-    if (!run) return res.status(404).json({ error: "Run not found" });
-    if (run.verified)
-      return res.status(400).json({ error: "Run already verified" });
-
-    const updated = await prisma.run.update({
-      where: { id },
-      data: {
-        verified: true,
-        verified_at: new Date(),
-      },
-    });
-
-    res.json(updated);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to verify run" });
-  }
-};
-
-export const rejectRun = async (req: AuthRequest, res: Response) => {
-  try {
-    const id = req.params.id as string;
-
-    const run = await prisma.run.findUnique({ where: { id } });
-    if (!run) return res.status(404).json({ error: "Run not found" });
-
-    await prisma.run.delete({ where: { id } });
-
-    res.json({ message: "Run rejected and removed" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to reject run" });
-  }
-};
 
 export const getRun = async (req: AuthRequest, res: Response) => {
   try {
@@ -215,5 +178,113 @@ export const deleteRun = async (req: AuthRequest, res: Response) => {
     res.json({ message: "Run deleted" });
   } catch (error) {
     res.status(500).json({ error: "Failed to delete run" });
+  }
+};
+
+export const submitCoopRun = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+
+    const {
+      game_slug,
+      platform_slug,
+      category_slug,
+      subcategory_slug,
+      realtime_ms,
+      gametime_ms,
+      video_url,
+      comment,
+      system_id,
+      runner_ids,
+    } = req.body;
+
+    if (!game_slug || !platform_slug || !category_slug || !subcategory_slug) {
+      return res.status(400).json({
+        error: "game_slug, platform_slug, category_slug, and subcategory_slug are required",
+      });
+    }
+
+    if (!runner_ids || !Array.isArray(runner_ids) || runner_ids.length < 2) {
+      return res.status(400).json({ error: "Co-op runs require at least 2 runners" });
+    }
+
+    // Ensure submitter is in the runners list
+    if (!runner_ids.includes(req.userId)) {
+      return res.status(400).json({ error: "Submitter must be one of the runners" });
+    }
+
+    // Find game
+    const game = await prisma.game.findUnique({ where: { slug: game_slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    // Find platform
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platform_slug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    // Find category
+    const category = await prisma.category.findFirst({
+      where: { slug: category_slug, platform_id: platform.id },
+    });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    // Find subcategory and verify it's co-op
+    const subcategory = await prisma.subcategory.findFirst({
+      where: { slug: subcategory_slug, category_id: category.id },
+    });
+    if (!subcategory) return res.status(404).json({ error: "Subcategory not found" });
+    if (!subcategory.is_coop) {
+      return res.status(400).json({ error: "This subcategory is not a co-op category" });
+    }
+
+    // Verify all runner_ids exist
+    const users = await prisma.user.findMany({
+      where: { id: { in: runner_ids } },
+      select: { id: true },
+    });
+    if (users.length !== runner_ids.length) {
+      return res.status(400).json({ error: "One or more runners not found" });
+    }
+
+    // Create co-op run with runners
+    const coopRun = await prisma.coopRun.create({
+      data: {
+        category_id: category.id,
+        platform_id: platform.id,
+        subcategory_id: subcategory.id,
+        realtime_ms: realtime_ms ? parseInt(realtime_ms) : null,
+        gametime_ms: gametime_ms ? parseInt(gametime_ms) : null,
+        video_url,
+        comment,
+        system_id: system_id || null,
+        verified: false,
+        submitted_by_id: req.userId,
+        runners: {
+          create: runner_ids.map((id: string) => ({ user_id: id })),
+        },
+      },
+      include: {
+        runners: {
+          include: {
+            user: { select: { id: true, username: true, display_name: true, country: true } },
+          },
+        },
+        category: true,
+        platform: true,
+        subcategory: true,
+        system: true,
+      },
+    });
+
+    res.status(201).json({
+      run: coopRun,
+      message: "Co-op run submitted successfully. Awaiting verification.",
+    });
+  } catch (error) {
+    console.error("Error submitting co-op run:", error);
+    res.status(500).json({ error: "Failed to submit co-op run" });
   }
 };

@@ -1,6 +1,6 @@
 
 import { Router } from 'express'
-import { getModQueue, verifyRun,getGlobalModQueue} from '../controllers/moderation'
+import { getModQueue, verifyRun,verifyCoopRun,getGlobalModQueue} from '../controllers/moderation'
 import { requireAuth } from '../middleware/auth'
 import { isGameModerator } from '../middleware/checkRole'
 import { isAdmin } from "../middleware/checkRole";
@@ -12,3 +12,4 @@ moderationRouter.get("/queue", requireAuth, isAdmin, getGlobalModQueue);
 
 moderationRouter.get('/:gameSlug/mod-queue', requireAuth, isGameModerator, getModQueue)
 moderationRouter.patch('/runs/:id/verify', requireAuth, isGameModerator, verifyRun)
+moderationRouter.patch('/coop-runs/:id/verify', requireAuth, isGameModerator, verifyCoopRun)

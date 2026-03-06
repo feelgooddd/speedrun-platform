@@ -1,0 +1,187 @@
+{
+  "game": {
+    "id": "ok6q7odg",
+    "name": "Harry Potter and the Chamber of Secrets (GCN,Xbox)",
+    "slug": "hp2_6th_gen"
+  },
+  "category": {
+    "id": "9d8pnr3k",
+    "name": "100%"
+  },
+  "subcategory": [
+    {
+      "varId": "kn0vxg0l",
+      "varName": "Console or Emulator",
+      "valueId": "81w6796l",
+      "valueLabel": "Emulator"
+    }
+  ],
+  "runCount": 3,
+  "runs": [
+    {
+      "place": 1,
+      "run": {
+        "id": "znv25qlm",
+        "weblink": "http://www.speedrun.com/hp2_6th_gen/run/znv25qlm",
+        "game": "ok6q7odg",
+        "level": null,
+        "category": "9d8pnr3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/yBHpzE9P0ss"
+            }
+          ]
+        },
+        "comment": null,
+        "status": {
+          "status": "verified",
+          "examiner": "8r2ko2qx",
+          "verify-date": "2023-07-23T19:15:08Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "j9p9rw7x",
+            "uri": "http://www.speedrun.com/api/v1/users/j9p9rw7x"
+          }
+        ],
+        "date": "2023-07-23",
+        "submitted": "2023-07-23T16:20:10Z",
+        "times": {
+          "primary": "PT3H35M48S",
+          "primary_t": 12948,
+          "realtime": "PT4H8M17S",
+          "realtime_t": 14897,
+          "realtime_noloads": "PT3H35M48S",
+          "realtime_noloads_t": 12948,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "4p9z06rn",
+          "emulated": true,
+          "region": "pr184lqn"
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/b08s"
+        },
+        "values": {
+          "p85rp0ng": "gq707dlp",
+          "kn0vxg0l": "81w6796l",
+          "9l753x78": "5q8ye4yl"
+        }
+      }
+    },
+    {
+      "place": 2,
+      "run": {
+        "id": "m700ooey",
+        "weblink": "http://www.speedrun.com/hp2_6th_gen/run/m700ooey",
+        "game": "ok6q7odg",
+        "level": null,
+        "category": "9d8pnr3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://youtu.be/Q6519HjGF40"
+            }
+          ]
+        },
+        "comment": "It's not that great, but hopefully more people will start to run this, messed up Avifors skip, bad RNG. Loadless time calculated after the run\r\n\r\nMod Note:  Feel free to DM me if you want help setting up loadless on your splits so you don't need to retime it afterwards - Erktraz",
+        "status": {
+          "status": "verified",
+          "examiner": "j5v9dw68",
+          "verify-date": "2025-04-01T23:05:21Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "3qjooej6",
+            "uri": "http://www.speedrun.com/api/v1/users/3qjooej6"
+          }
+        ],
+        "date": "2023-07-11",
+        "submitted": "2023-07-13T14:22:37Z",
+        "times": {
+          "primary": "PT4H2M25S",
+          "primary_t": 14545,
+          "realtime": "PT4H38M39S",
+          "realtime_t": 16719,
+          "realtime_noloads": "PT4H2M25S",
+          "realtime_noloads_t": 14545,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "4p9z06rn",
+          "emulated": true,
+          "region": null
+        },
+        "splits": null,
+        "values": {
+          "kn0vxg0l": "81w6796l",
+          "9l753x78": "5q8ye4yl"
+        }
+      }
+    },
+    {
+      "place": 3,
+      "run": {
+        "id": "zxwkldkm",
+        "weblink": "http://www.speedrun.com/hp2_6th_gen/run/zxwkldkm",
+        "game": "ok6q7odg",
+        "level": null,
+        "category": "9d8pnr3k",
+        "videos": {
+          "links": [
+            {
+              "uri": "https://www.twitch.tv/videos/1925982389"
+            }
+          ]
+        },
+        "comment": "Easy Sub 5 RTA xd I really dislike this run, gnome throwing is awful, Avifors and Incendio Skip is awful and the cards in the shop just don't fucking work at all.. Lost so much time to F&amp;G not selling me the correct one, actually mad. \n\nRetimed by Marc so shoutouts to him: https://cdn.discordapp.com/attachments/537015809235746848/1156185058923794453/image.png?ex=65140cbe&is=6512bb3e&hm=68f0cfb5639e4809afc8b2fd2678cdb880c5fc5d4693767bcfa61afdb9a74a12&",
+        "status": {
+          "status": "verified",
+          "examiner": "48gl4k2x",
+          "verify-date": "2023-09-26T20:14:46Z"
+        },
+        "players": [
+          {
+            "rel": "user",
+            "id": "7j4ozn58",
+            "uri": "http://www.speedrun.com/api/v1/users/7j4ozn58"
+          }
+        ],
+        "date": "2023-09-07",
+        "submitted": "2023-09-26T19:43:46Z",
+        "times": {
+          "primary": "PT4H18M56S",
+          "primary_t": 15536,
+          "realtime": "PT4H59M55S",
+          "realtime_t": 17995,
+          "realtime_noloads": "PT4H18M56S",
+          "realtime_noloads_t": 15536,
+          "ingame": null,
+          "ingame_t": 0
+        },
+        "system": {
+          "platform": "4p9z06rn",
+          "emulated": true,
+          "region": "pr184lqn"
+        },
+        "splits": {
+          "rel": "splits.io",
+          "uri": "https://splits.io/api/v3/runs/b90k"
+        },
+        "values": {
+          "p85rp0ng": "gq707dlp",
+          "kn0vxg0l": "81w6796l",
+          "9l753x78": "5q8ye4yl"
+        }
+      }
+    }
+  ],
+  "scrapedAt": "2026-03-01T23:18:26.336Z"
+}

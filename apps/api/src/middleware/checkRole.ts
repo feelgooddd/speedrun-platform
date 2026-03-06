@@ -44,30 +44,44 @@ if (typeof req.params.slug === "string") {
   // If no gameSlug in params, try to get it from the run
 if (!gameSlug && req.params.id) {
   const runId = typeof req.params.id === "string" ? req.params.id : undefined;
-  
+
   if (!runId) {
-    return res.status(400).json({ error: 'Invalid run ID' });
+    return res.status(400).json({ error: "Invalid run ID" });
   }
-  
-  const run: any = await prisma.run.findUnique({
+
+  // Try solo run first, then co-op run
+  let run: any = await prisma.run.findUnique({
     where: { id: runId },
     include: {
       category: {
         include: {
           platform: {
-            include: {
-              game: true
-            }
-          }
-        }
-      }
-    }
+            include: { game: true },
+          },
+        },
+      },
+    },
   });
 
   if (!run?.category?.platform?.game) {
-    return res.status(404).json({ error: 'Run not found or invalid data' });
+    run = await prisma.coopRun.findUnique({
+      where: { id: runId },
+      include: {
+        category: {
+          include: {
+            platform: {
+              include: { game: true },
+            },
+          },
+        },
+      },
+    });
   }
-  
+
+  if (!run?.category?.platform?.game) {
+    return res.status(404).json({ error: "Run not found or invalid data" });
+  }
+
   gameSlug = run.category.platform.game.slug;
 }
   const game = await prisma.game.findUnique({

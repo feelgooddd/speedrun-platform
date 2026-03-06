@@ -7,30 +7,33 @@ import { countryCodeToFlag } from "@/app/lib/flags";
 interface Run {
   rank: number;
   id: string;
-
   comment: string | null;
-
   system: string | null;
   realtime_ms: number | null;
   gametime_ms: number | null;
-
   realtime_display: string | null;
   gametime_display: string | null;
-
   primary_time_ms?: number | null;
   primary_time_display?: string | null;
-
   timing_method?: string;
-
   video_url: string;
   submitted_at: string;
 
-  user: {
+  // Solo
+  user?: {
     id: string;
     username: string;
     display_name: string | null;
     country: string | null;
   };
+
+  // Co-op
+  runners?: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    country: string | null;
+  }[];
 }
 
 interface Subcategory {
@@ -96,11 +99,12 @@ export default function LeaderboardTabs({
     ) ?? false;
 
   // Total number of <th> columns so the accordion row can span all of them
-const hasSystemColumn = categories.some((cat) => {
-  if (cat.runs?.some((r) => r.system)) return true;
-  if (cat.subcategories?.some((sub) => sub.runs?.some((r) => r.system))) return true;
-  return false;
-});
+  const hasSystemColumn = categories.some((cat) => {
+    if (cat.runs?.some((r) => r.system)) return true;
+    if (cat.subcategories?.some((sub) => sub.runs?.some((r) => r.system)))
+      return true;
+    return false;
+  });
 
   const colCount = (showSeparateTimes ? 6 : 5) + (hasSystemColumn ? 1 : 0);
 
@@ -253,19 +257,45 @@ const hasSystemColumn = categories.some((cat) => {
                         >
                           <td className="rank-cell">#{run.rank}</td>
                           <td className="runner-cell">
-                            <Link
-                              href={`/profile/${run.user.username}`}
-                              className="runner-link"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {run.user.country && (
-                                <span className="runner-country">
-                                  {countryCodeToFlag(run.user.country)}
-                                </span>
-                              )}
-
-                              {run.user.display_name}
-                            </Link>
+                            {run.runners ? (
+                              <div className="runner-link-group">
+                                {run.runners.map((runner, i) => (
+                                  <span key={runner.id}>
+                                    <Link
+                                      href={`/profile/${runner.username}`}
+                                      className="runner-link"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      {runner.country && (
+                                        <span className="runner-country">
+                                          {countryCodeToFlag(runner.country)}
+                                        </span>
+                                      )}
+                                      {runner.display_name}
+                                    </Link>
+                                    {i < run.runners!.length - 1 && (
+                                      <span className="runner-separator">
+                                        {" "}
+                                        &{" "}
+                                      </span>
+                                    )}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : run.user ? (
+                              <Link
+                                href={`/profile/${run.user.username}`}
+                                className="runner-link"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {run.user.country && (
+                                  <span className="runner-country">
+                                    {countryCodeToFlag(run.user.country)}
+                                  </span>
+                                )}
+                                {run.user.display_name}
+                              </Link>
+                            ) : null}
                           </td>
                           {showSeparateTimes ? (
                             <>

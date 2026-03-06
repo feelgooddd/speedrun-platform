@@ -1,11 +1,11 @@
 import { Router } from "express";
 import {
   submitRun,
-  verifyRun,
-  rejectRun,
+
   getRun,
   updateRun,
   deleteRun,
+  submitCoopRun,
 } from "../controllers/runs";
 import { requireAuth } from "../middleware/auth";
 import { isAdmin } from "../middleware/checkRole";
@@ -13,8 +13,8 @@ import { isAdmin } from "../middleware/checkRole";
 export const runsRouter = Router();
 
 runsRouter.post("/", requireAuth, submitRun);
-runsRouter.patch("/:id/verify", requireAuth, verifyRun);
-runsRouter.patch("/:id/reject", requireAuth, rejectRun);
+runsRouter.post("/coop", requireAuth, submitCoopRun);
+
 
 runsRouter.get("/:id", getRun);
 

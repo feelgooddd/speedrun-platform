@@ -76,16 +76,96 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
 
+    const timingField =
+      platform.timing_method === "gametime" ? "gametime_ms" : "realtime_ms";
+
+    // Co-op branch
+    if (subcategory?.is_coop) {
+      const coopRuns = await prisma.coopRun.findMany({
+        where: {
+          category_id: category.id,
+          platform_id: platform.id,
+          subcategory_id: subcategory.id,
+          verified: true,
+        },
+        include: {
+          runners: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  display_name: true,
+                  country: true,
+                },
+              },
+            },
+          },
+          system: true,
+        },
+        orderBy: { [timingField]: "asc" as const },
+      });
+
+      // PB dedup: a run shows if it's the fastest for ANY of its runners
+      const bestTimePerUser = new Map<string, number>();
+      for (const run of coopRuns) {
+        const time = (run as any)[timingField] ?? Infinity;
+        for (const runner of run.runners) {
+          const existing = bestTimePerUser.get(runner.user_id);
+          if (existing === undefined || time < existing) {
+            bestTimePerUser.set(runner.user_id, time);
+          }
+        }
+      }
+
+      const dedupedRuns = coopRuns.filter((run) => {
+        const time = (run as any)[timingField] ?? Infinity;
+        return run.runners.some(
+          (runner) => bestTimePerUser.get(runner.user_id) === time
+        );
+      });
+
+      const total = dedupedRuns.length;
+      const paginatedRuns = dedupedRuns.slice(skip, skip + limitNum);
+
+      const rankedRuns = paginatedRuns.map((run, index) => ({
+        rank: skip + index + 1,
+        id: run.id,
+        runners: run.runners.map((r) => r.user),
+        system: run.system?.name ?? null,
+        system_id: run.system_id,
+        comment: run.comment,
+        realtime_ms: run.realtime_ms,
+        gametime_ms: run.gametime_ms,
+        realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+        gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+        platform: platform.name,
+        timing_method: platform.timing_method,
+        video_url: run.video_url,
+        submitted_at: run.submitted_at,
+      }));
+
+      return res.json({
+        game: game.name,
+        category: category.name,
+        subcategory: subcategory.name,
+        is_coop: true,
+        platform: platform.name,
+        timing_method: platform.timing_method,
+        total,
+        page: pageNum,
+        limit: limitNum,
+        runs: rankedRuns,
+      });
+    }
+
+    // Solo branch (unchanged)
     const where = {
       category_id: category.id,
       platform_id: platform.id,
       ...(subcategory ? { subcategory_id: subcategory.id } : {}),
       verified: true,
     };
-
-    // Use platform.timing_method
-    const timingField =
-      platform.timing_method === "gametime" ? "gametime_ms" : "realtime_ms";
 
     const allRuns = await prisma.run.findMany({
       where,
@@ -99,7 +179,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
           },
         },
         platform: true,
-        system: true, // add this
+        system: true,
       },
       orderBy: { [timingField]: "asc" as const },
     });
@@ -111,7 +191,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
           seen.add(run.user.id);
           return true;
         })
-      : allRuns; // no dedup, show everything
+      : allRuns;
 
     const total = dedupedRuns.length;
     const paginatedRuns = dedupedRuns.slice(skip, skip + limitNum);
@@ -138,6 +218,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       game: game.name,
       category: category.name,
       subcategory: subcategory?.name || null,
+      is_coop: false,
       platform: platform.name,
       timing_method: platform.timing_method,
       total,

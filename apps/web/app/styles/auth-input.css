@@ -53,3 +53,7 @@
   caret-color: #e8e0d0;
 }
 }
+
+.auth-group{
+  display: flex;
+}

@@ -148,11 +148,11 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
     for (const run of verifiedCoopRuns) {
       const timingMethod = run.platform.timing_method;
-const time =
-  timingMethod === "gametime"
-    ? (run.gametime_ms ?? run.realtime_ms)
-    : run.realtime_ms;
-if (!time) continue;
+      const time =
+        timingMethod === "gametime"
+          ? (run.gametime_ms ?? run.realtime_ms)
+          : run.realtime_ms;
+      if (!time) continue;
 
       const key = run.subcategory_id ?? run.category_id;
       const existing = coopPBMap.get(key);
@@ -427,7 +427,7 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
     if (!req.userId)
       return res.status(401).json({ error: "Not authenticated" });
 
-    const { email, country } = req.body;
+    const { email, country, display_name } = req.body;
 
     // Validate email format if provided
     if (email !== undefined) {
@@ -445,11 +445,26 @@ export const updateMe = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    if (display_name !== undefined) {
+      const current = await prisma.user.findUnique({
+        where: { id: req.userId },
+        select: { username: true },
+      });
+      if (!current || display_name.toLowerCase() !== current.username) {
+        return res
+          .status(400)
+          .json({ error: "Display name must match your username." });
+      }
+    }
+
     const updated = await prisma.user.update({
       where: { id: req.userId },
       data: {
         ...(email !== undefined && { email }),
         ...(country !== undefined && { country: country || null }),
+        ...(display_name !== undefined && {
+          display_name: display_name || null,
+        }),
       },
     });
 

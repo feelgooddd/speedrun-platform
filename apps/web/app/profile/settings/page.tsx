@@ -5,14 +5,21 @@ import { useAuth } from "../../components/auth/AuthContext";
 import Link from "next/link";
 import "../../styles/auth.css";
 import { COUNTRIES } from "@/app/lib/countries";
+import InfoPanel from "@/app/components/ui/InfoPanel";
 
 export default function MePage() {
   const router = useRouter();
   const { user, token, login, loading } = useAuth();
-  const [form, setForm] = useState({ email: "", country: "" });
+  const [form, setForm] = useState({
+    email: "",
+    country: "",
+    display_name: "",
+  });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const [showInfo, setShowInfo] = useState(false);
 
   const [pwForm, setPwForm] = useState({
     currentPassword: "",
@@ -74,6 +81,7 @@ export default function MePage() {
     setForm({
       email: user.email || "",
       country: user.country || "",
+      display_name: user.display_name || "",
     });
   }, [user, loading, router]);
 
@@ -138,7 +146,30 @@ export default function MePage() {
               required
             />
           </div>
-
+          <div className="auth-field">
+            <label className="auth-label">Display Name:</label>
+            <div className="auth-group">
+              <input
+                className="auth-input"
+                type="text"
+                name="display-name"
+                value={form.display_name}
+                onChange={(e) =>
+                  setForm({ ...form, display_name: e.target.value })
+                }
+                placeholder="Display"
+                required
+              />
+              <button
+                onClick={() => setShowInfo(!showInfo)}
+                className="house-btn"
+                type="button"
+              >
+                {!showInfo ? "?" : "x"}
+              </button>
+            </div>
+            {showInfo && <InfoPanel />}
+          </div>
           <div className="auth-field">
             <label className="auth-label">Country</label>
             <select

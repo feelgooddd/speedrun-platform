@@ -40,3 +40,7 @@
   padding: 0.75rem;
   font-size: 0.7rem;
 }
+
+.info-panel-button{
+  cursor: pointer;
+}

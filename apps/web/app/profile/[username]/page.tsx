@@ -155,7 +155,6 @@ export default async function UserProfilePage({
                     Unregistered
                   </span>
                 )}
-                <SettingsLink username={profile.username} />
               </div>
 
               <div className="profile-meta">
@@ -178,6 +177,8 @@ export default async function UserProfilePage({
                 </span>
               </div>
             </div>
+                            <SettingsLink username={profile.username} />
+
           </div>
         </div>
 

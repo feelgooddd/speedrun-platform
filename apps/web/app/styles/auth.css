@@ -163,3 +163,12 @@
 .auth-switch-link:hover {
   opacity: 0.8;
 }
+
+.info-panel-card{
+  margin-top: 10px;
+  background-color: var(--card-bg);
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid var(--card-border);
+  color: red;
+}

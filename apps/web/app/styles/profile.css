@@ -5,9 +5,10 @@
 .profile-header {
   display: flex;
   align-items: center;
-  gap: 2rem;
   margin-top: 2rem;
-  justify-content: center;
+  justify-content: space-around;
+    gap: 2rem;
+
 }
 
 .profile-avatar {
@@ -30,14 +31,14 @@
 }
 
 .profile-avatar span {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 2rem;
   font-weight: 700;
   color: var(--accent);
 }
 
 .profile-identity {
-  text-align: left;
+
 }
 
 .profile-username-row {
@@ -53,7 +54,7 @@
 }
 
 .profile-username {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: clamp(1.4rem, 3vw, 2rem);
   font-weight: 700;
   color: #fff;
@@ -61,7 +62,7 @@
 }
 
 .profile-placeholder-badge {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -79,7 +80,7 @@
 }
 
 .profile-twitch-link {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -94,7 +95,7 @@
 }
 
 .profile-joined {
-  font-family: 'Crimson Text', serif;
+  font-family: "Crimson Text", serif;
   font-size: 0.95rem;
   color: #444;
   font-style: italic;
@@ -119,7 +120,7 @@
 }
 
 .profile-stat-number {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: clamp(1.8rem, 3vw, 2.5rem);
   font-weight: 900;
   color: var(--accent);
@@ -127,7 +128,7 @@
 }
 
 .profile-stat-label {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.6rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -140,7 +141,7 @@
 }
 
 .profile-section-title {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.15em;
@@ -162,7 +163,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -194,7 +195,7 @@
 
 .profile-pb-game-title {
   display: block;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.1em;
@@ -265,7 +266,7 @@
 }
 
 .profile-coop-badge {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.6rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -277,7 +278,7 @@
 }
 
 .profile-subcategory-badge {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.6rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -285,4 +286,9 @@
   border: 1px solid #444;
   padding: 0.1rem 0.4rem;
   border-radius: 2px;
+}
+
+.profile-section {
+  display: flex;
+  flex-direction: column;
 }

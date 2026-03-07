@@ -43,34 +43,28 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     const subcategorySlug = req.params.subcategory as string | undefined;
     const { page = "1", limit = "25" } = req.query;
 
+    // Variable filters: e.g. ?players=1p&cut=standard
+    const variableFilters: Record<string, string> = {};
+    for (const [key, value] of Object.entries(req.query)) {
+      if (key === "page" || key === "limit") continue;
+      if (typeof value === "string") variableFilters[key] = value;
+    }
+
     const game = await prisma.game.findUnique({
       where: { slug },
       include: { platforms: true },
     });
-
     if (!game) return res.status(404).json({ error: "Game not found" });
 
     const platform = await prisma.platform.findFirst({
       where: { slug: platformSlug, game_id: game.id },
     });
-
     if (!platform) return res.status(404).json({ error: "Platform not found" });
 
     const category = await prisma.category.findFirst({
       where: { slug: categorySlug, platform_id: platform.id },
     });
-
     if (!category) return res.status(404).json({ error: "Category not found" });
-
-    let subcategory = null;
-    if (subcategorySlug) {
-      subcategory = await prisma.subcategory.findFirst({
-        where: { slug: subcategorySlug, category_id: category.id },
-      });
-
-      if (!subcategory)
-        return res.status(404).json({ error: "Subcategory not found" });
-    }
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
@@ -79,36 +73,129 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     const timingField =
       platform.timing_method === "gametime" ? "gametime_ms" : "realtime_ms";
 
-    // Co-op branch
-    if (subcategory?.is_coop) {
-      const coopRuns = await prisma.coopRun.findMany({
-        where: {
-          category_id: category.id,
-          platform_id: platform.id,
-          subcategory_id: subcategory.id,
-          verified: true,
+    // ----------------------------------------------------------------
+    // Resolve subcategory (HP1-3)
+    // ----------------------------------------------------------------
+    let subcategory = null;
+    if (subcategorySlug) {
+      subcategory = await prisma.subcategory.findFirst({
+        where: { slug: subcategorySlug, category_id: category.id },
+      });
+      if (!subcategory)
+        return res.status(404).json({ error: "Subcategory not found" });
+    }
+
+    // ----------------------------------------------------------------
+    // Resolve variable value IDs from query params (HP4+)
+    // ----------------------------------------------------------------
+    const resolvedVariableValueIds: string[] = [];
+    let isCoop = false;
+
+    if (Object.keys(variableFilters).length > 0) {
+      const variables = await prisma.variable.findMany({
+        where: { category_id: category.id },
+        include: { values: true },
+      });
+
+      for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
+        const variable = variables.find((v) => v.slug === varSlug);
+        if (!variable)
+          return res
+            .status(404)
+            .json({ error: `Variable '${varSlug}' not found` });
+
+        const value = variable.values.find((v) => v.slug === valSlug);
+        if (!value)
+          return res
+            .status(404)
+            .json({
+              error: `Value '${valSlug}' not found for variable '${varSlug}'`,
+            });
+
+        resolvedVariableValueIds.push(value.id);
+        if (value.is_coop) isCoop = true;
+      }
+    }
+
+    const hasVariableFilter = resolvedVariableValueIds.length > 0;
+
+    // ----------------------------------------------------------------
+    // Build run query
+    // ----------------------------------------------------------------
+    const baseWhere = {
+      category_id: category.id,
+      platform_id: platform.id,
+      verified: true,
+      ...(subcategory ? { subcategory_id: subcategory.id } : {}),
+      ...(hasVariableFilter ? { is_coop: isCoop } : {}),
+      ...(hasVariableFilter
+        ? {
+            variable_values: {
+              some: {
+                variable_value_id: { in: resolvedVariableValueIds },
+              },
+            },
+          }
+        : {}),
+    };
+
+    const allRuns = await prisma.run.findMany({
+      where: baseWhere,
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            display_name: true,
+            country: true,
+          },
         },
-        include: {
-          runners: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                  display_name: true,
-                  country: true,
-                },
+        runners: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                display_name: true,
+                country: true,
               },
             },
           },
-          system: true,
         },
-        orderBy: { [timingField]: "asc" as const },
-      });
+        system: true,
+        variable_values: {
+          include: {
+            variable_value: {
+              include: { variable: true },
+            },
+          },
+        },
+      },
+      orderBy: { [timingField]: "asc" as const },
+    });
 
-      // PB dedup: a run shows if it's the fastest for ANY of its runners
+    // ----------------------------------------------------------------
+    // Ensure run has ALL requested variable values (Prisma `some` is OR)
+    // ----------------------------------------------------------------
+    const filteredRuns = hasVariableFilter
+      ? allRuns.filter((run) => {
+          const runValueIds = run.variable_values.map(
+            (rv) => rv.variable_value_id,
+          );
+          return resolvedVariableValueIds.every((id) =>
+            runValueIds.includes(id),
+          );
+        })
+      : allRuns;
+
+    // ----------------------------------------------------------------
+    // PB dedup
+    // ----------------------------------------------------------------
+    let dedupedRuns: typeof filteredRuns;
+
+    if (isCoop) {
       const bestTimePerUser = new Map<string, number>();
-      for (const run of coopRuns) {
+      for (const run of filteredRuns) {
         const time = (run as any)[timingField] ?? Infinity;
         for (const runner of run.runners) {
           const existing = bestTimePerUser.get(runner.user_id);
@@ -117,120 +204,103 @@ export const getLeaderboard = async (req: Request, res: Response) => {
           }
         }
       }
-
-      const dedupedRuns = coopRuns.filter((run) => {
+      dedupedRuns = filteredRuns.filter((run) => {
         const time = (run as any)[timingField] ?? Infinity;
         return run.runners.some(
           (runner) => bestTimePerUser.get(runner.user_id) === time,
         );
       });
-
-      const total = dedupedRuns.length;
-      const paginatedRuns = dedupedRuns.slice(skip, skip + limitNum);
-
-      const rankedRuns = paginatedRuns.map((run, index) => ({
-        rank: skip + index + 1,
-        id: run.id,
-        runners: run.runners.map((r) => r.user),
-        system: run.system?.name ?? null,
-        system_id: run.system_id,
-        comment: run.comment,
-        realtime_ms: run.realtime_ms,
-        gametime_ms: run.gametime_ms,
-        realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
-        gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
-        platform: platform.name,
-        timing_method: platform.timing_method,
-        video_url: run.video_url,
-        submitted_at: run.submitted_at,
-      }));
-
-      return res.json({
-        game: game.name,
-        category: category.name,
-        subcategory: subcategory.name,
-        is_coop: true,
-        platform: platform.name,
-        timing_method: platform.timing_method,
-        total,
-        page: pageNum,
-        limit: limitNum,
-        runs: rankedRuns,
-      });
+    } else {
+      const seen = new Set<string>();
+      dedupedRuns =
+        subcategory || hasVariableFilter
+          ? filteredRuns.filter((run) => {
+              if (seen.has(run.user_id)) return false;
+              seen.add(run.user_id);
+              return true;
+            })
+          : filteredRuns;
     }
 
-    // Solo branch (unchanged)
-    const where = {
-      category_id: category.id,
-      platform_id: platform.id,
-      ...(subcategory ? { subcategory_id: subcategory.id } : {}),
-      verified: true,
-    };
+    // ----------------------------------------------------------------
+    // Assign tie-aware ranks across full deduped list
+    // ----------------------------------------------------------------
+    const rankedWithTies: ((typeof dedupedRuns)[number] & { _rank: number })[] =
+      [];
+    for (let i = 0; i < dedupedRuns.length; i++) {
+      const run = dedupedRuns[i];
+      let rank: number;
+      if (i === 0) {
+        rank = 1;
+      } else {
+        const prevTime = (dedupedRuns[i - 1] as any)[timingField];
+        const currTime = (run as any)[timingField];
+        rank = currTime === prevTime ? rankedWithTies[i - 1]._rank : i + 1;
+      }
+      rankedWithTies.push({ ...run, _rank: rank });
+    }
 
-    const allRuns = await prisma.run.findMany({
-      where,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            country: true,
-            display_name: true,
-          },
-        },
-        platform: true,
-        system: true,
-      },
-      orderBy: { [timingField]: "asc" as const },
-    });
+    // ----------------------------------------------------------------
+    // Paginate + build response
+    // ----------------------------------------------------------------
+    const total = rankedWithTies.length;
+    const paginatedRuns = rankedWithTies.slice(skip, skip + limitNum);
 
-    const seen = new Set<string>();
-    const dedupedRuns = subcategory
-      ? allRuns.filter((run) => {
-          if (seen.has(run.user.id)) return false;
-          seen.add(run.user.id);
-          return true;
-        })
-      : allRuns;
-
-    const total = dedupedRuns.length;
-    const paginatedRuns = dedupedRuns.slice(skip, skip + limitNum);
-
-    const rankedRuns = paginatedRuns.map((run, index) => ({
-      rank: skip + index + 1,
-      user: run.user,
+    const rankedRuns = paginatedRuns.map((run) => ({
+      rank: run._rank,
       id: run.id,
-      subcategory_id: run.subcategory_id,
-      comment: run.comment,
+      is_coop: run.is_coop,
+      ...(run.is_coop
+        ? { runners: run.runners.map((r) => r.user) }
+        : { user: run.user }),
       system: run.system?.name ?? null,
       system_id: run.system_id,
+      comment: run.comment,
       realtime_ms: run.realtime_ms,
       gametime_ms: run.gametime_ms,
       realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
       gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
-      platform: run.platform.name,
+      platform: platform.name,
       timing_method: platform.timing_method,
       video_url: run.video_url,
       submitted_at: run.submitted_at,
+      variable_values: run.variable_values.map((rv) => ({
+        variable: rv.variable_value.variable.name,
+        variable_slug: rv.variable_value.variable.slug,
+        value: rv.variable_value.name,
+        value_slug: rv.variable_value.slug,
+      })),
     }));
 
-    res.json({
+    // ----------------------------------------------------------------
+    // Response metadata
+    // ----------------------------------------------------------------
+    const subcategoryName = subcategory?.name ?? null;
+    const variableContext = hasVariableFilter
+      ? Object.entries(variableFilters).map(([varSlug, valSlug]) => ({
+          variable: varSlug,
+          value: valSlug,
+        }))
+      : [];
+
+    return res.json({
       game: game.name,
-      category: category.name,
-      subcategory: subcategory?.name || null,
-      is_coop: false,
       platform: platform.name,
       timing_method: platform.timing_method,
+      category: category.name,
+      subcategory: subcategoryName,
+      variable_filters: variableContext,
+      is_coop: isCoop,
       total,
       page: pageNum,
       limit: limitNum,
       runs: rankedRuns,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to fetch leaderboard" });
   }
 };
-
 export const getPlatformCategories = async (req: Request, res: Response) => {
   try {
     const slug = req.params.slug as string;
@@ -257,9 +327,17 @@ export const getPlatformCategories = async (req: Request, res: Response) => {
       include: {
         categories: {
           where: { deleted_at: null },
+          orderBy: { order: "asc" },
+
           include: {
             subcategories: {
               where: { deleted_at: null },
+              orderBy: { order: "asc" }, // ← add this
+            },
+            variables: {
+              include: {
+                values: true,
+              },
             },
           },
         },
@@ -325,42 +403,42 @@ export const deleteGame = async (req: AuthRequest, res: Response) => {
 
 export const getStats = async (req: Request, res: Response) => {
   try {
-    const [
-      totalRuns,
-      totalCoopRuns,
-      runners,
-      coopRunners,
-      categories,
-      pbs,
-      coopPbs,
-    ] = await Promise.all([
-      prisma.run.count(),
-      prisma.coopRun.count({ where: { verified: true } }),
+    const [totalRuns, runners, categories, pbs] = await Promise.all([
+      // All verified runs (solo + coop unified)
+      prisma.run.count({ where: { verified: true } }),
+
+      // Unique runners: solo runs + coop run runners
       prisma.run.groupBy({
         by: ["user_id"],
-        where: { verified: true },
+        where: { verified: true, is_coop: false },
       }),
-      prisma.coopRunRunner.groupBy({
-        by: ["user_id"],
-      }),
+
       prisma.category.count(),
+
+      // PBs: unique user+category+platform combos for solo runs
       prisma.run.groupBy({
         by: ["user_id", "category_id", "platform_id"],
-        where: { verified: true },
-      }),
-      prisma.coopRun.groupBy({
-        by: ["subcategory_id", "category_id", "platform_id"],
-        where: { verified: true },
+        where: { verified: true, is_coop: false },
       }),
     ]);
 
-    // Merge unique runners across solo and co-op
+    // Unique runners from coop runs via RunRunner join table
+    const coopRunners = await prisma.runRunner.groupBy({
+      by: ["user_id"],
+    });
+
+    // Unique coop PBs: unique category+platform combos across coop runs
+    const coopPbs = await prisma.run.groupBy({
+      by: ["category_id", "platform_id"],
+      where: { verified: true, is_coop: true },
+    });
+
     const soloRunnerIds = new Set(runners.map((r) => r.user_id));
     const coopRunnerIds = new Set(coopRunners.map((r) => r.user_id));
     const allRunnerIds = new Set([...soloRunnerIds, ...coopRunnerIds]);
 
     res.json({
-      total_runs: totalRuns + totalCoopRuns,
+      total_runs: totalRuns,
       total_pbs: pbs.length + coopPbs.length,
       runners: allRunnerIds.size,
       world_records: categories,
@@ -435,8 +513,7 @@ export const createSubcategory = async (req: AuthRequest, res: Response) => {
     const slug = req.params.slug as string;
     const platformSlug = req.params.platform as string;
     const categorySlug = req.params.category as string;
-const { name, subcategory_slug, is_coop, required_players } = req.body;
-
+    const { name, subcategory_slug } = req.body;
 
     if (!name || !subcategory_slug) {
       return res.status(400).json({ error: "Name and slug are required" });
@@ -458,15 +535,13 @@ const { name, subcategory_slug, is_coop, required_players } = req.body;
 
     const hadNoSubcategories = category.subcategories.length === 0;
 
-const subcategory = await prisma.subcategory.create({
-  data: {
-    name,
-    slug: subcategory_slug,
-    category_id: category.id,
-    is_coop: is_coop ?? false,
-    required_players: required_players ? parseInt(required_players) : null,
-  },
-});
+    const subcategory = await prisma.subcategory.create({
+      data: {
+        name,
+        slug: subcategory_slug,
+        category_id: category.id,
+      },
+    });
 
     // If this is the first subcategory, migrate all existing runs to it
     if (hadNoSubcategories) {
@@ -490,7 +565,6 @@ const subcategory = await prisma.subcategory.create({
     res.status(500).json({ error: "Failed to create subcategory" });
   }
 };
-
 export const deletePlatform = async (req: AuthRequest, res: Response) => {
   try {
     const slug = req.params.slug as string;

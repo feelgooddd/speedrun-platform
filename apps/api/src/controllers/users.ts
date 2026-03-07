@@ -22,18 +22,70 @@ export const getUserProfile = async (req: Request, res: Response) => {
 
     const id = user.id;
 
-    // Solo runs
-    const runs = await prisma.run.findMany({
-      where: { user_id: id, verified: true },
-      include: {
-        category: { include: { platform: { include: { game: true } } } },
-        platform: true,
-      },
-    });
+    // ----------------------------------------------------------------
+    // Fetch all verified runs this user is involved in
+    // Solo: user_id = id
+    // Coop: appears in RunRunner
+    // ----------------------------------------------------------------
+    const [soloRuns, coopParticipations] = await Promise.all([
+      prisma.run.findMany({
+        where: { user_id: id, verified: true, is_coop: false },
+        include: {
+          category: { include: { platform: { include: { game: true } } } },
+          platform: true,
+          subcategory: true,
+          variable_values: {
+            include: { variable_value: { include: { variable: true } } },
+          },
+        },
+      }),
+      prisma.runRunner.findMany({
+        where: { user_id: id },
+        include: {
+          run: {
+            include: {
+              category: { include: { platform: { include: { game: true } } } },
+              platform: true,
+              subcategory: true,
+              runners: {
+                include: {
+                  user: {
+                    select: { id: true, username: true, display_name: true, country: true },
+                  },
+                },
+              },
+              variable_values: {
+                include: { variable_value: { include: { variable: true } } },
+              },
+            },
+          },
+        },
+      }),
+    ]);
 
-    const pbMap = new Map<string, (typeof runs)[0]>();
+    // ----------------------------------------------------------------
+    // Build a stable PB key: category + subcategory + variable value combo
+    // This ensures HP1-3 (subcategory) and HP4+ (variable values) both
+    // deduplicate correctly
+    // ----------------------------------------------------------------
+    function getPbKey(run: {
+      category_id: string;
+      subcategory_id: string | null;
+      variable_values: { variable_value_id: string }[];
+    }): string {
+      const varPart = run.variable_values
+        .map((rv) => rv.variable_value_id)
+        .sort()
+        .join("+");
+      return `${run.category_id}:${run.subcategory_id ?? ""}:${varPart}`;
+    }
 
-    for (const run of runs) {
+    // ----------------------------------------------------------------
+    // Solo PBs
+    // ----------------------------------------------------------------
+    const soloPBMap = new Map<string, (typeof soloRuns)[0]>();
+
+    for (const run of soloRuns) {
       const timingMethod = run.platform.timing_method;
       const time =
         timingMethod === "gametime"
@@ -41,25 +93,26 @@ export const getUserProfile = async (req: Request, res: Response) => {
           : run.realtime_ms;
       if (!time) continue;
 
-      const existing = pbMap.get(run.category_id);
+      const key = getPbKey(run);
+      const existing = soloPBMap.get(key);
       if (!existing) {
-        pbMap.set(run.category_id, run);
+        soloPBMap.set(key, run);
       } else {
         const existingTime =
-          timingMethod === "gametime"
-            ? existing.gametime_ms
-            : existing.realtime_ms;
+          timingMethod === "gametime" ? existing.gametime_ms : existing.realtime_ms;
         if (existingTime && time < existingTime) {
-          pbMap.set(run.category_id, run);
+          soloPBMap.set(key, run);
         }
       }
     }
 
     const soloPBs = await Promise.all(
-      Array.from(pbMap.values()).map(async (run) => {
+      Array.from(soloPBMap.values()).map(async (run) => {
         const timingMethod = run.platform.timing_method;
-        const timeField =
-          timingMethod === "gametime" ? "gametime_ms" : "realtime_ms";
+        const timeField = timingMethod === "gametime" ? "gametime_ms" : "realtime_ms";
+
+        // Fetch all runs in same category+subcategory+variable combo to rank
+        const varValueIds = run.variable_values.map((rv) => rv.variable_value_id);
 
         const categoryRuns = await prisma.run.findMany({
           where: {
@@ -67,17 +120,27 @@ export const getUserProfile = async (req: Request, res: Response) => {
             platform_id: run.platform_id,
             subcategory_id: run.subcategory_id ?? null,
             verified: true,
+            is_coop: false,
+            ...(varValueIds.length > 0
+              ? { variable_values: { some: { variable_value_id: { in: varValueIds } } } }
+              : {}),
           },
-          select: {
-            user_id: true,
-            realtime_ms: true,
-            gametime_ms: true,
-          },
+          select: { user_id: true, realtime_ms: true, gametime_ms: true, variable_values: { select: { variable_value_id: true } } },
           orderBy: { [timeField]: "asc" as const },
         });
 
+        // Post-filter for exact variable value match
+        const exactRuns =
+          varValueIds.length > 0
+            ? categoryRuns.filter((r) =>
+                varValueIds.every((vid) =>
+                  r.variable_values.some((rv) => rv.variable_value_id === vid)
+                )
+              )
+            : categoryRuns;
+
         const seen = new Set<string>();
-        const dedupedRuns = categoryRuns.filter((r) => {
+        const dedupedRuns = exactRuns.filter((r) => {
           if (seen.has(r.user_id)) return false;
           seen.add(r.user_id);
           return true;
@@ -93,57 +156,35 @@ export const getUserProfile = async (req: Request, res: Response) => {
           category_id: run.category_id,
           category_name: run.category.name,
           category_slug: run.category.slug,
+          subcategory_name: run.subcategory?.name ?? null,
+          variable_values: run.variable_values.map((rv) => ({
+            variable: rv.variable_value.variable.name,
+            variable_slug: rv.variable_value.variable.slug,
+            value: rv.variable_value.name,
+            value_slug: rv.variable_value.slug,
+          })),
           platform: run.platform.name,
           platform_slug: run.platform.slug,
           timing_method: timingMethod,
           realtime_ms: run.realtime_ms,
-          realtime_display: run.realtime_ms
-            ? formatTime(run.realtime_ms)
-            : null,
+          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
           gametime_ms: run.gametime_ms,
-          gametime_display: run.gametime_ms
-            ? formatTime(run.gametime_ms)
-            : null,
+          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
           video_url: run.video_url,
           comment: run.comment,
           rank,
           runners: null,
         };
-      }),
+      })
     );
 
-    // Co-op PBs
-    const coopParticipations = await prisma.coopRunRunner.findMany({
-      where: { user_id: id },
-      include: {
-        coop_run: {
-          include: {
-            category: { include: { platform: { include: { game: true } } } },
-            platform: true,
-            subcategory: true,
-            runners: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    username: true,
-                    display_name: true,
-                    country: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    // Filter to verified only
+    // ----------------------------------------------------------------
+    // Coop PBs
+    // ----------------------------------------------------------------
     const verifiedCoopRuns = coopParticipations
-      .map((p) => p.coop_run)
+      .map((p) => p.run)
       .filter((r) => r.verified);
 
-    // Deduplicate to PB per subcategory
     const coopPBMap = new Map<string, (typeof verifiedCoopRuns)[0]>();
 
     for (const run of verifiedCoopRuns) {
@@ -154,15 +195,13 @@ export const getUserProfile = async (req: Request, res: Response) => {
           : run.realtime_ms;
       if (!time) continue;
 
-      const key = run.subcategory_id ?? run.category_id;
+      const key = getPbKey(run);
       const existing = coopPBMap.get(key);
       if (!existing) {
         coopPBMap.set(key, run);
       } else {
         const existingTime =
-          timingMethod === "gametime"
-            ? existing.gametime_ms
-            : existing.realtime_ms;
+          timingMethod === "gametime" ? existing.gametime_ms : existing.realtime_ms;
         if (existingTime && time < existingTime) {
           coopPBMap.set(key, run);
         }
@@ -172,26 +211,37 @@ export const getUserProfile = async (req: Request, res: Response) => {
     const coopPBs = await Promise.all(
       Array.from(coopPBMap.values()).map(async (run) => {
         const timingMethod = run.platform.timing_method;
-        const timeField =
-          timingMethod === "gametime" ? "gametime_ms" : "realtime_ms";
+        const timeField = timingMethod === "gametime" ? "gametime_ms" : "realtime_ms";
 
-        // Rank: count coop runs in this subcategory where user has a faster PB
-        const allCoopRuns = await prisma.coopRun.findMany({
+        const varValueIds = run.variable_values.map((rv) => rv.variable_value_id);
+
+        const allCoopRuns = await prisma.run.findMany({
           where: {
-            subcategory_id: run.subcategory_id ?? undefined,
             category_id: run.category_id,
             platform_id: run.platform_id,
+            subcategory_id: run.subcategory_id ?? null,
             verified: true,
+            is_coop: true,
+            ...(varValueIds.length > 0
+              ? { variable_values: { some: { variable_value_id: { in: varValueIds } } } }
+              : {}),
           },
-          include: {
-            runners: true,
-          },
+          include: { runners: true, variable_values: { select: { variable_value_id: true } } },
           orderBy: { [timeField]: "asc" as const },
         });
 
-        // Build PB per user across all coop runs in this subcategory
+        const exactCoopRuns =
+          varValueIds.length > 0
+            ? allCoopRuns.filter((r) =>
+                varValueIds.every((vid) =>
+                  r.variable_values.some((rv) => rv.variable_value_id === vid)
+                )
+              )
+            : allCoopRuns;
+
+        // Build PB per user across all coop runs
         const userBestTime = new Map<string, number>();
-        for (const cr of allCoopRuns) {
+        for (const cr of exactCoopRuns) {
           const t = (cr as any)[timeField] ?? Infinity;
           for (const runner of cr.runners) {
             const existing = userBestTime.get(runner.user_id);
@@ -201,11 +251,9 @@ export const getUserProfile = async (req: Request, res: Response) => {
           }
         }
 
-        const dedupedCoopRuns = allCoopRuns.filter((cr) => {
+        const dedupedCoopRuns = exactCoopRuns.filter((cr) => {
           const t = (cr as any)[timeField] ?? Infinity;
-          return cr.runners.some(
-            (runner) => userBestTime.get(runner.user_id) === t,
-          );
+          return cr.runners.some((runner) => userBestTime.get(runner.user_id) === t);
         });
 
         const rank = dedupedCoopRuns.findIndex((cr) => cr.id === run.id) + 1;
@@ -219,31 +267,33 @@ export const getUserProfile = async (req: Request, res: Response) => {
           category_name: run.category.name,
           category_slug: run.category.slug,
           subcategory_name: run.subcategory?.name ?? null,
+          variable_values: run.variable_values.map((rv) => ({
+            variable: rv.variable_value.variable.name,
+            variable_slug: rv.variable_value.variable.slug,
+            value: rv.variable_value.name,
+            value_slug: rv.variable_value.slug,
+          })),
           platform: run.platform.name,
           platform_slug: run.platform.slug,
           timing_method: timingMethod,
           realtime_ms: run.realtime_ms,
-          realtime_display: run.realtime_ms
-            ? formatTime(run.realtime_ms)
-            : null,
+          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
           gametime_ms: run.gametime_ms,
-          gametime_display: run.gametime_ms
-            ? formatTime(run.gametime_ms)
-            : null,
+          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
           video_url: run.video_url,
           comment: run.comment,
           rank,
           runners: run.runners.map((r) => r.user),
         };
-      }),
+      })
     );
 
     const personalBests = [...soloPBs, ...coopPBs];
 
-    const totalRuns = await prisma.run.count({ where: { user_id: id } });
-    const verifiedRuns = await prisma.run.count({
-      where: { user_id: id, verified: true },
-    });
+    const [totalRuns, verifiedRuns] = await Promise.all([
+      prisma.run.count({ where: { user_id: id } }),
+      prisma.run.count({ where: { user_id: id, verified: true } }),
+    ]);
 
     const goldRuns = personalBests.filter((pb) => pb.rank === 1).length;
 
@@ -270,6 +320,7 @@ export const getUserProfile = async (req: Request, res: Response) => {
       personal_bests: personalBests,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to fetch user profile" });
   }
 };

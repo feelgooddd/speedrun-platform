@@ -33,38 +33,23 @@ export const isGameModerator = async (
     return res.status(401).json({ error: "Not authenticated" });
   }
 
-let gameSlug: string | undefined;
+  let gameSlug: string | undefined;
 
-if (typeof req.params.slug === "string") {
-  gameSlug = req.params.slug;
-} else if (typeof req.params.gameSlug === "string") {
-  gameSlug = req.params.gameSlug;
-}
-
-  // If no gameSlug in params, try to get it from the run
-if (!gameSlug && req.params.id) {
-  const runId = typeof req.params.id === "string" ? req.params.id : undefined;
-
-  if (!runId) {
-    return res.status(400).json({ error: "Invalid run ID" });
+  if (typeof req.params.slug === "string") {
+    gameSlug = req.params.slug;
+  } else if (typeof req.params.gameSlug === "string") {
+    gameSlug = req.params.gameSlug;
   }
 
-  // Try solo run first, then co-op run
-  let run: any = await prisma.run.findUnique({
-    where: { id: runId },
-    include: {
-      category: {
-        include: {
-          platform: {
-            include: { game: true },
-          },
-        },
-      },
-    },
-  });
+  // If no gameSlug in params, try to get it from the run
+  if (!gameSlug && req.params.id) {
+    const runId = typeof req.params.id === "string" ? req.params.id : undefined;
 
-  if (!run?.category?.platform?.game) {
-    run = await prisma.coopRun.findUnique({
+    if (!runId) {
+      return res.status(400).json({ error: "Invalid run ID" });
+    }
+
+    const run = await prisma.run.findUnique({
       where: { id: runId },
       include: {
         category: {
@@ -76,14 +61,14 @@ if (!gameSlug && req.params.id) {
         },
       },
     });
+
+    if (!run?.category?.platform?.game) {
+      return res.status(404).json({ error: "Run not found or invalid data" });
+    }
+
+    gameSlug = run.category.platform.game.slug;
   }
 
-  if (!run?.category?.platform?.game) {
-    return res.status(404).json({ error: "Run not found or invalid data" });
-  }
-
-  gameSlug = run.category.platform.game.slug;
-}
   const game = await prisma.game.findUnique({
     where: { slug: gameSlug },
   });

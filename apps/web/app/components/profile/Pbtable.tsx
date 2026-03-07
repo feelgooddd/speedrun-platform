@@ -16,6 +16,13 @@ interface ProfileUser {
   country: string | null;
 }
 
+interface VariableValue {
+  variable: string;
+  variable_slug: string;
+  value: string;
+  value_slug: string;
+}
+
 interface PersonalBest {
   is_coop: boolean;
   game_id: string;
@@ -25,6 +32,7 @@ interface PersonalBest {
   category_name: string;
   category_slug: string;
   subcategory_name?: string | null;
+  variable_values?: VariableValue[];
   platform: string;
   platform_slug: string;
   timing_method: string;
@@ -103,10 +111,19 @@ export default function PBTable({
                         : pb.gametime_display;
                     const secondaryLabel =
                       pb.timing_method === "gametime" ? "RTA" : "IGT";
-                    const rowKey = pb.is_coop
-                      ? `coop-${pb.category_id}-${pb.subcategory_name}`
-                      : pb.category_id;
+
+                    // Build a unique row key using variable values if present
+                    const varKey = pb.variable_values?.length
+                      ? pb.variable_values.map((v) => `${v.variable_slug}:${v.value_slug}`).join("-")
+                      : pb.subcategory_name ?? "";
+                    const rowKey = `${pb.category_id}-${varKey}`;
                     const isExpanded = expandedId === rowKey;
+
+                    // Subcategory badge: prefer subcategory_name, fall back to variable values
+                    const subcategoryBadge = pb.subcategory_name ?? null;
+                    const variableBadges = pb.variable_values?.filter(
+                      (v) => !pb.subcategory_name // only show if no legacy subcategory
+                    ) ?? [];
 
                     return (
                       <>
@@ -130,14 +147,20 @@ export default function PBTable({
                                 display: "inline-flex",
                                 gap: "0.4rem",
                                 alignItems: "center",
+                                flexWrap: "wrap",
                               }}
                             >
                               {pb.category_name}
-                              {pb.subcategory_name && (
+                              {subcategoryBadge && (
                                 <span className="profile-subcategory-badge">
-                                  {pb.subcategory_name}
+                                  {subcategoryBadge}
                                 </span>
                               )}
+                              {variableBadges.map((v) => (
+                                <span key={v.variable_slug} className="profile-subcategory-badge">
+                                  {v.value}
+                                </span>
+                              ))}
                               {pb.is_coop && (
                                 <span className="profile-coop-badge">
                                   Co-op

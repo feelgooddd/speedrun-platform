@@ -17,63 +17,62 @@ export const getModQueue = async (req: Request, res: Response) => {
 
     const platformIds = platforms.map((p) => p.id);
 
-    const [runs, coopRuns] = await Promise.all([
-      prisma.run.findMany({
-        where: {
-          verified: false,
-          rejected: false,
-          platform_id: { in: platformIds },
-        },
-        include: {
-          user: {
-            select: {
-              id: true,
-              username: true,
-              country: true,
-              display_name: true,
-            },
+    const runs = await prisma.run.findMany({
+      where: {
+        verified: false,
+        rejected: false,
+        platform_id: { in: platformIds },
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            country: true,
+            display_name: true,
           },
-          category: true,
-          platform: true,
-          system: true,
         },
-        orderBy: { submitted_at: "asc" },
-      }),
-      prisma.coopRun.findMany({
-        where: {
-          verified: false,
-          rejected: false,
-          platform_id: { in: platformIds },
-        },
-        include: {
-          runners: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  username: true,
-                  country: true,
-                  display_name: true,
-                },
+        runners: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                country: true,
+                display_name: true,
               },
             },
           },
-          category: true,
-          platform: true,
-          subcategory: true,
-          system: true,
         },
-        orderBy: { submitted_at: "asc" },
-      }),
-    ]);
+        category: true,
+        platform: true,
+        subcategory: true,
+        system: true,
+        variable_values: {
+          include: {
+            variable_value: {
+              include: { variable: true },
+            },
+          },
+        },
+      },
+      orderBy: { submitted_at: "asc" },
+    });
 
-    const soloItems = runs.map((run) => ({
+    const items = runs.map((run) => ({
       id: run.id,
-      is_coop: false,
-      user: run.user,
-      runners: null,
+      is_coop: run.is_coop,
+      user: run.is_coop ? null : run.user,
+      runners: run.is_coop ? run.runners.map((r) => r.user) : null,
       system: run.system?.name ?? null,
       category: run.category.name,
+      subcategory: run.subcategory?.name ?? null,
+      variable_values: run.variable_values.map((rv) => ({
+        variable: rv.variable_value.variable.name,
+        variable_slug: rv.variable_value.variable.slug,
+        value: rv.variable_value.name,
+        value_slug: rv.variable_value.slug,
+      })),
       platform: run.platform.name,
       realtime_ms: run.realtime_ms,
       realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
@@ -85,36 +84,11 @@ export const getModQueue = async (req: Request, res: Response) => {
       reject_reason: run.reject_reason,
       comment: run.comment,
     }));
-
-    const coopItems = coopRuns.map((run) => ({
-      id: run.id,
-      is_coop: true,
-      user: null,
-      runners: run.runners.map((r) => r.user),
-      system: run.system?.name ?? null,
-      category: run.category.name,
-      subcategory: run.subcategory.name,
-      platform: run.platform.name,
-      realtime_ms: run.realtime_ms,
-      realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
-      gametime_ms: run.gametime_ms,
-      gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
-      video_url: run.video_url,
-      submitted_at: run.submitted_at,
-      rejected: run.rejected,
-      reject_reason: run.reject_reason,
-      comment: run.comment,
-    }));
-
-    const allItems = [...soloItems, ...coopItems].sort(
-      (a, b) =>
-        new Date(a.submitted_at).getTime() - new Date(b.submitted_at).getTime(),
-    );
 
     res.json({
       game: game.name,
-      pending: allItems.length,
-      runs: allItems,
+      pending: items.length,
+      runs: items,
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch mod queue" });
@@ -137,8 +111,28 @@ export const getGlobalModQueue = async (req: Request, res: Response) => {
             display_name: true,
           },
         },
+        runners: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                country: true,
+                display_name: true,
+              },
+            },
+          },
+        },
         category: { include: { platform: { include: { game: true } } } },
         platform: true,
+        subcategory: true,
+        variable_values: {
+          include: {
+            variable_value: {
+              include: { variable: true },
+            },
+          },
+        },
       },
       orderBy: { submitted_at: "asc" },
     });
@@ -147,10 +141,19 @@ export const getGlobalModQueue = async (req: Request, res: Response) => {
       pending: runs.length,
       runs: runs.map((run) => ({
         id: run.id,
-        user: run.user,
+        is_coop: run.is_coop,
+        user: run.is_coop ? null : run.user,
+        runners: run.is_coop ? run.runners.map((r) => r.user) : null,
         game: run.category.platform!.game.name,
         game_slug: run.category.platform!.game.slug,
         category: run.category.name,
+        subcategory: run.subcategory?.name ?? null,
+        variable_values: run.variable_values.map((rv) => ({
+          variable: rv.variable_value.variable.name,
+          variable_slug: rv.variable_value.variable.slug,
+          value: rv.variable_value.name,
+          value_slug: rv.variable_value.slug,
+        })),
         platform: run.platform.name,
         timing_method: run.platform.timing_method,
         realtime_ms: run.realtime_ms,
@@ -219,41 +222,3 @@ export const verifyRun = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const verifyCoopRun = async (req: AuthRequest, res: Response) => {
-  console.log("route hit")
-  try {
-    const runId = req.params.id as string;
-    const { verified, reject_reason } = req.body;
-
-    if (typeof verified !== "boolean") {
-      return res
-        .status(400)
-        .json({ error: "verified field is required (true/false)" });
-    }
-
-    const run = await prisma.coopRun.findUnique({ where: { id: runId } });
-    console.log("found run:", run);
-
-    if (!run) return res.status(404).json({ error: "Co-op run not found" });
-
-    const updatedRun = await prisma.coopRun.update({
-      where: { id: runId },
-      data: {
-        verified,
-        rejected: !verified,
-        reject_reason: !verified ? reject_reason : null,
-        verified_at: verified ? new Date() : null,
-      },
-    });
-
-    res.json({
-      run: updatedRun,
-      message: verified
-        ? "Co-op run verified successfully"
-        : "Co-op run rejected",
-    });
-  } catch (error) {
-    console.error("Error verifying co-op run:", error);
-    res.status(500).json({ error: "Failed to verify co-op run" });
-  }
-};

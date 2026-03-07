@@ -1,288 +1,0 @@
-Script started on Sun Mar  1 19:08:53 2026
-[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac scrapers % [K[?2004h[7mnpx ts-node scrape-ga[7mm[7me.ts hp1gbc hp1gbc hp1gbc-variables.json[27m [K
-[K[3A[20C[27mn[27mp[27mx[27m [27mt[27ms[27m-[27mn[27mo[27md[27me[27m [27ms[27mc[27mr[27ma[27mp[27me[27m-[27mg[27mam[27me[27m.[27mt[27ms[27m [27mh[27mp[27m1[27mg[27mb[27mc[27m [27mh[27mp[27m1[27mg[27mb[27mc[27m [27mh[27mp[27m1[27mg[27mb[27mc[27m-[27mv[27ma[27mr[27mi[27ma[27mb[27ml[27me[27ms[27m.[27mj[27ms[27mo[27mn [1B[K[?2004l
-Script starting...
-📋 Loaded 1 subcategory variable(s) from hp1gbc-variables.json
-   Subcategories apply only to: Any%
-
-  Variable: ACE (kn091jon)
-    - ACE (12vodzdq)
-    - No ACE (1py4pnv1)
-
-Fetching game data for hp1gbc...
-
-Found: Harry Potter and the Philosopher's Stone (GBC) (29d30ydl)
-
-Full-game categories found:
-  - Any% (jdz593dv)
-  - 100% (xd1e5428)
-  - Any% NG+ (vdo08gvd)
-  - Glitchless (vdoqv09k)
-
-Fetching runs for Any% [ACE]...
-  Found 12 runs
-  ✓ Saved to hp1gbc-any-ace.json
-
-Fetching runs for Any% [No ACE]...
-  Found 24 runs
-  ✓ Saved to hp1gbc-any-noace.json
-
-Fetching runs for 100%...
-  Found 4 runs
-  ✓ Saved to hp1gbc-100.json
-
-Fetching runs for Any% NG+...
-  Found 12 runs
-  ✓ Saved to hp1gbc-anyng.json
-
-Fetching runs for Glitchless...
-  Found 7 runs
-  ✓ Saved to hp1gbc-glitchless.json
-
-✓ All categories scraped successfully!
-
-Files created:
-  - hp1gbc-100.json
-  - hp1gbc-any-ace.json
-  - hp1gbc-any-noace.json
-  - hp1gbc-anyng.json
-  - hp1gbc-glitchless.json
-⠙[1G[0K[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac scrapers % [K[?2004h[7mnpx ts-node scripts/s[7me[7med-platform-with-subcategories.ts hp1 gb[7mc[7m scrapers/hp1gbc scrapers/hp1gbc-variabl[7me[7ms.json[27m[K[3A[13C[27mn[27mp[27mx[27m [27mt[27ms[27m-[27mn[27mo[27md[27me[27m [27ms[27mc[27mr[27mi[27mp[27mt[27ms[27m/[27mse[27me[27md[27m-[27mp[27ml[27ma[27mt[27mf[27mo[27mr[27mm[27m-[27mw[27mi[27mt[27mh[27m-[27ms[27mu[27mb[27mc[27ma[27mt[27me[27mg[27mo[27mr[27mi[27me[27ms[27m.[27mt[27ms[27m [27mh[27mp[27m1[27m [27mg[27mbc[27m [27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1[27mg[27mb[27mc[27m [27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1[27mg[27mb[27mc[27m-[27mv[27ma[27mr[27mi[27ma[27mb[27mle[27ms[27m.[27mj[27ms[27mo[27mn[?2004l
-node:internal/modules/cjs/loader:1423
-  throw err;
-  ^
-
-Error: Cannot find module './seed-platform-with-subcategories.ts'
-Require stack:
-- /Users/ryan/Documents/speedrun-platform/apps/api/scrapers/scripts/imaginaryUncacheableRequireResolveScript
-[90m    at Module._resolveFilename (node:internal/modules/cjs/loader:1420:15)[39m
-[90m    at require.resolve (node:internal/modules/helpers:163:19)[39m
-    at requireResolveNonCached (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/ts-node@10.9.2_@types+node@25.3.0_typescript@5.9.3/node_modules/[4mts-node[24m/dist/bin.js:549:16)
-    at getProjectSearchDir (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/ts-node@10.9.2_@types+node@25.3.0_typescript@5.9.3/node_modules/[4mts-node[24m/dist/bin.js:519:40)
-    at phase3 (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/ts-node@10.9.2_@types+node@25.3.0_typescript@5.9.3/node_modules/[4mts-node[24m/dist/bin.js:267:27)
-    at bootstrap (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/ts-node@10.9.2_@types+node@25.3.0_typescript@5.9.3/node_modules/[4mts-node[24m/dist/bin.js:47:30)
-    at main (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/ts-node@10.9.2_@types+node@25.3.0_typescript@5.9.3/node_modules/[4mts-node[24m/dist/bin.js:33:12)
-    at Object.<anonymous> (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/ts-node@10.9.2_@types+node@25.3.0_typescript@5.9.3/node_modules/[4mts-node[24m/dist/bin.js:579:5)
-[90m    at Module._compile (node:internal/modules/cjs/loader:1760:14)[39m
-[90m    at Object..js (node:internal/modules/cjs/loader:1892:10)[39m {
-  code: [32m'MODULE_NOT_FOUND'[39m,
-  requireStack: [
-    [32m'/Users/ryan/Documents/speedrun-platform/apps/api/scrapers/scripts/imaginaryUncacheableRequireResolveScript'[39m
-  ]
-}
-
-Node.js v25.2.1
-⠙[1G[0K[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac scrapers % [K[?2004hccd ..[?2004l
-[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac api % [K[?2004h>....                     
-[7m    at Object..js (node:internal/modules/[7mc[7mjs/loader:1892:10) {[27m[K
-[7m  code: 'MODULE_NOT_FOUND',[27m[K
-[7m  requireStack: [[27m[K
-[7m    '/Users/ryan/Documents/speedrun-platf[7mo[7mrm/apps/api/scrapers/scripts/imaginaryUn[7mc[7macheableRequireResolveScript'[27m[K
-[7m  ][27m[K
-[7m}[27m[K
-[K
-[7mNode.js v25.2.1[27m[K
-[7mryan@Mac scrapers % [27m[K[11A[27m [27m [27m [27m [27ma[27mt[27m [27mO[27mb[27mj[27me[27mc[27mt[27m.[27m.[27mj[27ms[27m [27m([27mn[27mo[27md[27me[27m:[27mi[27mn[27mt[27me[27mr[27mn[27ma[27ml[27m/[27mm[27mo[27md[27mu[27ml[27me[27ms[27m/c[27mj[27ms[27m/[27ml[27mo[27ma[27md[27me[27mr[27m:[27m1[27m8[27m9[27m2[27m:[27m1[27m0[27m)[27m [27m{[1B[27m [27m [27mc[27mo[27md[27me[27m:[27m [27m'[27mM[27mO[27mD[27mU[27mL[27mE[27m_[27mN[27mO[27mT[27m_[27mF[27mO[27mU[27mN[27mD[27m'[27m,[1B[27m [27m [27mr[27me[27mq[27mu[27mi[27mr[27me[27mS[27mt[27ma[27mc[27mk[27m:[27m [27m[[1B[27m [27m [27m [27m [27m'[27m/[27mU[27ms[27me[27mr[27ms[27m/[27mr[27my[27ma[27mn[27m/[27mD[27mo[27mc[27mu[27mm[27me[27mn[27mt[27ms[27m/[27ms[27mp[27me[27me[27md[27mr[27mu[27mn[27m-[27mp[27ml[27ma[27mt[27mfo[27mr[27mm[27m/[27ma[27mp[27mp[27ms[27m/[27ma[27mp[27mi[27m/[27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[27m/[27ms[27mc[27mr[27mi[27mp[27mt[27ms[27m/[27mi[27mm[27ma[27mg[27mi[27mn[27ma[27mr[27my[27mU[27mnc[27ma[27mc[27mh[27me[27ma[27mb[27ml[27me[27mR[27me[27mq[27mu[27mi[27mr[27me[27mR[27me[27ms[27mo[27ml[27mv[27me[27mS[27mc[27mr[27mi[27mp[27mt[27m'[1B[27m [27m [27m][1B[27m}[2B[27mN[27mo[27md[27me[27m.[27mj[27ms[27m [27mv[27m2[27m5[27m.[27m2[27m.[27m1[1B[27mr[27my[27ma[27mn[27m@[27mM[27ma[27mc[27m [27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[27m [27m%[K[1C[?2004l
-zsh: parse error near `}'
-[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac api % [K[?2004h[7mcd ..[27m
-[7mnpx ts-node scripts/seed-platform-with-su[7mb[7mcategories.ts hp1 gbc scrapers/hp1gbc sc[7mr[7mapers/hp1gbc-variables.json[27m[K[3A[13D[27mc[27md[27m [27m.[27m.[1B[27mn[27mp[27mx[27m [27mt[27ms[27m-[27mn[27mo[27md[27me[27m [27ms[27mc[27mr[27mi[27mp[27mt[27ms[27m/[27ms[27me[27me[27md[27m-[27mp[27ml[27ma[27mt[27mf[27mo[27mr[27mm[27m-[27mw[27mi[27mt[27mh[27m-[27ms[27mub[27mc[27ma[27mt[27me[27mg[27mo[27mr[27mi[27me[27ms[27m.[27mt[27ms[27m [27mh[27mp[27m1[27m [27mg[27mb[27mc[27m [27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1[27mg[27mb[27mc[27m [27ms[27mcr[27ma[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1[27mg[27mb[27mc[27m-[27mv[27ma[27mr[27mi[27ma[27mb[27ml[27me[27ms[27m.[27mj[27ms[27mo[27mn[?2004l
-⠙[1G[0K⠹[1G[0Ksh: ts-node: command not found
-⠙[1G[0K[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac apps % [K[?2004h[7mnpx ts-node scripts/seed-[7mp[7mlatform-with-subcategories.ts hp1 gbc sc[7mr[7mapers/hp1gbc scrapers/hp1gbc-variables.j[7ms[7mon[27m[K[3A[13C[27mn[27mp[27mx[27m [27mt[27ms[27m-[27mn[27mo[27md[27me[27m [27ms[27mc[27mr[27mi[27mp[27mt[27ms[27m/[27ms[27me[27me[27md[27m-p[27ml[27ma[27mt[27mf[27mo[27mr[27mm[27m-[27mw[27mi[27mt[27mh[27m-[27ms[27mu[27mb[27mc[27ma[27mt[27me[27mg[27mo[27mr[27mi[27me[27ms[27m.[27mt[27ms[27m [27mh[27mp[27m1[27m [27mg[27mb[27mc[27m [27ms[27mcr[27ma[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1[27mg[27mb[27mc[27m [27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1[27mg[27mb[27mc[27m-[27mv[27ma[27mr[27mi[27ma[27mb[27ml[27me[27ms[27m.[27mjs[27mo[27mn[?2004l
-⠙[1G[0K⠹[1G[0Ksh: ts-node: command not found
-⠙[1G[0K[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac apps % [K[?2004ha ccd api[?2004l
-[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac api % [K[?2004h[7mryan@Mac apps % npx ts-nod[7me[7m scripts/seed-platform-with-subcategorie[7ms[7m.ts hp1 gbc scrapers/hp1gbc scrapers/hp1[7mg[7mbc-variables.json[27m[K
-[7msh: ts-node: command not found[27m[K
-[7mryan@Mac apps % [27m[K
-[K
-[K
-[K
-[K
-[K
-[K
-[K[12A[15C[27mr[27my[27ma[27mn[27m@[27mM[27ma[27mc[27m [27ma[27mp[27mp[27ms[27m [27m%[27m [27mn[27mp[27mx[27m [27mt[27ms[27m-[27mn[27mo[27mde[27m [27ms[27mc[27mr[27mi[27mp[27mt[27ms[27m/[27ms[27me[27me[27md[27m-[27mp[27ml[27ma[27mt[27mf[27mo[27mr[27mm[27m-[27mw[27mi[27mt[27mh[27m-[27ms[27mu[27mb[27mc[27ma[27mt[27me[27mg[27mo[27mr[27mi[27mes[27m.[27mt[27ms[27m [27mh[27mp[27m1[27m [27mg[27mb[27mc[27m [27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1[27mg[27mb[27mc[27m [27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1g[27mb[27mc[27m-[27mv[27ma[27mr[27mi[27ma[27mb[27ml[27me[27ms[27m.[27mj[27ms[27mo[27mn[1B[27ms[27mh[27m:[27m [27mt[27ms[27m-[27mn[27mo[27md[27me[27m:[27m [27mc[27mo[27mm[27mm[27ma[27mn[27md[27m [27mn[27mo[27mt[27m [27mf[27mo[27mu[27mn[27md[1B[27mr[27my[27ma[27mn[27m@[27mM[27ma[27mc[27m [27ma[27mp[27mp[27ms[27m [27m%[K[7B[K[?2004l
-zsh: command not found: ryan@Mac
-zsh: command not found: sh:
-zsh: command not found: ryan@Mac
-[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac api % [K[?2004h[7mnpx ts-node scripts/seed-p[7ml[7matform-with-subcategories.ts hp1 gbc scr[7ma[7mpers/hp1gbc scrapers/hp1gbc-variables.js[7mo[7mn[27m[K[3A[13C[27mn[27mp[27mx[27m [27mt[27ms[27m-[27mn[27mo[27md[27me[27m [27ms[27mc[27mr[27mi[27mp[27mt[27ms[27m/[27ms[27me[27me[27md[27m-[27mpl[27ma[27mt[27mf[27mo[27mr[27mm[27m-[27mw[27mi[27mt[27mh[27m-[27ms[27mu[27mb[27mc[27ma[27mt[27me[27mg[27mo[27mr[27mi[27me[27ms[27m.[27mt[27ms[27m [27mh[27mp[27m1[27m [27mg[27mb[27mc[27m [27ms[27mc[27mra[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1[27mg[27mb[27mc[27m [27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[27m/[27mh[27mp[27m1[27mg[27mb[27mc[27m-[27mv[27ma[27mr[27mi[27ma[27mb[27ml[27me[27ms[27m.[27mj[27mso[27mn[?2004l
-
-🎮 Seeding HP1 - GBC
-
-📋 Found 1 subcategory variable(s)
-
-📦 Loaded 392 users from cache
-
-(node:45127) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
-In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
-
-To prepare for this change:
-- If you want the current behavior, explicitly use 'sslmode=verify-full'
-- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
-
-See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
-(Use `node --trace-warnings ...` to show where the warning was created)
-✓ Found game: Harry Potter and the Philosopher's Stone
-
-✓ Created platform: GBC
-
-No JSON files found with prefix "scrapers/hp1gbc"
-⠙[1G[0K[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac api % [K[?2004h[?2004l
-[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac api % [K[?2004h>....                     
-[7mnt/libpq-ssl.html for libpq SSL mode defi[7mn[7mitions.[27m[K
-[7m(Use `node --trace-warnings ...` to show [7mw[7mhere the warning was created)[27m[K
-[7m✓ Found game: Harry Potter and the Philos[7mo[7mpher's Stone[27m[K
-[K
-[7m✓ Created platform: GBC[27m[K
-[K
-[7mNo JSON files found with prefix "scrapers[7m/[7mhp1gbc"[27m[K
-[7mryan@Mac api % [27m[K[11A[27mn[27mt[27m/[27ml[27mi[27mb[27mp[27mq[27m-[27ms[27ms[27ml[27m.[27mh[27mt[27mm[27ml[27m [27mf[27mo[27mr[27m [27ml[27mi[27mb[27mp[27mq[27m [27mS[27mS[27mL[27m [27mm[27mo[27md[27me[27m [27md[27me[27mf[27min[27mi[27mt[27mi[27mo[27mn[27ms[27m.[1B[27m([27mU[27ms[27me[27m [27m`[27mn[27mo[27md[27me[27m [27m-[27m-[27mt[27mr[27ma[27mc[27me[27m-[27mw[27ma[27mr[27mn[27mi[27mn[27mg[27ms[27m [27m.[27m.[27m.[27m`[27m [27mt[27mo[27m [27ms[27mh[27mo[27mw[27m w[27mh[27me[27mr[27me[27m [27mt[27mh[27me[27m [27mw[27ma[27mr[27mn[27mi[27mn[27mg[27m [27mw[27ma[27ms[27m [27mc[27mr[27me[27ma[27mt[27me[27md[27m)[1B[27m✓[27m [27mF[27mo[27mu[27mn[27md[27m [27mg[27ma[27mm[27me[27m:[27m [27mH[27ma[27mr[27mr[27my[27m [27mP[27mo[27mt[27mt[27me[27mr[27m [27ma[27mn[27md[27m [27mt[27mh[27me[27m [27mP[27mh[27mi[27ml[27mo[27mso[27mp[27mh[27me[27mr[27m'[27ms[27m [27mS[27mt[27mo[27mn[27me[2B[27m✓[27m [27mC[27mr[27me[27ma[27mt[27me[27md[27m [27mp[27ml[27ma[27mt[27mf[27mo[27mr[27mm[27m:[27m [27mG[27mB[27mC[2B[27mN[27mo[27m [27mJ[27mS[27mO[27mN[27m [27mf[27mi[27ml[27me[27ms[27m [27mf[27mo[27mu[27mn[27md[27m [27mw[27mi[27mt[27mh[27m [27mp[27mr[27me[27mf[27mi[27mx[27m [27m"[27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms/[27mh[27mp[27m1[27mg[27mb[27mc[27m"[1B[27mr[27my[27ma[27mn[27m@[27mM[27ma[27mc[27m [27ma[27mp[27mi[27m [27m%[K[1C[?2004l
-zsh: parse error near `Warning:'
-[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac api % [K[?2004h[7mcd scrapers[27m
-[7mnpx ts-node ../scripts/seed-platform-with[7m-[7msubcategories.ts hp1 gbc hp1gbc hp1gbc-v[7ma[7mriables.json[27m[K[3A[2C[27mc[27md[27m [27ms[27mc[27mr[27ma[27mp[27me[27mr[27ms[1B[27mn[27mp[27mx[27m [27mt[27ms[27m-[27mn[27mo[27md[27me[27m [27m.[27m.[27m/[27ms[27mc[27mr[27mi[27mp[27mt[27ms[27m/[27ms[27me[27me[27md[27m-[27mp[27ml[27ma[27mt[27mf[27mo[27mr[27mm[27m-[27mw[27mi[27mt[27mh-[27ms[27mu[27mb[27mc[27ma[27mt[27me[27mg[27mo[27mr[27mi[27me[27ms[27m.[27mt[27ms[27m [27mh[27mp[27m1[27m [27mg[27mb[27mc[27m [27mh[27mp[27m1[27mg[27mb[27mc[27m [27mh[27mp[27m1[27mg[27mb[27mc[27m-[27mva[27mr[27mi[27ma[27mb[27ml[27me[27ms[27m.[27mj[27ms[27mo[27mn[?2004l
-
-🎮 Seeding HP1 - GBC
-
-📋 Found 1 subcategory variable(s)
-
-Fatal error: PrismaClientKnownRequestError: 
-Invalid `prisma.game.findUnique()` invocation in
-/Users/ryan/Documents/speedrun-platform/apps/api/scripts/seed-platform-with-subcategories.ts:489:34
-
-  486 
-  487 loadUserCache();
-  488 
-→ 489 const game = await prisma.game.findUnique(
-The table `public.Game` does not exist in the current database.
-    at zr.handleRequestError (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client[24m/src/runtime/RequestHandler.ts:237:13)
-    at zr.handleAndLogRequestError (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client[24m/src/runtime/RequestHandler.ts:183:12)
-    at zr.request (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client[24m/src/runtime/RequestHandler.ts:152:12)
-[90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
-    at async a (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client[24m/src/runtime/getPrismaClient.ts:808:24)
-    at async main (/Users/ryan/Documents/speedrun-platform/apps/api/scripts/seed-platform-with-subcategories.ts:489:16) {
-  code: [32m'P2021'[39m,
-  meta: {
-    modelName: [32m'Game'[39m,
-    driverAdapterError: DriverAdapterError: TableDoesNotExist
-        at PrismaPgAdapter.onError (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+adapter-pg@7.4.1/node_modules/[4m@prisma/adapter-pg[24m/dist/index.js:687:11)
-        at PrismaPgAdapter.performIO (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+adapter-pg@7.4.1/node_modules/[4m@prisma/adapter-pg[24m/dist/index.js:682:12)
-    [90m    at processTicksAndRejections (node:internal/process/task_queues:103:5)[39m
-        at async PrismaPgAdapter.queryRaw (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+adapter-pg@7.4.1/node_modules/[4m@prisma/adapter-pg[24m/dist/index.js:602:30)
-        at async e.interpretNode (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client-engine-runtime[24m/src/interpreter/query-interpreter.ts:182:26)
-        at async e.interpretNode (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client-engine-runtime[24m/src/interpreter/query-interpreter.ts:209:41)
-        at async e.interpretNode (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client-engine-runtime[24m/src/interpreter/query-interpreter.ts:268:41)
-        at async e.run (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client-engine-runtime[24m/src/interpreter/query-interpreter.ts:93:23)
-        at async execute (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client[24m/src/runtime/core/engines/client/LocalExecutor.ts:81:12)
-        at async qt.request (/Users/ryan/Documents/speedrun-platform/node_modules/[4m.pnpm[24m/@prisma+client@7.4.1_prisma@7.4.1_@types+react@19.2.2_react-dom@19.2.3_react@19.2.3__react@19_mdlkl26byjegrhi4dy2k6bktb4/node_modules/[4m@prisma/client[24m/src/runtime/core/engines/client/ClientEngine.ts:492:22) {
-      cause: [36m[Object][39m
-    }
-  },
-  clientVersion: [32m'7.4.1'[39m
-}
-⠙[1G[0K[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac scrapers % [K[?2004hccd ..[?2004l
-[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac api % [K[?2004h[7mnpx ts-node scripts/seed-p[7ml[7matform-with-subcategories.ts hp1 gbc hp1[7mg[7mbc hp1gbc-variables.json[27m[K[A[A[10D[27mn[27mp[27mx[27m [27mt[27ms[27m-[27mn[27mo[27md[27me[27m [27ms[27mc[27mr[27mi[27mp[27mt[27ms[27m/[27ms[27me[27me[27md[27m-[27mpl[27ma[27mt[27mf[27mo[27mr[27mm[27m-[27mw[27mi[27mt[27mh[27m-[27ms[27mu[27mb[27mc[27ma[27mt[27me[27mg[27mo[27mr[27mi[27me[27ms[27m.[27mt[27ms[27m [27mh[27mp[27m1[27m [27mg[27mb[27mc[27m [27mh[27mp[27m1g[27mb[27mc[27m [27mh[27mp[27m1[27mg[27mb[27mc[27m-[27mv[27ma[27mr[27mi[27ma[27mb[27ml[27me[27ms[27m.[27mj[27ms[27mo[27mn[?2004l
-
-🎮 Seeding HP1 - GBC
-
-📋 Found 1 subcategory variable(s)
-
-📦 Loaded 392 users from cache
-
-(node:45312) Warning: SECURITY WARNING: The SSL modes 'prefer', 'require', and 'verify-ca' are treated as aliases for 'verify-full'.
-In the next major version (pg-connection-string v3.0.0 and pg v9.0.0), these modes will adopt standard libpq semantics, which have weaker security guarantees.
-
-To prepare for this change:
-- If you want the current behavior, explicitly use 'sslmode=verify-full'
-- If you want libpq compatibility now, use 'uselibpqcompat=true&sslmode=require'
-
-See https://www.postgresql.org/docs/current/libpq-ssl.html for libpq SSL mode definitions.
-(Use `node --trace-warnings ...` to show where the warning was created)
-✓ Found game: Harry Potter and the Philosopher's Stone
-
-✓ Platform exists: GBC (timing: gametime)
-
-Found 5 file(s):
-
-  - hp1gbc-100.json
-  - hp1gbc-any-ace.json
-  - hp1gbc-any-noace.json
-  - hp1gbc-anyng.json
-  - hp1gbc-glitchless.json
-
-============================================================
-Processing: hp1gbc-100.json
-============================================================
-Category: 100%
-Total runs: 4
-
-✓ Created category: 100%
-
-Importing runs...
-
-✓ Done: 4 imported, 0 skipped
-
-============================================================
-Processing: hp1gbc-any-ace.json
-============================================================
-Category: Any%
-Total runs: 12
-
-✓ Created category: Any%
-  ✓ Created subcategory: ACE
-
-Importing runs...
-  Imported 10 runs...
-
-✓ Done: 12 imported, 0 skipped
-
-============================================================
-Processing: hp1gbc-any-noace.json
-============================================================
-Category: Any%
-Total runs: 24
-
-✓ Category exists: Any%
-  ✓ Created subcategory: No ACE
-
-Importing runs...
-  Imported 10 runs...
-  Imported 20 runs...
-
-✓ Done: 24 imported, 0 skipped
-
-============================================================
-Processing: hp1gbc-anyng.json
-============================================================
-Category: Any% NG+
-Total runs: 12
-
-✓ Created category: Any% NG+
-
-Importing runs...
-  Imported 10 runs...
-
-✓ Done: 12 imported, 0 skipped
-
-============================================================
-Processing: hp1gbc-glitchless.json
-============================================================
-Category: Glitchless
-Total runs: 7
-
-✓ Created category: Glitchless
-
-Importing runs...
-
-✓ Done: 7 imported, 0 skipped
-
-============================================================
-✨ All files processed!
-============================================================
-
-
-💾 Saved 392 users to cache
-📊 DB Summary:
-  Runs:          1275
-  Users:         516
-  Categories:    38
-  Subcategories: 26
-
-⠙[1G[0K[1m[7m%[27m[1m[0m                                         [0m[27m[24m[Jryan@Mac api % [K[?2004h

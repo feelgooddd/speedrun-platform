@@ -1,4 +1,3 @@
-
 @import "tailwindcss";
 
 @layer components {
@@ -16,12 +15,12 @@
     background: transparent;
     color: var(--accent);
   }
-  
+
   .btn-primary {
     background: var(--accent);
     color: var(--bg);
   }
-  
+
   .auth-input {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--card-border);
@@ -31,31 +30,31 @@
     font-family: "Crimson Text", serif;
     font-size: 1rem;
     transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+      border-color 0.2s ease,
+      box-shadow 0.2s ease;
     outline: none;
     width: 100%;
   }
-  @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap');
-  
+  @import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700;900&family=Crimson+Text:ital,wght@0,400;0,600;1,400&display=swap");
+
   .auth-input::placeholder {
     color: #444;
   }
-  
+
   .auth-input:focus {
     border-color: var(--accent);
     box-shadow: 0 0 0 3px var(--glow);
   }
 
-.auth-input:-webkit-autofill,
-.auth-input:-webkit-autofill:hover,
-.auth-input:-webkit-autofill:focus,
-.auth-input:-webkit-autofill:active {
-  -webkit-box-shadow: 0 0 0px 1000px #0d0000 inset !important;
-  -webkit-text-fill-color: #e8e0d0 !important;
-  transition: background-color 5000s ease-in-out 0s;
-  caret-color: #e8e0d0;
-}
+  .auth-input:-webkit-autofill,
+  .auth-input:-webkit-autofill:hover,
+  .auth-input:-webkit-autofill:focus,
+  .auth-input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0px 1000px #0d0000 inset !important;
+    -webkit-text-fill-color: #e8e0d0 !important;
+    transition: background-color 5000s ease-in-out 0s;
+    caret-color: #e8e0d0;
+  }
 }
 
 * {
@@ -129,7 +128,7 @@
 }
 
 .leaderboard-tab {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -159,7 +158,7 @@
 }
 
 .leaderboard-empty {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.85rem;
   letter-spacing: 0.1em;
   color: #444;
@@ -170,7 +169,7 @@
 .leaderboard-table {
   width: 100%;
   border-collapse: collapse;
-  font-family: 'Crimson Text', serif;
+  font-family: "Crimson Text", serif;
   font-size: 1.05rem;
 }
 
@@ -179,7 +178,7 @@
 }
 
 .leaderboard-table th {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.65rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -191,7 +190,7 @@
 
 .leaderboard-table td {
   padding: 0.85rem 1rem;
-  border-bottom: 1px solid rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03);
   color: #ccc;
   vertical-align: middle;
 }
@@ -205,19 +204,19 @@
 }
 
 .leaderboard-table tr.rank-1 td {
-  color: #FFD700;
+  color: #ffd700;
 }
 
 .leaderboard-table tr.rank-2 td {
-  color: #C0C0C0;
+  color: #c0c0c0;
 }
 
 .leaderboard-table tr.rank-3 td {
-  color: #CD7F32;
+  color: #cd7f32;
 }
 
 .rank-cell {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.85rem;
   font-weight: 700;
   width: 3rem;
@@ -242,7 +241,7 @@
 }
 
 .time-cell {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.95rem;
   font-weight: 600;
   letter-spacing: 0.05em;
@@ -254,7 +253,7 @@
 }
 
 .video-link {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.65rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -292,7 +291,7 @@
 }
 
 .nav-logo-text {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-weight: 700;
   font-size: 1rem;
   letter-spacing: 0.1em;
@@ -308,7 +307,7 @@
 }
 
 .nav-link {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.75rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -321,46 +320,76 @@
   color: var(--accent);
 }
 
-
-
-
 /* ── Animations ── */
 @keyframes float {
-  0%, 100% { transform: translateY(0px) translateX(0px); opacity: 0.4; }
-  33% { transform: translateY(-20px) translateX(10px); opacity: 0.8; }
-  66% { transform: translateY(-10px) translateX(-8px); opacity: 0.6; }
+  0%,
+  100% {
+    transform: translateY(0px) translateX(0px);
+    opacity: 0.4;
+  }
+  33% {
+    transform: translateY(-20px) translateX(10px);
+    opacity: 0.8;
+  }
+  66% {
+    transform: translateY(-10px) translateX(-8px);
+    opacity: 0.6;
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin-slow {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(360deg); }
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
 
 @keyframes spin-slow-reverse {
-  from { transform: translate(-50%, -50%) rotate(0deg); }
-  to { transform: translate(-50%, -50%) rotate(-360deg); }
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
 }
 
 @keyframes scroll-bounce {
-  0%, 100% { transform: translateX(-50%) translateY(0); }
-  50% { transform: translateX(-50%) translateY(6px); }
+  0%,
+  100% {
+    transform: translateX(-50%) translateY(0);
+  }
+  50% {
+    transform: translateX(-50%) translateY(6px);
+  }
 }
 
 /* ── Base ── */
 .landing {
   min-height: 100vh;
   background: var(--bg-gradient);
-  font-family: 'Crimson Text', Georgia, serif;
+  font-family: "Crimson Text", Georgia, serif;
   color: #e8e0d0;
   overflow-x: hidden;
   transition: background 0.8s ease;
@@ -385,8 +414,6 @@
   animation: float 6s ease-in-out infinite;
 }
 
-
-
 /* ── Hero ── */
 .hero {
   min-height: 100vh;
@@ -407,6 +434,8 @@
   top: 50%;
   left: 50%;
   pointer-events: none;
+  transform: translate(-50%, -50%);
+
   transition: border-color 0.8s ease;
 }
 
@@ -429,7 +458,7 @@
 }
 
 .hero-tagline {
-  font-family: 'Crimson Text', serif;
+  font-family: "Crimson Text", serif;
   font-style: italic;
   font-size: clamp(1.1rem, 2vw, 1.4rem);
   color: var(--accent);
@@ -441,22 +470,30 @@
 }
 
 .hero-title {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-weight: 900;
   font-size: clamp(2.5rem, 6vw, 5rem);
   line-height: 1.1;
   letter-spacing: 0.02em;
-  background: linear-gradient(135deg, #fff 0%, var(--accent) 40%, #fff 60%, var(--accent) 100%);
+  background: linear-gradient(
+    135deg,
+    #fff 0%,
+    var(--accent) 40%,
+    #fff 60%,
+    var(--accent) 100%
+  );
   background-size: 300% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 4s linear infinite, fadeUp 1s ease both;
+  animation:
+    shimmer 4s linear infinite,
+    fadeUp 1s ease both;
   margin-bottom: 1rem;
 }
 
 .hero-description {
-  font-family: 'Crimson Text', serif;
+  font-family: "Crimson Text", serif;
   font-size: 1.2rem;
   color: #aaa;
   max-width: 500px;
@@ -480,7 +517,7 @@
   transform: translateX(-50%);
   color: var(--accent);
   opacity: 0.4;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.7rem;
   letter-spacing: 0.2em;
   display: flex;
@@ -503,7 +540,7 @@
 }
 
 .house-btn {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -525,7 +562,7 @@
 
 /* ── Buttons ── */
 .btn {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.85rem;
   font-weight: 700;
   letter-spacing: 0.15em;
@@ -586,7 +623,7 @@
 }
 
 .stat-number {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: clamp(2rem, 4vw, 3rem);
   font-weight: 900;
   color: var(--accent);
@@ -595,7 +632,7 @@
 }
 
 .stat-label {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.7rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -631,7 +668,7 @@
 }
 
 .section-title {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: clamp(1.2rem, 2.5vw, 1.6rem);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -640,7 +677,7 @@
 }
 
 .section-subtitle {
-  font-family: 'Crimson Text', serif;
+  font-family: "Crimson Text", serif;
   font-style: italic;
   color: #666;
   margin-top: 0.75rem;
@@ -658,7 +695,7 @@
   grid-column: 1 / -1;
   text-align: center;
   color: #444;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.85rem;
   letter-spacing: 0.1em;
   padding: 4rem;
@@ -678,7 +715,7 @@
 }
 
 .game-card::before {
-  content: '';
+  content: "";
   position: absolute;
   top: 0;
   left: 0;
@@ -706,7 +743,7 @@
 }
 
 .game-card-title {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 1rem;
   font-weight: 600;
   color: #fff;
@@ -720,7 +757,7 @@
 
 .category-pill {
   display: inline-block;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.65rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -745,7 +782,7 @@
 }
 
 .platform-tag {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.6rem;
   letter-spacing: 0.1em;
   color: #555;
@@ -766,7 +803,11 @@
 .cta-banner-glow {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at center, var(--glow) 0%, transparent 70%);
+  background: radial-gradient(
+    ellipse at center,
+    var(--glow) 0%,
+    transparent 70%
+  );
   pointer-events: none;
   transition: background 0.8s ease;
 }
@@ -777,7 +818,7 @@
 }
 
 .cta-banner-title {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: clamp(1.5rem, 3vw, 2.5rem);
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -787,7 +828,7 @@
 }
 
 .cta-banner-description {
-  font-family: 'Crimson Text', serif;
+  font-family: "Crimson Text", serif;
   color: #666;
   margin-bottom: 2rem;
   font-size: 1.1rem;
@@ -818,7 +859,7 @@
 }
 
 .footer-logo-text {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.75rem;
   letter-spacing: 0.1em;
   color: #444;
@@ -830,7 +871,7 @@
 }
 
 .footer-tagline {
-  font-family: 'Crimson Text', serif;
+  font-family: "Crimson Text", serif;
   font-size: 0.85rem;
   color: #333;
   font-style: italic;
@@ -862,7 +903,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 200;  /* higher than nav */
+  z-index: 200; /* higher than nav */
   background: rgba(0, 0, 0, 0.95);
   backdrop-filter: blur(20px);
   flex-direction: column;
@@ -876,7 +917,7 @@
 }
 
 .nav-mobile-link {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 1.2rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -898,7 +939,7 @@
   color: var(--accent);
   font-size: 1.5rem;
   cursor: pointer;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
 }
 
 @media (max-width: 768px) {
@@ -913,7 +954,7 @@
   .nav-hamburger {
     display: flex;
   }
-    .hero {
+  .hero {
     padding: 8rem 1.5rem 6rem;
   }
 }
@@ -954,7 +995,7 @@
   border: none;
   color: rgba(255, 255, 255, 0.5);
   font-size: 0.9rem;
-  font-family: 'EB Garamond', serif;
+  font-family: "EB Garamond", serif;
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
@@ -993,7 +1034,9 @@
   border-radius: 4px;
   color: var(--text);
   font-size: 1rem;
-  transition: border 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    border 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .auth-input:focus {
@@ -1071,14 +1114,14 @@ textarea.auth-input {
 }
 
 .run-accordion-content {
-  font-family: 'Crimson Text', serif;
+  font-family: "Crimson Text", serif;
   font-size: 1rem;
   color: #999;
   line-height: 1.6;
 }
 
 .run-accordion-label {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.65rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1124,7 +1167,7 @@ textarea.auth-input {
 }
 
 .profile-avatar span {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 2rem;
   font-weight: 700;
   color: var(--accent);
@@ -1147,7 +1190,7 @@ textarea.auth-input {
 }
 
 .profile-username {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: clamp(1.4rem, 3vw, 2rem);
   font-weight: 700;
   color: #fff;
@@ -1155,7 +1198,7 @@ textarea.auth-input {
 }
 
 .profile-placeholder-badge {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.6rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
@@ -1173,7 +1216,7 @@ textarea.auth-input {
 }
 
 .profile-twitch-link {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.7rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -1188,7 +1231,7 @@ textarea.auth-input {
 }
 
 .profile-joined {
-  font-family: 'Crimson Text', serif;
+  font-family: "Crimson Text", serif;
   font-size: 0.95rem;
   color: #444;
   font-style: italic;
@@ -1213,7 +1256,7 @@ textarea.auth-input {
 }
 
 .profile-stat-number {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: clamp(1.8rem, 3vw, 2.5rem);
   font-weight: 900;
   color: var(--accent);
@@ -1221,7 +1264,7 @@ textarea.auth-input {
 }
 
 .profile-stat-label {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.6rem;
   letter-spacing: 0.15em;
   text-transform: uppercase;
@@ -1234,7 +1277,7 @@ textarea.auth-input {
 }
 
 .profile-section-title {
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.15em;
@@ -1256,7 +1299,7 @@ textarea.auth-input {
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -1288,7 +1331,7 @@ textarea.auth-input {
 
 .profile-pb-game-title {
   display: block;
-  font-family: 'Cinzel', serif;
+  font-family: "Cinzel", serif;
   font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.1em;

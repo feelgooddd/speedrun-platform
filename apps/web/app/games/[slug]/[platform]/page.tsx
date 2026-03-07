@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import LeaderboardTabs from "@/app/components/leaderboard/LeaderboardTabs";
+
 interface Run {
   rank: number;
   id: string;
@@ -8,18 +9,13 @@ interface Run {
   comment: string | null;
   realtime_ms: number | null;
   gametime_ms: number | null;
-
   realtime_display: string | null;
   gametime_display: string | null;
-
   primary_time_ms?: number | null;
   primary_time_display?: string | null;
-
   timing_method?: string;
-
   video_url: string;
   submitted_at: string;
-
   user: {
     id: string;
     username: string;
@@ -36,13 +32,32 @@ interface Subcategory {
   total?: number;
 }
 
+interface VariableValue {
+  id: string;
+  name: string;
+  slug: string;
+  is_coop: boolean;
+  required_players: number;
+}
+
+interface Variable {
+  id: string;
+  name: string;
+  slug: string;
+  is_subcategory: boolean;
+  values: VariableValue[];
+}
+
 interface Category {
   id: string;
   name: string;
   slug: string;
   subcategories?: Subcategory[];
+  variables?: Variable[];
   runs?: Run[];
   total?: number;
+  // variable-filtered runs keyed by "varSlug:valueSlug"
+  variableRuns?: Record<string, { runs: Run[]; total: number }>;
 }
 
 interface Game {
@@ -79,10 +94,17 @@ async function getLeaderboard(
   platform: string,
   category: string,
   subcategory?: string,
+  variableFilters?: Record<string, string>,
 ): Promise<{ runs: Run[]; total: number }> {
-  const url = subcategory
+  let url = subcategory
     ? `${process.env.NEXT_PUBLIC_API_URL}/games/${slug}/${platform}/${category}/${subcategory}?page=1&limit=25`
     : `${process.env.NEXT_PUBLIC_API_URL}/games/${slug}/${platform}/${category}?page=1&limit=25`;
+
+  if (variableFilters) {
+    for (const [key, value] of Object.entries(variableFilters)) {
+      url += `&${key}=${value}`;
+    }
+  }
 
   const res = await fetch(url, { next: { revalidate: 60 } });
   if (!res.ok) return { runs: [], total: 0 };
@@ -102,35 +124,43 @@ export default async function PlatformPage({
   const platformData = game.platforms.find((p) => p.slug === platform);
   if (!platformData) notFound();
 
-  // Get categories with subcategories
   const platformCategories = await getPlatformCategories(slug, platform);
 
-  // Fetch initial leaderboards
   const categories: Category[] = await Promise.all(
     platformCategories.map(async (cat) => {
+      // Has subcategories (legacy HP1-3)
       if (cat.subcategories && cat.subcategories.length > 0) {
-        // Category has subcategories - fetch runs for each
         const subcategoriesWithRuns: Subcategory[] = await Promise.all(
           cat.subcategories.map(async (sub) => {
-            const { runs, total } = await getLeaderboard(
-              slug,
-              platform,
-              cat.slug,
-              sub.slug,
-            );
+            const { runs, total } = await getLeaderboard(slug, platform, cat.slug, sub.slug);
             return { ...sub, runs, total };
           }),
         );
-
-        return {
-          ...cat,
-          subcategories: subcategoriesWithRuns,
-        };
-      } else {
-        // No subcategories - fetch runs for category
-        const { runs, total } = await getLeaderboard(slug, platform, cat.slug);
-        return { ...cat, runs, total };
+        return { ...cat, subcategories: subcategoriesWithRuns };
       }
+
+      // Has variables (HP4+)
+      if (cat.variables && cat.variables.length > 0) {
+        // Find the first subcategory-style variable (is_subcategory: true)
+        const primaryVar = cat.variables.find((v) => v.is_subcategory) ?? cat.variables[0];
+        const variableRuns: Record<string, { runs: Run[]; total: number }> = {};
+
+        // Only fetch the first value on SSR; client fetches the rest on tab switch
+        const firstValue = primaryVar.values[0];
+        if (firstValue) {
+          const key = `${primaryVar.slug}:${firstValue.slug}`;
+          const result = await getLeaderboard(slug, platform, cat.slug, undefined, {
+            [primaryVar.slug]: firstValue.slug,
+          });
+          variableRuns[key] = result;
+        }
+
+        return { ...cat, variableRuns };
+      }
+
+      // No subcategories or variables - fetch runs directly
+      const { runs, total } = await getLeaderboard(slug, platform, cat.slug);
+      return { ...cat, runs, total };
     }),
   );
 

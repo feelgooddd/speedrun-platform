@@ -106,11 +106,9 @@ export const getLeaderboard = async (req: Request, res: Response) => {
 
         const value = variable.values.find((v) => v.slug === valSlug);
         if (!value)
-          return res
-            .status(404)
-            .json({
-              error: `Value '${valSlug}' not found for variable '${varSlug}'`,
-            });
+          return res.status(404).json({
+            error: `Value '${valSlug}' not found for variable '${varSlug}'`,
+          });
 
         resolvedVariableValueIds.push(value.id);
         if (value.is_coop) isCoop = true;
@@ -212,14 +210,11 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       });
     } else {
       const seen = new Set<string>();
-      dedupedRuns =
-        subcategory || hasVariableFilter
-          ? filteredRuns.filter((run) => {
-              if (seen.has(run.user_id)) return false;
-              seen.add(run.user_id);
-              return true;
-            })
-          : filteredRuns;
+      dedupedRuns = filteredRuns.filter((run) => {
+        if (seen.has(run.user_id)) return false;
+        seen.add(run.user_id);
+        return true;
+      });
     }
 
     // ----------------------------------------------------------------

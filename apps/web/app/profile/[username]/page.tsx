@@ -23,6 +23,7 @@ interface PersonalBest {
   video_url: string | null;
   comment: string | null;
   rank: number;
+
   runners:
     | {
         id: string;
@@ -31,6 +32,12 @@ interface PersonalBest {
         country: string | null;
       }[]
     | null;
+  variable_values?: {
+    variable: string;
+    variable_slug: string;
+    value: string;
+    value_slug: string;
+  }[];
 }
 
 interface Run {
@@ -106,7 +113,9 @@ function groupByGame(pbs: PersonalBest[]) {
     }
     map.get(pb.game_id)!.pbs.push(pb);
   }
-  return Array.from(map.values());
+  return Array.from(map.values()).sort((a, b) =>
+    a.game_slug.localeCompare(b.game_slug),
+  );
 }
 
 export default async function UserProfilePage({
@@ -177,8 +186,7 @@ export default async function UserProfilePage({
                 </span>
               </div>
             </div>
-                            <SettingsLink username={profile.username} />
-
+            <SettingsLink username={profile.username} />
           </div>
         </div>
 

@@ -15,6 +15,7 @@ import {
   deleteSubcategory,
   getPlatformSystems,
 } from "../controllers/games";
+import { getPlatformRuns, getCategoryRuns } from "../controllers/runs";
 import { requireAuth } from "../middleware/auth";
 import { isAdmin } from "../middleware/checkRole";
 
@@ -25,6 +26,8 @@ gamesRouter.get("/stats", getStats);
 gamesRouter.get("/:slug", getGameBySlug);
 gamesRouter.get("/:slug/:platform/systems", getPlatformSystems);
 gamesRouter.get("/:slug/:platform/categories", getPlatformCategories);
+gamesRouter.get("/:slug/:platform/runs", getPlatformRuns);
+gamesRouter.get("/:slug/:platform/:category/runs", getCategoryRuns);
 gamesRouter.get("/:slug/:platform/:category/:subcategory", getLeaderboard);
 gamesRouter.get("/:slug/:platform/:category", getLeaderboard);
 gamesRouter.post("/", requireAuth, isAdmin, createGame);

@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { getUserProfile, getUserRuns, getMe, updateMe, searchUsers, updateUserRole, assignGameModerator, removeGameModerator} from '../controllers/users'
+import { getUserPBs, getUserProfile, getUserRuns, getMe, updateMe, searchUsers, updateUserRole, assignGameModerator, removeGameModerator} from '../controllers/users'
 import { requireAuth } from '../middleware/auth';
 import { isAdmin } from '../middleware/checkRole';
 import { getMyModeratedGames } from '../controllers/users';
@@ -15,3 +15,4 @@ usersRouter.post('/:id/moderate/:gameSlug', requireAuth, isAdmin, assignGameMode
 usersRouter.delete('/:id/moderate/:gameSlug', requireAuth, isAdmin, removeGameModerator);
 usersRouter.get('/:id', getUserProfile);
 usersRouter.get('/:id/runs', getUserRuns);
+usersRouter.get('/:id/pbs', getUserPBs);

@@ -13,9 +13,9 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
       game_slug,
       platform_slug,
       category_slug,
-      subcategory_slug,   // for simple single-dimension games (HP1-3)
-      variable_values,    // for multi-dimensional games (HP4+): [{ variable_slug, value_slug }]
-      runner_ids,         // for coop runs: array of user IDs including submitter
+      subcategory_slug, // for simple single-dimension games (HP1-3)
+      variable_values, // for multi-dimensional games (HP4+): [{ variable_slug, value_slug }]
+      runner_ids, // for coop runs: array of user IDs including submitter
       realtime_ms,
       gametime_ms,
       video_url,
@@ -65,7 +65,11 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
     let isCoop = false;
     let requiredPlayers: number | null = null;
 
-    if (variable_values && Array.isArray(variable_values) && variable_values.length > 0) {
+    if (
+      variable_values &&
+      Array.isArray(variable_values) &&
+      variable_values.length > 0
+    ) {
       const variables = await prisma.variable.findMany({
         where: { category_id: category.id },
         include: { values: true },
@@ -74,13 +78,16 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
       for (const { variable_slug, value_slug } of variable_values) {
         if (!variable_slug || !value_slug) {
           return res.status(400).json({
-            error: "Each variable_value entry must have variable_slug and value_slug",
+            error:
+              "Each variable_value entry must have variable_slug and value_slug",
           });
         }
 
         const variable = variables.find((v) => v.slug === variable_slug);
         if (!variable)
-          return res.status(404).json({ error: `Variable '${variable_slug}' not found` });
+          return res
+            .status(404)
+            .json({ error: `Variable '${variable_slug}' not found` });
 
         const value = variable.values.find((v) => v.slug === value_slug);
         if (!value)
@@ -102,10 +109,14 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
     // ----------------------------------------------------------------
     if (isCoop) {
       if (!runner_ids || !Array.isArray(runner_ids) || runner_ids.length < 2) {
-        return res.status(400).json({ error: "Co-op runs require at least 2 runners" });
+        return res
+          .status(400)
+          .json({ error: "Co-op runs require at least 2 runners" });
       }
       if (!runner_ids.includes(req.userId)) {
-        return res.status(400).json({ error: "Submitter must be one of the runners" });
+        return res
+          .status(400)
+          .json({ error: "Submitter must be one of the runners" });
       }
       if (requiredPlayers && runner_ids.length !== requiredPlayers) {
         return res.status(400).json({
@@ -141,7 +152,9 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
         // Variable values
         ...(resolvedVariableValueIds.length > 0 && {
           variable_values: {
-            create: resolvedVariableValueIds.map((id) => ({ variable_value_id: id })),
+            create: resolvedVariableValueIds.map((id) => ({
+              variable_value_id: id,
+            })),
           },
         }),
         // Coop runners
@@ -152,10 +165,24 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
         }),
       },
       include: {
-        user: { select: { id: true, username: true, display_name: true, country: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            display_name: true,
+            country: true,
+          },
+        },
         runners: {
           include: {
-            user: { select: { id: true, username: true, display_name: true, country: true } },
+            user: {
+              select: {
+                id: true,
+                username: true,
+                display_name: true,
+                country: true,
+              },
+            },
           },
         },
         category: true,
@@ -192,7 +219,6 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
 export const getRun = async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
@@ -200,10 +226,24 @@ export const getRun = async (req: AuthRequest, res: Response) => {
     const run = await prisma.run.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, username: true, display_name: true, country: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            display_name: true,
+            country: true,
+          },
+        },
         runners: {
           include: {
-            user: { select: { id: true, username: true, display_name: true, country: true } },
+            user: {
+              select: {
+                id: true,
+                username: true,
+                display_name: true,
+                country: true,
+              },
+            },
           },
         },
         category: {
@@ -291,8 +331,6 @@ export const updateRun = async (req: AuthRequest, res: Response) => {
   }
 };
 
-
-
 export const deleteRun = async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
@@ -308,3 +346,215 @@ export const deleteRun = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// GET /api/games/:slug/:platform/runs
+// All runs across all categories for a platform (no dedup)
+export const getPlatformRuns = async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      slug,
+      platform: platformSlug,
+      category: categorySlug,
+    } = req.params as Record<string, string>;
+    const { page = "1", limit = "50" } = req.query;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+    const timingField =
+      platform.timing_method === "gametime" ? "gametime_ms" : "realtime_ms";
+
+    const [runs, total] = await Promise.all([
+      prisma.run.findMany({
+        where: { platform_id: platform.id, verified: true },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              display_name: true,
+              country: true,
+            },
+          },
+          runners: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  display_name: true,
+                  country: true,
+                },
+              },
+            },
+          },
+          category: true,
+          system: true,
+          variable_values: {
+            include: { variable_value: { include: { variable: true } } },
+          },
+        },
+        orderBy: { submitted_at: "desc" },
+        skip,
+        take: limitNum,
+      }),
+      prisma.run.count({
+        where: { platform_id: platform.id, verified: true },
+      }),
+    ]);
+
+    return res.json({
+      game: game.name,
+      platform: platform.name,
+      timing_method: platform.timing_method,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      runs: runs.map((run) => ({
+        id: run.id,
+        is_coop: run.is_coop,
+        ...(run.is_coop
+          ? { runners: run.runners.map((r) => r.user) }
+          : { user: run.user }),
+        category: run.category.name,
+        category_slug: run.category.slug,
+        system: run.system?.name ?? null,
+        comment: run.comment,
+        realtime_ms: run.realtime_ms,
+        gametime_ms: run.gametime_ms,
+        realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+        gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+        video_url: run.video_url,
+        submitted_at: run.submitted_at,
+        variable_values: run.variable_values.map((rv) => ({
+          variable: rv.variable_value.variable.name,
+          variable_slug: rv.variable_value.variable.slug,
+          value: rv.variable_value.name,
+          value_slug: rv.variable_value.slug,
+        })),
+      })),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch platform runs" });
+  }
+};
+
+// GET /api/games/:slug/:platform/:category/runs
+// All runs for a specific category (no dedup, full history)
+export const getCategoryRuns = async (req: AuthRequest, res: Response) => {
+  try {
+    const {
+      slug,
+      platform: platformSlug,
+      category: categorySlug,
+    } = req.params as Record<string, string>;
+    const { page = "1", limit = "50" } = req.query;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const category = await prisma.category.findFirst({
+      where: { slug: categorySlug, platform_id: platform.id },
+    });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+    const timingField =
+      platform.timing_method === "gametime" ? "gametime_ms" : "realtime_ms";
+
+    const [runs, total] = await Promise.all([
+      prisma.run.findMany({
+        where: {
+          category_id: category.id,
+          platform_id: platform.id,
+          verified: true,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              display_name: true,
+              country: true,
+            },
+          },
+          runners: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  username: true,
+                  display_name: true,
+                  country: true,
+                },
+              },
+            },
+          },
+          system: true,
+          variable_values: {
+            include: { variable_value: { include: { variable: true } } },
+          },
+        },
+        orderBy: { [timingField]: "asc" as const },
+        skip,
+        take: limitNum,
+      }),
+      prisma.run.count({
+        where: {
+          category_id: category.id,
+          platform_id: platform.id,
+          verified: true,
+        },
+      }),
+    ]);
+
+    return res.json({
+      game: game.name,
+      platform: platform.name,
+      timing_method: platform.timing_method,
+      category: category.name,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      runs: runs.map((run) => ({
+        id: run.id,
+        is_coop: run.is_coop,
+        ...(run.is_coop
+          ? { runners: run.runners.map((r) => r.user) }
+          : { user: run.user }),
+        system: run.system?.name ?? null,
+        comment: run.comment,
+        realtime_ms: run.realtime_ms,
+        gametime_ms: run.gametime_ms,
+        realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+        gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+        video_url: run.video_url,
+        submitted_at: run.submitted_at,
+        variable_values: run.variable_values.map((rv) => ({
+          variable: rv.variable_value.variable.name,
+          variable_slug: rv.variable_value.variable.slug,
+          value: rv.variable_value.name,
+          value_slug: rv.variable_value.slug,
+        })),
+      })),
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch category runs" });
+  }
+};

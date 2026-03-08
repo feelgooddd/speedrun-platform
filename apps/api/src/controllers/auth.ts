@@ -21,54 +21,10 @@ export const checkUsername = async (req: Request, res: Response) => {
   return res.json({ isPlaceholder: true });
 };
 
-// POST /auth/verify-srdc
-export const verifySrdc = async (req: Request, res: Response) => {
-  const { username: rawUsername, apiKey } = req.body;
-  if (!rawUsername || !apiKey)
-    return res.status(400).json({ error: "Missing required fields" });
-
-  const username = rawUsername.toLowerCase();
-
-  const user = await prisma.user.findUnique({ where: { username } });
-  if (!user?.speedrun_com_id) {
-    return res.json({
-      verified: false,
-      reason: "No SRDC account linked to this username",
-    });
-  }
-
-  try {
-    const srdcRes = await fetch("https://www.speedrun.com/api/v1/profile", {
-      headers: {
-        "X-API-Key": apiKey,
-        Accept: "application/json",
-        "User-Agent": "WizardingRuns/1.0",
-      },
-    });
-
-    if (!srdcRes.ok) {
-      return res.json({ verified: false, reason: "Invalid API key" });
-    }
-
-    const srdcData = await srdcRes.json();
-    const returnedId: string = srdcData?.data?.id ?? "";
-
-    if (returnedId === user.speedrun_com_id) {
-      return res.json({ verified: true });
-    }
-
-    return res.json({
-      verified: false,
-      reason: "API key does not match this account",
-    });
-  } catch {
-    return res.status(500).json({ error: "Failed to contact speedrun.com" });
-  }
-};
 
 export const register = async (req: Request, res: Response) => {
   try {
-    const { username: rawUsername, email: rawEmail, password } = req.body;
+    const { username: rawUsername, email: rawEmail, password, apiKey } = req.body;
     const email = rawEmail.toLowerCase().trim();
     const username = rawUsername.toLowerCase();
 
@@ -81,17 +37,44 @@ export const register = async (req: Request, res: Response) => {
     let user;
 
     if (existingUser?.is_placeholder) {
-      // Claiming a placeholder — verify the code was confirmed before allowing this
+      // Placeholder claim — require SRDC verification server-side
+      if (!apiKey) {
+        return res.status(400).json({ error: "API key required to claim this account" });
+      }
+
+      if (!existingUser.speedrun_com_id) {
+        return res.status(400).json({ error: "No SRDC account linked to this username" });
+      }
+
+      // Verify against SRDC
+      const srdcRes = await fetch("https://www.speedrun.com/api/v1/profile", {
+        headers: {
+          "X-API-Key": apiKey,
+          Accept: "application/json",
+          "User-Agent": "WizardingRuns/1.0",
+        },
+      });
+
+      if (!srdcRes.ok) {
+        return res.status(401).json({ error: "Invalid SRDC API key" });
+      }
+
+      const srdcData = await srdcRes.json();
+      const returnedId: string = srdcData?.data?.id ?? "";
+
+      if (returnedId !== existingUser.speedrun_com_id) {
+        return res.status(401).json({ error: "API key does not match this account" });
+      }
 
       // Check email isn't taken by another account
       const emailTaken = await prisma.user.findFirst({
         where: { email, NOT: { id: existingUser.id } },
       });
-      if (emailTaken)
+      if (emailTaken) {
         return res.status(400).json({ error: "Email already in use" });
+      }
 
       const password_hash = await bcrypt.hash(password, 12);
-
       user = await prisma.user.update({
         where: { id: existingUser.id },
         data: {
@@ -102,14 +85,12 @@ export const register = async (req: Request, res: Response) => {
         },
       });
     } else {
-      // Normal registration — check nothing conflicts
+      // Normal registration
       const existing = await prisma.user.findFirst({
         where: { OR: [{ email }, { username }] },
       });
       if (existing) {
-        return res
-          .status(400)
-          .json({ error: "Username or email already taken" });
+        return res.status(400).json({ error: "Username or email already taken" });
       }
 
       const password_hash = await bcrypt.hash(password, 12);

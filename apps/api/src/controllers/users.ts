@@ -17,326 +17,12 @@ export const getUserProfile = async (req: Request, res: Response) => {
         },
       },
     });
-
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const id = user.id;
-
-    // ----------------------------------------------------------------
-    // Fetch all verified runs this user is involved in
-    // Solo: user_id = id
-    // Coop: appears in RunRunner
-    // ----------------------------------------------------------------
-    const [soloRuns, coopParticipations] = await Promise.all([
-      prisma.run.findMany({
-        where: { user_id: id, verified: true, is_coop: false },
-        include: {
-          category: { include: { platform: { include: { game: true } } } },
-          platform: true,
-          subcategory: true,
-          variable_values: {
-            include: { variable_value: { include: { variable: true } } },
-          },
-        },
-      }),
-      prisma.runRunner.findMany({
-        where: { user_id: id },
-        include: {
-          run: {
-            include: {
-              category: { include: { platform: { include: { game: true } } } },
-              platform: true,
-              subcategory: true,
-              runners: {
-                include: {
-                  user: {
-                    select: {
-                      id: true,
-                      username: true,
-                      display_name: true,
-                      country: true,
-                    },
-                  },
-                },
-              },
-              variable_values: {
-                include: { variable_value: { include: { variable: true } } },
-              },
-            },
-          },
-        },
-      }),
-    ]);
-
-    // ----------------------------------------------------------------
-    // Build a stable PB key: category + subcategory + variable value combo
-    // This ensures HP1-3 (subcategory) and HP4+ (variable values) both
-    // deduplicate correctly
-    // ----------------------------------------------------------------
-    function getPbKey(run: {
-      category_id: string;
-      subcategory_id: string | null;
-      variable_values: { variable_value_id: string }[];
-    }): string {
-      const varPart = run.variable_values
-        .map((rv) => rv.variable_value_id)
-        .sort()
-        .join("+");
-      return `${run.category_id}:${run.subcategory_id ?? ""}:${varPart}`;
-    }
-
-    // ----------------------------------------------------------------
-    // Solo PBs
-    // ----------------------------------------------------------------
-    const soloPBMap = new Map<string, (typeof soloRuns)[0]>();
-
-    for (const run of soloRuns) {
-      const timingMethod = run.platform.timing_method;
-      const time =
-        timingMethod === "gametime"
-          ? (run.gametime_ms ?? run.realtime_ms)
-          : run.realtime_ms;
-      if (!time) continue;
-
-      const key = getPbKey(run);
-      const existing = soloPBMap.get(key);
-      if (!existing) {
-        soloPBMap.set(key, run);
-      } else {
-        const existingTime =
-          timingMethod === "gametime"
-            ? existing.gametime_ms
-            : existing.realtime_ms;
-        if (existingTime && time < existingTime) {
-          soloPBMap.set(key, run);
-        }
-      }
-    }
-
-    const soloPBs = await Promise.all(
-      Array.from(soloPBMap.values()).map(async (run) => {
-        const timingMethod = run.platform.timing_method;
-        const timeField =
-          timingMethod === "gametime" ? "gametime_ms" : "realtime_ms";
-
-        // Fetch all runs in same category+subcategory+variable combo to rank
-        const varValueIds = run.variable_values.map(
-          (rv) => rv.variable_value_id,
-        );
-
-        const categoryRuns = await prisma.run.findMany({
-          where: {
-            category_id: run.category_id,
-            platform_id: run.platform_id,
-            subcategory_id: run.subcategory_id ?? null,
-            verified: true,
-            is_coop: false,
-            ...(varValueIds.length > 0
-              ? {
-                  variable_values: {
-                    some: { variable_value_id: { in: varValueIds } },
-                  },
-                }
-              : {}),
-          },
-          select: {
-            user_id: true,
-            realtime_ms: true,
-            gametime_ms: true,
-            variable_values: { select: { variable_value_id: true } },
-          },
-          orderBy: { [timeField]: "asc" as const },
-        });
-
-        // Post-filter for exact variable value match
-        const exactRuns =
-          varValueIds.length > 0
-            ? categoryRuns.filter((r) =>
-                varValueIds.every((vid) =>
-                  r.variable_values.some((rv) => rv.variable_value_id === vid),
-                ),
-              )
-            : categoryRuns;
-
-        const seen = new Set<string>();
-        const dedupedRuns = exactRuns.filter((r) => {
-          if (seen.has(r.user_id)) return false;
-          seen.add(r.user_id);
-          return true;
-        });
-
-        const rank = dedupedRuns.findIndex((r) => r.user_id === id) + 1;
-
-        return {
-          is_coop: false,
-          game_id: run.category.platform!.game.id,
-          game_name: run.category.platform!.game.name,
-          game_slug: run.category.platform!.game.slug,
-          category_id: run.category_id,
-          category_name: run.category.name,
-          category_slug: run.category.slug,
-          subcategory_name: run.subcategory?.name ?? null,
-          variable_values: run.variable_values.map((rv) => ({
-            variable: rv.variable_value.variable.name,
-            variable_slug: rv.variable_value.variable.slug,
-            value: rv.variable_value.name,
-            value_slug: rv.variable_value.slug,
-          })),
-          platform: run.platform.name,
-          platform_slug: run.platform.slug,
-          timing_method: timingMethod,
-          realtime_ms: run.realtime_ms,
-          realtime_display: run.realtime_ms
-            ? formatTime(run.realtime_ms)
-            : null,
-          gametime_ms: run.gametime_ms,
-          gametime_display: run.gametime_ms
-            ? formatTime(run.gametime_ms)
-            : null,
-          video_url: run.video_url,
-          comment: run.comment,
-          rank,
-          runners: null,
-        };
-      }),
-    );
-
-    // ----------------------------------------------------------------
-    // Coop PBs
-    // ----------------------------------------------------------------
-    const verifiedCoopRuns = coopParticipations
-      .map((p) => p.run)
-      .filter((r) => r.verified);
-
-    const coopPBMap = new Map<string, (typeof verifiedCoopRuns)[0]>();
-
-    for (const run of verifiedCoopRuns) {
-      const timingMethod = run.platform.timing_method;
-      const time =
-        timingMethod === "gametime"
-          ? (run.gametime_ms ?? run.realtime_ms)
-          : run.realtime_ms;
-      if (!time) continue;
-
-      const key = getPbKey(run);
-      const existing = coopPBMap.get(key);
-      if (!existing) {
-        coopPBMap.set(key, run);
-      } else {
-        const existingTime =
-          timingMethod === "gametime"
-            ? existing.gametime_ms
-            : existing.realtime_ms;
-        if (existingTime && time < existingTime) {
-          coopPBMap.set(key, run);
-        }
-      }
-    }
-
-    const coopPBs = await Promise.all(
-      Array.from(coopPBMap.values()).map(async (run) => {
-        const timingMethod = run.platform.timing_method;
-        const timeField =
-          timingMethod === "gametime" ? "gametime_ms" : "realtime_ms";
-
-        const varValueIds = run.variable_values.map(
-          (rv) => rv.variable_value_id,
-        );
-
-        const allCoopRuns = await prisma.run.findMany({
-          where: {
-            category_id: run.category_id,
-            platform_id: run.platform_id,
-            subcategory_id: run.subcategory_id ?? null,
-            verified: true,
-            is_coop: true,
-            ...(varValueIds.length > 0
-              ? {
-                  variable_values: {
-                    some: { variable_value_id: { in: varValueIds } },
-                  },
-                }
-              : {}),
-          },
-          include: {
-            runners: true,
-            variable_values: { select: { variable_value_id: true } },
-          },
-          orderBy: { [timeField]: "asc" as const },
-        });
-
-        const exactCoopRuns =
-          varValueIds.length > 0
-            ? allCoopRuns.filter((r) =>
-                varValueIds.every((vid) =>
-                  r.variable_values.some((rv) => rv.variable_value_id === vid),
-                ),
-              )
-            : allCoopRuns;
-
-        // Build PB per user across all coop runs
-        const userBestTime = new Map<string, number>();
-        for (const cr of exactCoopRuns) {
-          const t = (cr as any)[timeField] ?? Infinity;
-          for (const runner of cr.runners) {
-            const existing = userBestTime.get(runner.user_id);
-            if (existing === undefined || t < existing) {
-              userBestTime.set(runner.user_id, t);
-            }
-          }
-        }
-
-        const dedupedCoopRuns = exactCoopRuns.filter((cr) => {
-          const t = (cr as any)[timeField] ?? Infinity;
-          return cr.runners.some(
-            (runner) => userBestTime.get(runner.user_id) === t,
-          );
-        });
-
-        const rank = dedupedCoopRuns.findIndex((cr) => cr.id === run.id) + 1;
-
-        return {
-          is_coop: true,
-          game_id: run.category.platform!.game.id,
-          game_name: run.category.platform!.game.name,
-          game_slug: run.category.platform!.game.slug,
-          category_id: run.category_id,
-          category_name: run.category.name,
-          category_slug: run.category.slug,
-          subcategory_name: run.subcategory?.name ?? null,
-          variable_values: run.variable_values.map((rv) => ({
-            variable: rv.variable_value.variable.name,
-            variable_slug: rv.variable_value.variable.slug,
-            value: rv.variable_value.name,
-            value_slug: rv.variable_value.slug,
-          })),
-          platform: run.platform.name,
-          platform_slug: run.platform.slug,
-          timing_method: timingMethod,
-          realtime_ms: run.realtime_ms,
-          realtime_display: run.realtime_ms
-            ? formatTime(run.realtime_ms)
-            : null,
-          gametime_ms: run.gametime_ms,
-          gametime_display: run.gametime_ms
-            ? formatTime(run.gametime_ms)
-            : null,
-          video_url: run.video_url,
-          comment: run.comment,
-          rank,
-          runners: run.runners.map((r) => r.user),
-        };
-      }),
-    );
-
-    const personalBests = [...soloPBs, ...coopPBs];
-
     const [totalRuns, verifiedRuns] = await Promise.all([
-      prisma.run.count({ where: { user_id: id } }),
-      prisma.run.count({ where: { user_id: id, verified: true } }),
+      prisma.run.count({ where: { user_id: user.id } }),
+      prisma.run.count({ where: { user_id: user.id, verified: true } }),
     ]);
-
-    const goldRuns = personalBests.filter((pb) => pb.rank === 1).length;
 
     res.json({
       id: user.id,
@@ -350,7 +36,6 @@ export const getUserProfile = async (req: Request, res: Response) => {
       stats: {
         total_runs: totalRuns,
         verified_runs: verifiedRuns,
-        gold_runs: goldRuns,
       },
       moderated_games: user.moderated_games.map((m) => ({
         id: m.game.id,
@@ -358,7 +43,6 @@ export const getUserProfile = async (req: Request, res: Response) => {
         slug: m.game.slug,
         role: m.role,
       })),
-      personal_bests: personalBests,
     });
   } catch (error) {
     console.error(error);
@@ -429,30 +113,276 @@ export const getUserRuns = async (req: Request, res: Response) => {
 };
 export const getUserPBs = async (req: Request, res: Response) => {
   try {
-    const id = req.params.id as string;
+    const identifier = req.params.id as string;
 
     const user = await prisma.user.findFirst({
-      where: { OR: [{ id }, { username: id }] },
+      where: {
+        OR: [{ username: identifier.toLowerCase() }, { id: identifier }],
+      },
     });
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const runs = await prisma.run.findMany({
-      where: { user_id: user.id, verified: true },
-      include: {
-        category: { include: { platform: { include: { game: true } } } },
-        platform: true,
-      },
-      orderBy: { realtime_ms: "asc" },
-    });
+    const id = user.id;
 
-    // Dedup: best run per category (+ subcategory if present)
-    const seen = new Set<string>();
-    const pbs = runs.filter((run) => {
-      const key = `${run.category_id}-${run.subcategory_id ?? "none"}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    });
+    function getPbKey(run: {
+      category_id: string;
+      subcategory_id: string | null;
+      variable_values: { variable_value_id: string }[];
+    }): string {
+      const varPart = run.variable_values
+        .map((rv) => rv.variable_value_id)
+        .sort()
+        .join("+");
+      return `${run.category_id}:${run.subcategory_id ?? ""}:${varPart}`;
+    }
+
+    const [soloRuns, coopParticipations] = await Promise.all([
+      prisma.run.findMany({
+        where: { user_id: id, verified: true, is_coop: false },
+        include: {
+          category: { include: { platform: { include: { game: true } } } },
+          platform: true,
+          subcategory: true,
+          variable_values: {
+            include: { variable_value: { include: { variable: true } } },
+          },
+        },
+      }),
+      prisma.runRunner.findMany({
+        where: { user_id: id },
+        include: {
+          run: {
+            include: {
+              category: { include: { platform: { include: { game: true } } } },
+              platform: true,
+              subcategory: true,
+              runners: {
+                include: {
+                  user: {
+                    select: {
+                      id: true,
+                      username: true,
+                      display_name: true,
+                      country: true,
+                    },
+                  },
+                },
+              },
+              variable_values: {
+                include: { variable_value: { include: { variable: true } } },
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    // Solo PBs
+    const soloPBMap = new Map<string, (typeof soloRuns)[0]>();
+    for (const run of soloRuns) {
+      const timingMethod = run.platform.timing_method;
+      const time =
+        timingMethod === "gametime"
+          ? (run.gametime_ms ?? run.realtime_ms)
+          : run.realtime_ms;
+      if (!time) continue;
+      const key = getPbKey(run);
+      const existing = soloPBMap.get(key);
+      if (!existing) {
+        soloPBMap.set(key, run);
+      } else {
+        const existingTime =
+          timingMethod === "gametime"
+            ? existing.gametime_ms
+            : existing.realtime_ms;
+        if (existingTime && time < existingTime) soloPBMap.set(key, run);
+      }
+    }
+
+    const soloPBs = await Promise.all(
+      Array.from(soloPBMap.values()).map(async (run) => {
+        const timingMethod = run.platform.timing_method;
+        const timeField =
+          timingMethod === "gametime" ? "gametime_ms" : "realtime_ms";
+        const varValueIds = run.variable_values.map((rv) => rv.variable_value_id);
+
+        const categoryRuns = await prisma.run.findMany({
+          where: {
+            category_id: run.category_id,
+            platform_id: run.platform_id,
+            subcategory_id: run.subcategory_id ?? null,
+            verified: true,
+            is_coop: false,
+            ...(varValueIds.length > 0
+              ? { variable_values: { some: { variable_value_id: { in: varValueIds } } } }
+              : {}),
+          },
+          select: {
+            user_id: true,
+            realtime_ms: true,
+            gametime_ms: true,
+            variable_values: { select: { variable_value_id: true } },
+          },
+          orderBy: { [timeField]: "asc" as const },
+        });
+
+        const exactRuns =
+          varValueIds.length > 0
+            ? categoryRuns.filter((r) =>
+                varValueIds.every((vid) =>
+                  r.variable_values.some((rv) => rv.variable_value_id === vid),
+                ),
+              )
+            : categoryRuns;
+
+        const seen = new Set<string>();
+        const dedupedRuns = exactRuns.filter((r) => {
+          if (seen.has(r.user_id)) return false;
+          seen.add(r.user_id);
+          return true;
+        });
+
+        const rank = dedupedRuns.findIndex((r) => r.user_id === id) + 1;
+
+        return {
+          is_coop: false,
+          game_id: run.category.platform!.game.id,
+          game_name: run.category.platform!.game.name,
+          game_slug: run.category.platform!.game.slug,
+          category_id: run.category_id,
+          category_name: run.category.name,
+          category_slug: run.category.slug,
+          subcategory_name: run.subcategory?.name ?? null,
+          variable_values: run.variable_values.map((rv) => ({
+            variable: rv.variable_value.variable.name,
+            variable_slug: rv.variable_value.variable.slug,
+            value: rv.variable_value.name,
+            value_slug: rv.variable_value.slug,
+          })),
+          platform: run.platform.name,
+          platform_slug: run.platform.slug,
+          timing_method: timingMethod,
+          realtime_ms: run.realtime_ms,
+          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+          gametime_ms: run.gametime_ms,
+          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+          video_url: run.video_url,
+          comment: run.comment,
+          rank,
+          runners: null,
+        };
+      }),
+    );
+
+    // Coop PBs
+    const verifiedCoopRuns = coopParticipations
+      .map((p) => p.run)
+      .filter((r) => r.verified);
+
+    const coopPBMap = new Map<string, (typeof verifiedCoopRuns)[0]>();
+    for (const run of verifiedCoopRuns) {
+      const timingMethod = run.platform.timing_method;
+      const time =
+        timingMethod === "gametime"
+          ? (run.gametime_ms ?? run.realtime_ms)
+          : run.realtime_ms;
+      if (!time) continue;
+      const key = getPbKey(run);
+      const existing = coopPBMap.get(key);
+      if (!existing) {
+        coopPBMap.set(key, run);
+      } else {
+        const existingTime =
+          timingMethod === "gametime"
+            ? existing.gametime_ms
+            : existing.realtime_ms;
+        if (existingTime && time < existingTime) coopPBMap.set(key, run);
+      }
+    }
+
+    const coopPBs = await Promise.all(
+      Array.from(coopPBMap.values()).map(async (run) => {
+        const timingMethod = run.platform.timing_method;
+        const timeField =
+          timingMethod === "gametime" ? "gametime_ms" : "realtime_ms";
+        const varValueIds = run.variable_values.map((rv) => rv.variable_value_id);
+
+        const allCoopRuns = await prisma.run.findMany({
+          where: {
+            category_id: run.category_id,
+            platform_id: run.platform_id,
+            subcategory_id: run.subcategory_id ?? null,
+            verified: true,
+            is_coop: true,
+            ...(varValueIds.length > 0
+              ? { variable_values: { some: { variable_value_id: { in: varValueIds } } } }
+              : {}),
+          },
+          include: {
+            runners: true,
+            variable_values: { select: { variable_value_id: true } },
+          },
+          orderBy: { [timeField]: "asc" as const },
+        });
+
+        const exactCoopRuns =
+          varValueIds.length > 0
+            ? allCoopRuns.filter((r) =>
+                varValueIds.every((vid) =>
+                  r.variable_values.some((rv) => rv.variable_value_id === vid),
+                ),
+              )
+            : allCoopRuns;
+
+        const userBestTime = new Map<string, number>();
+        for (const cr of exactCoopRuns) {
+          const t = (cr as any)[timeField] ?? Infinity;
+          for (const runner of cr.runners) {
+            const existing = userBestTime.get(runner.user_id);
+            if (existing === undefined || t < existing)
+              userBestTime.set(runner.user_id, t);
+          }
+        }
+
+        const dedupedCoopRuns = exactCoopRuns.filter((cr) => {
+          const t = (cr as any)[timeField] ?? Infinity;
+          return cr.runners.some((runner) => userBestTime.get(runner.user_id) === t);
+        });
+
+        const rank = dedupedCoopRuns.findIndex((cr) => cr.id === run.id) + 1;
+
+        return {
+          is_coop: true,
+          game_id: run.category.platform!.game.id,
+          game_name: run.category.platform!.game.name,
+          game_slug: run.category.platform!.game.slug,
+          category_id: run.category_id,
+          category_name: run.category.name,
+          category_slug: run.category.slug,
+          subcategory_name: run.subcategory?.name ?? null,
+          variable_values: run.variable_values.map((rv) => ({
+            variable: rv.variable_value.variable.name,
+            variable_slug: rv.variable_value.variable.slug,
+            value: rv.variable_value.name,
+            value_slug: rv.variable_value.slug,
+          })),
+          platform: run.platform.name,
+          platform_slug: run.platform.slug,
+          timing_method: timingMethod,
+          realtime_ms: run.realtime_ms,
+          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+          gametime_ms: run.gametime_ms,
+          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+          video_url: run.video_url,
+          comment: run.comment,
+          rank,
+          runners: run.runners.map((r) => r.user),
+        };
+      }),
+    );
+
+    const personalBests = [...soloPBs, ...coopPBs];
+    const goldRuns = personalBests.filter((pb) => pb.rank === 1).length;
 
     res.json({
       user: {
@@ -460,25 +390,12 @@ export const getUserPBs = async (req: Request, res: Response) => {
         username: user.username,
         display_name: user.display_name,
       },
-      total: pbs.length,
-      runs: pbs.map((run) => ({
-        id: run.id,
-        game: run.category.platform!.game.name,
-        game_slug: run.category.platform!.game.slug,
-        category: run.category.name,
-        category_slug: run.category.slug,
-        platform: run.platform.name,
-        platform_slug: run.platform.slug,
-        timing_method: run.platform.timing_method,
-        realtime_ms: run.realtime_ms,
-        realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
-        gametime_ms: run.gametime_ms,
-        gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
-        video_url: run.video_url,
-        submitted_at: run.submitted_at,
-      })),
+      total: personalBests.length,
+      gold_runs: goldRuns,
+      personal_bests: personalBests,
     });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ error: "Failed to fetch user PBs" });
   }
 };

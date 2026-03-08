@@ -1,9 +1,19 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import PBTable from "@/app/components/profile/Pbtable";
 import RunsTable from "@/app/components/profile/Runstable";
 import SettingsLink from "@/app/components/profile/SetingsLink";
 import { countryCodeToFlag } from "@/app/lib/flags";
+
+// ----------------------------------------------------------------
+// Types
+// ----------------------------------------------------------------
+interface VariableValue {
+  variable: string;
+  variable_slug: string;
+  value: string;
+  value_slug: string;
+}
+
 interface PersonalBest {
   is_coop: boolean;
   game_id: string;
@@ -13,6 +23,7 @@ interface PersonalBest {
   category_name: string;
   category_slug: string;
   subcategory_name?: string | null;
+  variable_values?: VariableValue[];
   platform: string;
   platform_slug: string;
   timing_method: string;
@@ -23,26 +34,18 @@ interface PersonalBest {
   video_url: string | null;
   comment: string | null;
   rank: number;
-
-  runners:
-    | {
-        id: string;
-        username: string;
-        display_name: string | null;
-        country: string | null;
-      }[]
-    | null;
-  variable_values?: {
-    variable: string;
-    variable_slug: string;
-    value: string;
-    value_slug: string;
-  }[];
+  runners: {
+    id: string;
+    username: string;
+    display_name: string | null;
+    country: string | null;
+  }[] | null;
 }
 
 interface Run {
   id: string;
   game: string;
+  game_slug: string;
   category: string;
   platform: string;
   timing_method: string;
@@ -50,8 +53,8 @@ interface Run {
   realtime_display: string | null;
   gametime_ms: number | null;
   gametime_display: string | null;
-  verified: boolean;
   video_url: string | null;
+  comment?: string | null;
   submitted_at: string;
 }
 
@@ -67,7 +70,6 @@ interface UserProfile {
   stats: {
     total_runs: number;
     verified_runs: number;
-    gold_runs: number;
   };
   moderated_games: {
     id: string;
@@ -75,11 +77,27 @@ interface UserProfile {
     slug: string;
     role: string;
   }[];
+}
+
+interface UserPBsResponse {
+  total: number;
+  gold_runs: number;
   personal_bests: PersonalBest[];
 }
 
+// ----------------------------------------------------------------
+// Fetchers
+// ----------------------------------------------------------------
 async function getUserProfile(id: string): Promise<UserProfile | null> {
   const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) return null;
+  return res.json();
+}
+
+async function getUserPBs(id: string): Promise<UserPBsResponse | null> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}/pbs`, {
     next: { revalidate: 60 },
   });
   if (!res.ok) return null;
@@ -89,35 +107,30 @@ async function getUserProfile(id: string): Promise<UserProfile | null> {
 async function getUserRuns(id: string): Promise<Run[]> {
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_URL}/users/${id}/runs?limit=100`,
-    {
-      next: { revalidate: 60 },
-    },
+    { next: { revalidate: 60 } }
   );
   if (!res.ok) return [];
   const data = await res.json();
   return data.runs ?? [];
 }
 
-function groupByGame(pbs: PersonalBest[]) {
-  const map = new Map<
-    string,
-    { game_name: string; game_slug: string; pbs: PersonalBest[] }
-  >();
+// ----------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------
+function groupPBsByGame(pbs: PersonalBest[]) {
+  const map = new Map<string, { game_name: string; game_slug: string; pbs: PersonalBest[] }>();
   for (const pb of pbs) {
     if (!map.has(pb.game_id)) {
-      map.set(pb.game_id, {
-        game_name: pb.game_name,
-        game_slug: pb.game_slug,
-        pbs: [],
-      });
+      map.set(pb.game_id, { game_name: pb.game_name, game_slug: pb.game_slug, pbs: [] });
     }
     map.get(pb.game_id)!.pbs.push(pb);
   }
-  return Array.from(map.values()).sort((a, b) =>
-    a.game_slug.localeCompare(b.game_slug),
-  );
+  return Array.from(map.values()).sort((a, b) => a.game_slug.localeCompare(b.game_slug));
 }
 
+// ----------------------------------------------------------------
+// Page
+// ----------------------------------------------------------------
 export default async function UserProfilePage({
   params,
 }: {
@@ -125,14 +138,15 @@ export default async function UserProfilePage({
 }) {
   const { username } = await params;
 
-  const [profile, runs] = await Promise.all([
+  const [profile, pbsData, runs] = await Promise.all([
     getUserProfile(username),
+    getUserPBs(username),
     getUserRuns(username),
   ]);
 
   if (!profile) notFound();
 
-  const gameGroups = groupByGame(profile.personal_bests);
+  const gameGroups = groupPBsByGame(pbsData?.personal_bests ?? []);
   const displayName = profile.display_name || profile.username;
 
   return (
@@ -160,9 +174,7 @@ export default async function UserProfilePage({
                 )}
                 <h1 className="profile-username">{displayName}</h1>
                 {profile.is_placeholder && (
-                  <span className="profile-placeholder-badge">
-                    Unregistered
-                  </span>
+                  <span className="profile-placeholder-badge">Unregistered</span>
                 )}
               </div>
 
@@ -193,20 +205,16 @@ export default async function UserProfilePage({
         {/* Stats */}
         <div className="profile-stats">
           <div className="profile-stat">
-            <span className="profile-stat-number">
-              {profile.stats.verified_runs}
-            </span>
+            <span className="profile-stat-number">{profile.stats.verified_runs}</span>
             <span className="profile-stat-label">Verified Runs</span>
           </div>
           <div className="profile-stat">
-            <span className="profile-stat-number">
-              {profile.personal_bests.length}
-            </span>
+            <span className="profile-stat-number">{pbsData?.total ?? 0}</span>
             <span className="profile-stat-label">Categories</span>
           </div>
           <div className="profile-stat">
             <span className="profile-stat-number" style={{ color: "#FFD700" }}>
-              {profile.stats.gold_runs}
+              {pbsData?.gold_runs ?? 0}
             </span>
             <span className="profile-stat-label">World Records</span>
           </div>
@@ -218,11 +226,7 @@ export default async function UserProfilePage({
             <h2 className="profile-section-title">Moderates</h2>
             <div className="profile-mod-list">
               {profile.moderated_games.map((game) => (
-                <Link
-                  key={game.id}
-                  href={`/games/${game.slug}`}
-                  className="profile-mod-pill"
-                >
+                <Link key={game.id} href={`/games/${game.slug}`} className="profile-mod-pill">
                   {game.name}
                   <span className="profile-mod-role">{game.role}</span>
                 </Link>
@@ -232,20 +236,18 @@ export default async function UserProfilePage({
         )}
 
         {/* Personal Bests */}
-        <div className="profile-section">
-          <h2 className="profile-section-title">Personal Bests</h2>
-          <PBTable
-            gameGroups={gameGroups}
-            profileUser={{
-              username: profile.username,
-              display_name: profile.display_name,
-              country: profile.country,
-            }}
-          />{" "}
-        </div>
+        <RunsTable
+          variant="pbs"
+          gameGroups={gameGroups}
+          profileUser={{
+            username: profile.username,
+            display_name: profile.display_name,
+            country: profile.country,
+          }}
+        />
 
         {/* Other Runs */}
-        <RunsTable runs={runs} personalBests={profile.personal_bests} />
+        <RunsTable variant="runs" runs={runs} />
       </div>
     </div>
   );

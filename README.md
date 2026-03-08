@@ -1,135 +1,221 @@
-# Turborepo starter
+# Speedrun Platform
 
-This Turborepo starter is maintained by the Turborepo core team.
+A full-stack speedrunning leaderboard platform with a game-agnostic backend API and a Harry Potter-themed reference frontend. Built for the Harry Potter speedrunning community as **Wizarding Runs**, but designed so any community can build their own frontend on top of the same backend.
 
-## Using this example
+**Live site:** [speedrun-platform-web.vercel.app](https://speedrun-platform-web.vercel.app)
 
-Run the following command:
+---
 
-```sh
-npx create-turbo@latest
+## What's in this repo
+
+This is a pnpm monorepo with two packages:
+
+- `apps/api` — Express + Prisma REST API (game-agnostic)
+- `apps/web` — Next.js 15 frontend (Harry Potter themed)
+
+---
+
+## Backend
+
+The API is designed to be reusable. It has no Harry Potter-specific logic — games, platforms, categories, and variables are all data-driven. Any speedrunning community can seed their own game structure and build a frontend against the same endpoints.
+
+### Features
+
+- **Games → Platforms → Categories** slug-based URL hierarchy
+- **Variable system** for multi-dimensional category splits (e.g. Players, Version, Platform)
+- **Subcategory support** for legacy HP1-3 style splits (Console/Emulator, ACE/No ACE)
+- **Co-op run support** with RunRunner join table and per-runner PB deduplication
+- **Tie-aware leaderboard ranking** using PostgreSQL `RANK()` window function
+- **Run submission and approval workflow** with mod queue
+- **Role-based moderation** (admin / mod / user)
+- **Better Auth** with email(Twitch OAuth planned)
+- **Soft deletes** on runs
+- **Placeholder/unregistered runner** support for SRDC guest players
+- **System/hardware tracking** per run
+
+### Stack
+
+- Node.js + TypeScript
+- Express
+- Prisma ORM
+- PostgreSQL (tested on Neon serverless)
+- Better Auth
+
+### API Endpoints
+
+**Health**
+```
+GET  /health
 ```
 
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
+**Auth**
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+POST /api/auth/register
+POST /api/auth/login
+POST /api/auth/check-username
+POST /api/auth/verify-srdc
+POST /api/auth/change-password          (auth required)
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
+**Games**
 ```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
-```
-
-### Develop
-
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+GET    /api/games
+GET    /api/games/stats
+GET    /api/games/:slug
+GET    /api/games/:slug/:platform/systems
+GET    /api/games/:slug/:platform/categories
+GET    /api/games/:slug/:platform/:category
+GET    /api/games/:slug/:platform/:category/:subcategory
+POST   /api/games                                           (admin)
+DELETE /api/games/:slug                                     (admin)
+POST   /api/games/:slug/platforms                           (admin)
+POST   /api/games/:slug/:platform/categories                (admin)
+POST   /api/games/:slug/:platform/:category/subcategories   (admin)
+DELETE /api/games/:slug/:platform                           (admin)
+DELETE /api/games/:slug/:platform/:category                 (admin)
+DELETE /api/games/:slug/:platform/:category/:subcategory    (admin)
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
-
+**Runs**
 ```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+GET    /api/runs/:id
+POST   /api/runs                (auth required)
+PATCH  /api/runs/:id            (admin)
+DELETE /api/runs/:id            (admin)
 ```
 
-### Remote Caching
-
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
-
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
-
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
+**Moderation**
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+GET   /api/moderation/queue                  (admin)
+GET   /api/moderation/:gameSlug/mod-queue    (mod)
+PATCH /api/moderation/runs/:id/verify        (mod)
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+**Users**
+```
+GET    /api/users/me                              (auth required)
+PATCH  /api/users/me                              (auth required)
+GET    /api/users/me/moderated-games              (auth required)
+GET    /api/users/search                          (admin)
+PATCH  /api/users/:id/role                        (admin)
+POST   /api/users/:id/moderate/:gameSlug          (admin)
+DELETE /api/users/:id/moderate/:gameSlug          (admin)
+GET    /api/users/:id
+GET    /api/users/:id/runs
+```
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+---
+
+## Frontend (Wizarding Runs)
+
+The included frontend is built for the Harry Potter speedrunning community. It is intentionally themed and not generic — treat it as a reference implementation for how to build against the API.
+
+### Features
+
+- Harry Potter house theming (Gryffindor, Slytherin, Ravenclaw, Hufflepuff) with CSS custom properties
+- Leaderboard tabs with variable/subcategory filtering
+- Run submission form
+- User profiles with accordion PB tables grouped by game
+- Co-op run display with runner lists
+- Moderation dashboard
+- Mobile responsive
+
+### Stack
+
+- Next.js 15 (App Router)
+- TypeScript
+- CSS Modules
+
+---
+
+## Data Seeding
+
+The repo includes seeders for importing runs from the [speedrun.com API](https://github.com/speedruncomorg/api):
+
+- `apps/api/seed-hp4.ts` — Harry Potter and the Goblet of Fire (PC/Console + Handheld)
+- `apps/api/seed-hp5.ts` — Harry Potter and the Order of the Phoenix (PC/Console + Handheld)
+
+Seeders handle:
+- Paginated run fetching (SRDC ignores variable filter params, so runs are fetched per category and filtered client-side)
+- User upsert with SRDC profile data
+- Guest/unregistered runner upsert as placeholder users
+- Co-op run detection and RunRunner insertion
+- Idempotent runs (safe to re-run, skips existing)
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm
+- PostgreSQL database (or a [Neon](https://neon.tech) serverless connection string)
+
+### Setup
+
+```bash
+git clone https://github.com/feelgooddd/speedrun-platform
+cd speedrun-platform
+pnpm install
+```
+
+### API
+
+```bash
+cd apps/api
+cp .env.example .env
+# Fill in DATABASE_URL, BETTER_AUTH_SECRET,
+npx prisma migrate deploy
+npx prisma generate
+pnpm dev
+```
+
+### Web
+
+```bash
+cd apps/web
+cp .env.example .env
+# Fill in NEXT_PUBLIC_API_URL this is the url to your backend e.g localhost:3001 by default on express.
+pnpm dev
+```
+
+### Seeding
+
+```bash
+cd apps/api
+npx ts-node seed-hp4.ts
+npx ts-node seed-hp5.ts
+```
+
+---
+
+## Building Your Own Frontend
+
+The backend API is game-agnostic. To use it for a different game or community:
+
+1. Deploy the API and database
+2. Seed your game structure (game → platforms → categories → variables) via the Prisma client or SQL
+3. Import your runs from SRDC or another source using the seeder pattern
+4. Build your frontend against the REST API
+
+The leaderboard endpoint supports variable filtering via query params, making it straightforward to build filtered views for any category structure:
 
 ```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+/api/leaderboard/your-game/pc/any?players=1p
+/api/leaderboard/your-game/handheld/any?version=gba
 ```
 
-## Useful Links
+---
 
-Learn more about the power of Turborepo:
+## Deployment
 
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+The reference deployment uses:
+
+- **Frontend:** [Vercel](https://vercel.com)
+- **Backend:** [Render](https://render.com)
+- **Database:** [Neon](https://neon.tech)
+
+All free tiers. Cold starts on Render's free plan will cause initial API latency.
+
+---

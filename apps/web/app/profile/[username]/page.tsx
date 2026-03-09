@@ -3,6 +3,7 @@ import Link from "next/link";
 import RunsTable from "@/app/components/profile/Runstable";
 import SettingsLink from "@/app/components/profile/SetingsLink";
 import { countryCodeToFlag } from "@/app/lib/flags";
+import { apiFetch } from "@/app/lib/api";
 
 // ----------------------------------------------------------------
 // Types
@@ -89,26 +90,19 @@ interface UserPBsResponse {
 // Fetchers
 // ----------------------------------------------------------------
 async function getUserProfile(id: string): Promise<UserProfile | null> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}`, {
-    next: { revalidate: 60 },
-  });
+  const res = await apiFetch(`/users/${id}`);
   if (!res.ok) return null;
   return res.json();
 }
 
 async function getUserPBs(id: string): Promise<UserPBsResponse | null> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/${id}/pbs`, {
-    next: { revalidate: 60 },
-  });
+  const res = await apiFetch(`/users/${id}/pbs`);
   if (!res.ok) return null;
   return res.json();
 }
 
 async function getUserRuns(id: string): Promise<Run[]> {
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/users/${id}/runs?limit=100`,
-    { next: { revalidate: 60 } }
-  );
+  const res = await apiFetch(`/users/${id}/runs?limit=100`);
   if (!res.ok) return [];
   const data = await res.json();
   return data.runs ?? [];

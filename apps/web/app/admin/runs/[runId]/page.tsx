@@ -33,7 +33,7 @@ interface Run {
   comment: string | null;
   submitted_at: string;
   verified_at: string | null;
-  is_il: string | null;
+  is_il: boolean;
   level: string | null;
 }
 

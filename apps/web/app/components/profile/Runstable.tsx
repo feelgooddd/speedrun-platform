@@ -115,12 +115,12 @@ function groupRunsByGame(runs: Run[]) {
 // ----------------------------------------------------------------
 export default function RunsTable(props: RunsTableProps) {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
-    if (props.variant === "pbs") {
-      return new Set(props.gameGroups.map((g) => g.game_slug));
-    }
-    return new Set();
-  });
+const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
+  if (props.variant === "pbs") {
+    return new Set(props.gameGroups.slice(0, 1).map((g) => g.game_slug));
+  }
+  return new Set();
+});
 
   const toggleGame = (slug: string) => {
     setExpandedGames((prev) => {

@@ -14,6 +14,9 @@ import {
   deletePlatform,
   deleteSubcategory,
   getPlatformSystems,
+  getAllSystems,
+  addSystemToPlatform,
+  createVariable,
 } from "../controllers/games";
 import { getPlatformRuns, getCategoryRuns } from "../controllers/runs";
 import { requireAuth } from "../middleware/auth";
@@ -23,10 +26,20 @@ export const gamesRouter = Router();
 
 gamesRouter.get("/", getAllGames);
 gamesRouter.get("/stats", getStats);
+gamesRouter.get("/systems", getAllSystems);
+
 gamesRouter.get("/:slug", getGameBySlug);
 gamesRouter.get("/:slug/:platform/systems", getPlatformSystems);
+gamesRouter.post(
+  "/:slug/:platform/systems",
+  requireAuth,
+  isAdmin,
+  addSystemToPlatform,
+);
+
 gamesRouter.get("/:slug/:platform/categories", getPlatformCategories);
 gamesRouter.get("/:slug/:platform/runs", getPlatformRuns);
+gamesRouter.post("/:slug/:platform/:category/variables", requireAuth, isAdmin, createVariable);
 gamesRouter.get("/:slug/:platform/:category/runs", getCategoryRuns);
 gamesRouter.get("/:slug/:platform/:category/:subcategory", getLeaderboard);
 gamesRouter.get("/:slug/:platform/:category", getLeaderboard);

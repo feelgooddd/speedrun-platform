@@ -136,67 +136,53 @@ export default function RunEditPage({
       .finally(() => setLoading(false));
   }, [runId, user, authLoading, router]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setSuccess("");
-    setSubmitting(true);
-    const url = run?.is_coop
-      ? `${process.env.NEXT_PUBLIC_API_URL}/runs/coop/${runId}`
-      : `${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`;
+const handleSave = async (e: React.FormEvent) => {
+  e.preventDefault();
+  setError("");
+  setSuccess("");
+  setSubmitting(true);
 
-    console.log("updating url:", url);
-    const realtime_ms = componentsToMs(rtaHours, rtaMinutes, rtaSeconds, rtaMs);
-    const gametime_ms = componentsToMs(igtHours, igtMinutes, igtSeconds, igtMs);
+  const realtime_ms = componentsToMs(rtaHours, rtaMinutes, rtaSeconds, rtaMs);
+  const gametime_ms = componentsToMs(igtHours, igtMinutes, igtSeconds, igtMs);
 
-    try {
-      const res = await fetch(
-        run?.is_coop
-          ? `${process.env.NEXT_PUBLIC_API_URL}/runs/coop/${runId}`
-          : `${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            realtime_ms: realtime_ms > 0 ? realtime_ms : null,
-            gametime_ms: gametime_ms > 0 ? gametime_ms : null,
-            video_url: videoUrl || null,
-            comment: comment || null,
-          }),
-        },
-      );
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to update run");
-      setSuccess("Run updated successfully.");
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        realtime_ms: realtime_ms > 0 ? realtime_ms : null,
+        gametime_ms: gametime_ms > 0 ? gametime_ms : null,
+        video_url: videoUrl || null,
+        comment: comment || null,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to update run");
+    setSuccess("Run updated successfully.");
+  } catch (err: any) {
+    setError(err.message);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
-  const handleDelete = async () => {
-    setDeleting(true);
-    try {
-      const res = await fetch(
-        run?.is_coop
-          ? `${process.env.NEXT_PUBLIC_API_URL}/runs/coop/${runId}`
-          : `${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-      if (!res.ok) throw new Error("Failed to delete run");
-      router.push("/admin");
-    } catch (err: any) {
-      setError(err.message);
-      setDeleting(false);
-    }
-  };
+const handleDelete = async () => {
+  setDeleting(true);
+  try {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) throw new Error("Failed to delete run");
+    router.push("/admin");
+  } catch (err: any) {
+    setError(err.message);
+    setDeleting(false);
+  }
+};
 
   if (authLoading || loading) return null;
   if (!user || user.role !== "admin") return null;

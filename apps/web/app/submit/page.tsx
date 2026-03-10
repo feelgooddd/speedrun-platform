@@ -16,19 +16,28 @@ interface Platform {
   timing_method: string;
 }
 
+interface VariableValue {
+  id: string;
+  variable_id: string;
+  name: string;
+  slug: string;
+  is_coop: boolean;
+  required_players: number | null;
+}
+
+interface Variable {
+  id: string;
+  slug: string;
+  name: string;
+  is_subcategory: boolean;
+  values: VariableValue[];
+}
+
 interface Category {
   id: string;
   slug: string;
   name: string;
-  subcategories?: Subcategory[];
-}
-
-interface Subcategory {
-  id: string;
-  slug: string;
-  name: string;
-  is_coop: boolean;
-  required_players: number | null;
+  variables: Variable[];
 }
 
 interface Runner {
@@ -39,7 +48,7 @@ interface Runner {
 }
 
 export default function SubmitRunPage() {
-  const { user, loading } = useAuth();
+  const { user, loading, token } = useAuth();
 
   const [games, setGames] = useState<Game[]>([]);
   const [platforms, setPlatforms] = useState<Platform[]>([]);
@@ -49,7 +58,10 @@ export default function SubmitRunPage() {
   const [selectedGame, setSelectedGame] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
-  const [selectedSubcategory, setSelectedSubcategory] = useState("");
+  // Map of variable_id -> selected VariableValue id
+  const [selectedVariableValues, setSelectedVariableValues] = useState<
+    Record<string, string>
+  >({});
   const [selectedSystem, setSelectedSystem] = useState("");
 
   const [hours, setHours] = useState("");
@@ -76,6 +88,9 @@ export default function SubmitRunPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
+  // ----------------------------------------------------------------
+  // Derived state
+  // ----------------------------------------------------------------
   const selectedPlatformData = platforms.find(
     (p) => p.slug === selectedPlatform,
   );
@@ -83,29 +98,52 @@ export default function SubmitRunPage() {
   const selectedCategoryData = categories.find(
     (c) => c.slug === selectedCategory,
   );
-  const hasSubcategories =
-    selectedCategoryData?.subcategories &&
-    selectedCategoryData.subcategories.length > 0;
-  const selectedSubcategoryData = selectedCategoryData?.subcategories?.find(
-    (s) => s.slug === selectedSubcategory,
-  );
-  const isCoop = selectedSubcategoryData?.is_coop ?? false;
 
-  // Pre-populate submitter as first runner when co-op subcategory is selected
+  // Only variables with is_subcategory: true are shown as dropdowns
+  const subcategoryVariables =
+    selectedCategoryData?.variables.filter((v) => v.is_subcategory) ?? [];
+
+  // Get all selected VariableValue objects
+  const selectedValueObjects: VariableValue[] = subcategoryVariables
+    .map((v) => {
+      const valueId = selectedVariableValues[v.id];
+      return v.values.find((val) => val.id === valueId);
+    })
+    .filter((v): v is VariableValue => v !== undefined);
+
+  // A run is co-op if ANY selected variable value has is_coop: true
+  const isCoop = selectedValueObjects.some((v) => v.is_coop);
+
+  // required_players comes from the co-op value (take the max if multiple)
+  const requiredPlayers =
+    selectedValueObjects
+      .filter((v) => v.is_coop && v.required_players)
+      .reduce((max, v) => Math.max(max, v.required_players ?? 0), 0) || null;
+
+  // Reset variable selections when category changes
+  useEffect(() => {
+    setSelectedVariableValues({});
+  }, [selectedCategory]);
+
+  // Pre-populate submitter as first runner when co-op is selected
   useEffect(() => {
     if (isCoop && user) {
-      setRunners([
-        {
-          id: user.id,
-          username: user.username,
-          display_name: user.display_name ?? null,
-          country: user.country ?? null,
-        },
-      ]);
+      setRunners((prev) => {
+        if (prev.some((r) => r.id === user.id)) return prev;
+        return [
+          {
+            id: user.id,
+            username: user.username,
+            display_name: user.display_name ?? null,
+            country: user.country ?? null,
+          },
+          ...prev.filter((r) => r.id !== user.id),
+        ];
+      });
     } else {
       setRunners([]);
     }
-  }, [isCoop, selectedSubcategory]);
+  }, [isCoop]);
 
   // Debounced runner search
   useEffect(() => {
@@ -117,13 +155,11 @@ export default function SubmitRunPage() {
     searchTimeout.current = setTimeout(async () => {
       setSearchingRunners(true);
       try {
-        const token = localStorage.getItem("token");
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/users/search?q=${encodeURIComponent(runnerSearch)}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         const data = await res.json();
-        // Filter out already added runners
         const filtered = (data.users || []).filter(
           (u: Runner) => !runners.some((r) => r.id === u.id),
         );
@@ -137,28 +173,25 @@ export default function SubmitRunPage() {
   }, [runnerSearch]);
 
   const addRunner = (runner: Runner) => {
-    if (
-      selectedSubcategoryData?.required_players &&
-      runners.length >= selectedSubcategoryData.required_players
-    ) {
-      return;
-    }
+    if (requiredPlayers && runners.length >= requiredPlayers) return;
     setRunners((prev) => [...prev, runner]);
     setRunnerSearch("");
     setRunnerResults([]);
   };
 
   const removeRunner = (id: string) => {
-    // Can't remove the submitter (first runner)
     if (id === user?.id) return;
     setRunners((prev) => prev.filter((r) => r.id !== id));
   };
 
+  // ----------------------------------------------------------------
+  // Data fetching
+  // ----------------------------------------------------------------
   useEffect(() => {
     fetch(`${process.env.NEXT_PUBLIC_API_URL}/games`)
       .then((res) => res.json())
       .then((data) => setGames(data))
-      .catch((err) => console.error(err));
+      .catch(console.error);
   }, []);
 
   useEffect(() => {
@@ -167,13 +200,11 @@ export default function SubmitRunPage() {
       setCategories([]);
       return;
     }
-    const game = games.find((g) => g.slug === selectedGame);
-    if (!game) return;
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/games/${game.slug}`)
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/games/${selectedGame}`)
       .then((res) => res.json())
       .then((data) => setPlatforms(data.platforms || []))
-      .catch((err) => console.error(err));
-  }, [selectedGame, games]);
+      .catch(console.error);
+  }, [selectedGame]);
 
   useEffect(() => {
     if (!selectedGame || !selectedPlatform) {
@@ -185,7 +216,7 @@ export default function SubmitRunPage() {
     )
       .then((res) => res.json())
       .then((data) => setCategories(data.categories || []))
-      .catch((err) => console.error(err));
+      .catch(console.error);
   }, [selectedGame, selectedPlatform]);
 
   useEffect(() => {
@@ -199,7 +230,7 @@ export default function SubmitRunPage() {
     )
       .then((res) => res.json())
       .then((data) => setSystems(data.systems || []))
-      .catch((err) => console.error(err));
+      .catch(console.error);
   }, [selectedGame, selectedPlatform]);
 
   useEffect(() => {
@@ -211,6 +242,9 @@ export default function SubmitRunPage() {
     }
   }, [isGametime]);
 
+  // ----------------------------------------------------------------
+  // Submit
+  // ----------------------------------------------------------------
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -226,63 +260,54 @@ export default function SubmitRunPage() {
       setError("Please enter a valid RTA time");
       return;
     }
+    if (!videoUrl) {
+      setError("Video URL is required");
+      return;
+    }
 
+    if (isCoop) {
+      if (requiredPlayers && runners.length !== requiredPlayers) {
+        setError(`This category requires exactly ${requiredPlayers} runners`);
+        return;
+      } else if (!requiredPlayers && runners.length < 2) {
+        setError("Co-op runs require at least 2 runners");
+        return;
+      }
+    }
+
+    // Build variable_values array from selectedVariableValues
+    const variable_values = subcategoryVariables
+      .filter((v) => selectedVariableValues[v.id])
+      .map((v) => {
+        const valueId = selectedVariableValues[v.id];
+        const value = v.values.find((val) => val.id === valueId);
+        return { variable_slug: v.slug, value_slug: value?.slug };
+      })
+      .filter((v) => v.value_slug);
     const igt =
       parseInt(igtHours || "0") * 3600000 +
       parseInt(igtMinutes || "0") * 60000 +
       parseInt(igtSeconds || "0") * 1000 +
       parseInt(igtMilliseconds || "0");
 
-    if (!videoUrl) {
-      setError("Video URL is required");
-      return;
-    }
-
-    if (isCoop && selectedSubcategoryData?.required_players) {
-      if (runners.length !== selectedSubcategoryData.required_players) {
-        setError(
-          `This subcategory requires exactly ${selectedSubcategoryData.required_players} runners`,
-        );
-        return;
-      }
-    } else if (isCoop && runners.length < 2) {
-      setError("Co-op runs require at least 2 runners");
-      return;
-    }
-
     setSubmitting(true);
 
     try {
-      const token = localStorage.getItem("token");
+const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/runs`;
 
-      const endpoint = isCoop
-        ? `${process.env.NEXT_PUBLIC_API_URL}/runs/coop`
-        : `${process.env.NEXT_PUBLIC_API_URL}/runs`;
 
-      const body = isCoop
-        ? {
-            game_slug: selectedGame,
-            platform_slug: selectedPlatform,
-            category_slug: selectedCategory,
-            subcategory_slug: selectedSubcategory,
-            realtime_ms: rta,
-            gametime_ms: igt > 0 ? igt : null,
-            video_url: videoUrl,
-            comment,
-            system_id: selectedSystem || undefined,
-            runner_ids: runners.map((r) => r.id),
-          }
-        : {
-            game_slug: selectedGame,
-            platform_slug: selectedPlatform,
-            category_slug: selectedCategory,
-            subcategory_slug: selectedSubcategory || undefined,
-            realtime_ms: rta,
-            gametime_ms: igt > 0 ? igt : null,
-            video_url: videoUrl,
-            comment,
-            system_id: selectedSystem || undefined,
-          };
+const body = {
+  game_slug: selectedGame,
+  platform_slug: selectedPlatform,
+  category_slug: selectedCategory,
+  variable_values,
+  realtime_ms: rta,
+  gametime_ms: igt > 0 ? igt : null,
+  video_url: videoUrl,
+  comment,
+  system_id: selectedSystem || undefined,
+  ...(isCoop && { runner_ids: runners.map((r) => r.id) }),
+};
 
       const res = await fetch(endpoint, {
         method: "POST",
@@ -300,7 +325,7 @@ export default function SubmitRunPage() {
       setSelectedGame("");
       setSelectedPlatform("");
       setSelectedCategory("");
-      setSelectedSubcategory("");
+      setSelectedVariableValues({});
       setHours("");
       setMinutes("");
       setSeconds("");
@@ -368,7 +393,6 @@ export default function SubmitRunPage() {
               ✓ Run submitted successfully! Awaiting verification.
             </div>
           )}
-
           {error && (
             <div
               style={{
@@ -386,11 +410,17 @@ export default function SubmitRunPage() {
           )}
 
           <form onSubmit={handleSubmit}>
+            {/* Game */}
             <div className="form-group">
               <label className="form-label">Game *</label>
               <select
                 value={selectedGame}
-                onChange={(e) => setSelectedGame(e.target.value)}
+                onChange={(e) => {
+                  setSelectedGame(e.target.value);
+                  setSelectedPlatform("");
+                  setSelectedCategory("");
+                  setSelectedVariableValues({});
+                }}
                 required
                 className="auth-input"
               >
@@ -403,12 +433,17 @@ export default function SubmitRunPage() {
               </select>
             </div>
 
+            {/* Platform */}
             {selectedGame && (
               <div className="form-group">
                 <label className="form-label">Platform *</label>
                 <select
                   value={selectedPlatform}
-                  onChange={(e) => setSelectedPlatform(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedPlatform(e.target.value);
+                    setSelectedCategory("");
+                    setSelectedVariableValues({});
+                  }}
                   required
                   className="auth-input"
                 >
@@ -422,12 +457,16 @@ export default function SubmitRunPage() {
               </div>
             )}
 
+            {/* Category */}
             {selectedPlatform && (
               <div className="form-group">
                 <label className="form-label">Category *</label>
                 <select
                   value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    setSelectedVariableValues({});
+                  }}
                   required
                   className="auth-input"
                 >
@@ -441,44 +480,45 @@ export default function SubmitRunPage() {
               </div>
             )}
 
-            {hasSubcategories && (
-              <div className="form-group">
-                <label className="form-label">Subcategory *</label>
+            {/* Variable dropdowns (one per is_subcategory variable) */}
+            {subcategoryVariables.map((variable) => (
+              <div key={variable.id} className="form-group">
+                <label className="form-label">{variable.name} *</label>
                 <select
-                  value={selectedSubcategory}
-                  onChange={(e) => setSelectedSubcategory(e.target.value)}
+                  value={selectedVariableValues[variable.id] || ""}
+                  onChange={(e) =>
+                    setSelectedVariableValues((prev) => ({
+                      ...prev,
+                      [variable.id]: e.target.value,
+                    }))
+                  }
                   required
                   className="auth-input"
                 >
-                  <option value="">Select a subcategory</option>
-                  {selectedCategoryData?.subcategories?.map((sub) => (
-                    <option key={sub.id} value={sub.slug}>
-                      {sub.name}
+                  <option value="">Select {variable.name}</option>
+                  {variable.values.map((val) => (
+                    <option key={val.id} value={val.id}>
+                      {val.name}
                     </option>
                   ))}
                 </select>
               </div>
-            )}
+            ))}
 
-            {/* Co-op runners section */}
+            {/* Co-op runners */}
             {isCoop && (
               <div className="runners-form-group">
-                <label className="form-label ">
+                <label className="form-label">
                   Runners *{" "}
-                  {selectedSubcategoryData?.required_players &&
-                    `(${runners.length}/${selectedSubcategoryData.required_players})`}
+                  {requiredPlayers && `(${runners.length}/${requiredPlayers})`}
                 </label>
-
                 <div
-
-
                   style={{
                     display: "flex",
                     flexWrap: "wrap",
                     gap: "0.5rem",
                     marginBottom: "0.75rem",
                   }}
-
                 >
                   {runners.map((r) => (
                     <div
@@ -495,7 +535,7 @@ export default function SubmitRunPage() {
                       }}
                     >
                       <span>{r.display_name || r.username}</span>
-                      {r.id !== user.id && (
+                      {r.id !== user.id ? (
                         <button
                           type="button"
                           onClick={() => removeRunner(r.id)}
@@ -511,8 +551,7 @@ export default function SubmitRunPage() {
                         >
                           ✕
                         </button>
-                      )}
-                      {r.id === user.id && (
+                      ) : (
                         <span style={{ color: "#555", fontSize: "0.75rem" }}>
                           (you)
                         </span>
@@ -520,11 +559,8 @@ export default function SubmitRunPage() {
                     </div>
                   ))}
                 </div>
-
-                {(!selectedSubcategoryData?.required_players ||
-                  runners.length <
-                    selectedSubcategoryData.required_players) && (
-                  <div                 className="runner-search-wrapper">
+                {(!requiredPlayers || runners.length < requiredPlayers) && (
+                  <div className="runner-search-wrapper">
                     <input
                       type="text"
                       placeholder="Search for a runner by username..."
@@ -533,10 +569,7 @@ export default function SubmitRunPage() {
                       className="auth-input"
                     />
                     {(runnerResults.length > 0 || searchingRunners) && (
-                      <div
-
-                        className="runner-search-dropdown"
-                      >
+                      <div className="runner-search-dropdown">
                         {searchingRunners ? (
                           <div
                             style={{
@@ -586,6 +619,8 @@ export default function SubmitRunPage() {
                 )}
               </div>
             )}
+
+            {/* System */}
             {systems.length > 0 && (
               <div className="form-group">
                 <label className="form-label">System *</label>
@@ -605,6 +640,7 @@ export default function SubmitRunPage() {
               </div>
             )}
 
+            {/* Timing */}
             {selectedPlatform && (
               <>
                 <div className="form-group">
@@ -692,6 +728,7 @@ export default function SubmitRunPage() {
               </>
             )}
 
+            {/* Video + Comment */}
             <div className="form-group">
               <label className="form-label">Video URL *</label>
               <input

@@ -107,9 +107,7 @@ export default function ModQueuePage({
     try {
       const token = localStorage.getItem("token");
 
-      const endpoint = pendingRuns.find((r) => r.id === runId)?.is_coop
-        ? `${process.env.NEXT_PUBLIC_API_URL}/moderation/coop-runs/${runId}/verify`
-        : `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/verify`;
+const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/verify`;
 
       const res = await fetch(endpoint, {
         method: "PATCH",

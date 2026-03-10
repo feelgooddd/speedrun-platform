@@ -674,3 +674,102 @@ export const getPlatformSystems = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch systems" });
   }
 };
+export const addSystemToPlatform = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const { name } = req.body;
+
+    if (!name) return res.status(400).json({ error: "System name is required" });
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    // Find or create the system
+    const system = await prisma.system.upsert({
+      where: { name },
+      create: { name },
+      update: {},
+    });
+
+    // Link to platform if not already linked
+    await prisma.platformSystem.upsert({
+      where: { platform_id_system_id: { platform_id: platform.id, system_id: system.id } },
+      create: { platform_id: platform.id, system_id: system.id },
+      update: {},
+    });
+
+    res.status(201).json({ system });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to add system to platform" });
+  }
+};
+export const getAllSystems = async (req: Request, res: Response) => {
+  try {
+    const systems = await prisma.system.findMany({
+      orderBy: { name: "asc" },
+    });
+    res.json({ systems });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch systems" });
+  }
+};
+export const createVariable = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const categorySlug = req.params.category as string;
+
+    const {
+      variable_name,
+      variable_slug,
+      is_subcategory = true,
+      values, // [{ name, slug, is_coop, required_players }]
+    } = req.body;
+
+    if (!variable_name || !variable_slug || !Array.isArray(values) || values.length === 0) {
+      return res.status(400).json({ error: "variable_name, variable_slug, and at least one value are required" });
+    }
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const category = await prisma.category.findFirst({
+      where: { slug: categorySlug, platform_id: platform.id },
+    });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    const variable = await prisma.variable.create({
+      data: {
+        name: variable_name,
+        slug: variable_slug,
+        is_subcategory,
+        category_id: category.id,
+        values: {
+          create: values.map((v: { name: string; slug: string; is_coop?: boolean; required_players?: number }) => ({
+            name: v.name,
+            slug: v.slug,
+            is_coop: v.is_coop ?? false,
+            required_players: v.required_players ?? null,
+          })),
+        },
+      },
+      include: { values: true },
+    });
+
+    res.status(201).json({ variable });
+  } catch (error) {
+    console.error("Error creating variable:", error);
+    res.status(500).json({ error: "Failed to create variable" });
+  }
+};

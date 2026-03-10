@@ -24,36 +24,15 @@ export const getModQueue = async (req: Request, res: Response) => {
         platform_id: { in: platformIds },
       },
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            country: true,
-            display_name: true,
-          },
-        },
-        runners: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                country: true,
-                display_name: true,
-              },
-            },
-          },
-        },
+        user: { select: { id: true, username: true, country: true, display_name: true } },
+        runners: { include: { user: { select: { id: true, username: true, country: true, display_name: true } } } },
         category: true,
+        level_category: { include: { level: true } },
         platform: true,
         subcategory: true,
         system: true,
         variable_values: {
-          include: {
-            variable_value: {
-              include: { variable: true },
-            },
-          },
+          include: { variable_value: { include: { variable: true } } },
         },
       },
       orderBy: { submitted_at: "asc" },
@@ -62,10 +41,12 @@ export const getModQueue = async (req: Request, res: Response) => {
     const items = runs.map((run) => ({
       id: run.id,
       is_coop: run.is_coop,
+      is_il: run.level_category_id !== null,
       user: run.is_coop ? null : run.user,
       runners: run.is_coop ? run.runners.map((r) => r.user) : null,
       system: run.system?.name ?? null,
-      category: run.category.name,
+      category: run.category?.name ?? run.level_category?.name ?? null,
+      level: run.level_category?.level?.name ?? null,
       subcategory: run.subcategory?.name ?? null,
       variable_values: run.variable_values.map((rv) => ({
         variable: rv.variable_value.variable.name,
@@ -85,11 +66,7 @@ export const getModQueue = async (req: Request, res: Response) => {
       comment: run.comment,
     }));
 
-    res.json({
-      game: game.name,
-      pending: items.length,
-      runs: items,
-    });
+    res.json({ game: game.name, pending: items.length, runs: items });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch mod queue" });
   }
@@ -98,40 +75,16 @@ export const getModQueue = async (req: Request, res: Response) => {
 export const getGlobalModQueue = async (req: Request, res: Response) => {
   try {
     const runs = await prisma.run.findMany({
-      where: {
-        verified: false,
-        rejected: false,
-      },
+      where: { verified: false, rejected: false },
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            country: true,
-            display_name: true,
-          },
-        },
-        runners: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                country: true,
-                display_name: true,
-              },
-            },
-          },
-        },
+        user: { select: { id: true, username: true, country: true, display_name: true } },
+        runners: { include: { user: { select: { id: true, username: true, country: true, display_name: true } } } },
         category: { include: { platform: { include: { game: true } } } },
+        level_category: { include: { level: { include: { platform: { include: { game: true } } } } } },
         platform: true,
         subcategory: true,
         variable_values: {
-          include: {
-            variable_value: {
-              include: { variable: true },
-            },
-          },
+          include: { variable_value: { include: { variable: true } } },
         },
       },
       orderBy: { submitted_at: "asc" },
@@ -139,31 +92,40 @@ export const getGlobalModQueue = async (req: Request, res: Response) => {
 
     res.json({
       pending: runs.length,
-      runs: runs.map((run) => ({
-        id: run.id,
-        is_coop: run.is_coop,
-        user: run.is_coop ? null : run.user,
-        runners: run.is_coop ? run.runners.map((r) => r.user) : null,
-        game: run.category.platform!.game.name,
-        game_slug: run.category.platform!.game.slug,
-        category: run.category.name,
-        subcategory: run.subcategory?.name ?? null,
-        variable_values: run.variable_values.map((rv) => ({
-          variable: rv.variable_value.variable.name,
-          variable_slug: rv.variable_value.variable.slug,
-          value: rv.variable_value.name,
-          value_slug: rv.variable_value.slug,
-        })),
-        platform: run.platform.name,
-        timing_method: run.platform.timing_method,
-        realtime_ms: run.realtime_ms,
-        realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
-        gametime_ms: run.gametime_ms,
-        gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
-        video_url: run.video_url,
-        submitted_at: run.submitted_at,
-        comment: run.comment,
-      })),
+      runs: runs.map((run) => {
+        const isIL = run.level_category_id !== null;
+        const game = isIL
+          ? run.level_category?.level?.platform?.game
+          : run.category?.platform?.game;
+
+        return {
+          id: run.id,
+          is_coop: run.is_coop,
+          is_il: isIL,
+          user: run.is_coop ? null : run.user,
+          runners: run.is_coop ? run.runners.map((r) => r.user) : null,
+          game: game?.name ?? null,
+          game_slug: game?.slug ?? null,
+          category: run.category?.name ?? run.level_category?.name ?? null,
+          level: run.level_category?.level?.name ?? null,
+          subcategory: run.subcategory?.name ?? null,
+          variable_values: run.variable_values.map((rv) => ({
+            variable: rv.variable_value.variable.name,
+            variable_slug: rv.variable_value.variable.slug,
+            value: rv.variable_value.name,
+            value_slug: rv.variable_value.slug,
+          })),
+          platform: run.platform.name,
+          timing_method: run.platform.timing_method,
+          realtime_ms: run.realtime_ms,
+          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+          gametime_ms: run.gametime_ms,
+          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+          video_url: run.video_url,
+          submitted_at: run.submitted_at,
+          comment: run.comment,
+        };
+      }),
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch global mod queue" });

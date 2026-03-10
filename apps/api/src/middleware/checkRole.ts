@@ -42,32 +42,47 @@ export const isGameModerator = async (
   }
 
   // If no gameSlug in params, try to get it from the run
-  if (!gameSlug && req.params.id) {
-    const runId = typeof req.params.id === "string" ? req.params.id : undefined;
+if (!gameSlug && req.params.id) {
+  const runId = typeof req.params.id === "string" ? req.params.id : undefined;
 
-    if (!runId) {
-      return res.status(400).json({ error: "Invalid run ID" });
-    }
+  if (!runId) {
+    return res.status(400).json({ error: "Invalid run ID" });
+  }
 
-    const run = await prisma.run.findUnique({
-      where: { id: runId },
-      include: {
-        category: {
-          include: {
-            platform: {
-              include: { game: true },
+  const run = await prisma.run.findUnique({
+    where: { id: runId },
+    include: {
+      category: {
+        include: {
+          platform: { include: { game: true } },
+        },
+      },
+      level_category: {
+        include: {
+          level: {
+            include: {
+              platform: { include: { game: true } },
             },
           },
         },
       },
-    });
+    },
+  });
 
-    if (!run?.category?.platform?.game) {
-      return res.status(404).json({ error: "Run not found or invalid data" });
-    }
-
-    gameSlug = run.category.platform.game.slug;
+  if (!run) {
+    return res.status(404).json({ error: "Run not found or invalid data" });
   }
+
+  const game =
+    run.category?.platform?.game ??
+    run.level_category?.level?.platform?.game;
+
+  if (!game) {
+    return res.status(404).json({ error: "Run not found or invalid data" });
+  }
+
+  gameSlug = game.slug;
+}
 
   const game = await prisma.game.findUnique({
     where: { slug: gameSlug },

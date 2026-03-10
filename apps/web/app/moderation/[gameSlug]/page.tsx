@@ -14,6 +14,8 @@ interface User {
 interface PendingRun {
   id: string;
   is_coop: boolean;
+  is_il: boolean;
+  level?: string | null;
   user: User | null;
   runners: User[] | null;
   subcategory?: string | null;
@@ -40,16 +42,14 @@ export default function ModQueuePage({
   const [gameSlug, setGameSlug] = useState<string>("");
   const [gameName, setGameName] = useState<string>("");
   const [pendingRuns, setPendingRuns] = useState<PendingRun[]>([]);
+  const [pendingILRuns, setPendingILRuns] = useState<PendingRun[]>([]);
   const [rejectedRuns, setRejectedRuns] = useState<PendingRun[]>([]);
+  const [rejectedILRuns, setRejectedILRuns] = useState<PendingRun[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [processing, setProcessing] = useState<Record<string, boolean>>({});
-  const [rejectReasons, setRejectReasons] = useState<Record<string, string>>(
-    {},
-  );
-  const [showRejectInput, setShowRejectInput] = useState<
-    Record<string, boolean>
-  >({});
+  const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
+  const [showRejectInput, setShowRejectInput] = useState<Record<string, boolean>>({});
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,11 +70,7 @@ export default function ModQueuePage({
       try {
         const res = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/moderation/${gameSlug}/mod-queue`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          },
+          { headers: { Authorization: `Bearer ${token}` } },
         );
 
         if (!res.ok) throw new Error("Failed to fetch mod queue");
@@ -83,8 +79,10 @@ export default function ModQueuePage({
         setGameName(data.game || gameSlug);
 
         const runs = data.runs || [];
-        setPendingRuns(runs.filter((r: PendingRun) => !r.rejected));
-        setRejectedRuns(runs.filter((r: PendingRun) => r.rejected));
+        setPendingRuns(runs.filter((r: PendingRun) => !r.rejected && !r.is_il));
+        setPendingILRuns(runs.filter((r: PendingRun) => !r.rejected && r.is_il));
+        setRejectedRuns(runs.filter((r: PendingRun) => r.rejected && !r.is_il));
+        setRejectedILRuns(runs.filter((r: PendingRun) => r.rejected && r.is_il));
       } catch (error: any) {
         setError(error.message);
       } finally {
@@ -106,8 +104,7 @@ export default function ModQueuePage({
 
     try {
       const token = localStorage.getItem("token");
-
-const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/verify`;
+      const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/verify`;
 
       const res = await fetch(endpoint, {
         method: "PATCH",
@@ -121,33 +118,30 @@ const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/ve
         }),
       });
 
-      if (!res.ok) throw new Error("Failed to verify run");
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to verify run");
+      }
+
+      const run = [...pendingRuns, ...pendingILRuns].find((r) => r.id === runId);
 
       if (approve) {
         setPendingRuns((prev) => prev.filter((r) => r.id !== runId));
+        setPendingILRuns((prev) => prev.filter((r) => r.id !== runId));
       } else {
-        const run = pendingRuns.find((r) => r.id === runId);
-        console.log("handleVerify run:", run);
-        console.log("is_coop:", run?.is_coop);
         if (run) {
-          setPendingRuns((prev) => prev.filter((r) => r.id !== runId));
-          setRejectedRuns((prev) => [
-            ...prev,
-            { ...run, rejected: true, reject_reason: rejectReasons[runId] },
-          ]);
+          if (run.is_il) {
+            setPendingILRuns((prev) => prev.filter((r) => r.id !== runId));
+            setRejectedILRuns((prev) => [...prev, { ...run, rejected: true, reject_reason: rejectReasons[runId] }]);
+          } else {
+            setPendingRuns((prev) => prev.filter((r) => r.id !== runId));
+            setRejectedRuns((prev) => [...prev, { ...run, rejected: true, reject_reason: rejectReasons[runId] }]);
+          }
         }
       }
 
-      setRejectReasons((prev) => {
-        const updated = { ...prev };
-        delete updated[runId];
-        return updated;
-      });
-      setShowRejectInput((prev) => {
-        const updated = { ...prev };
-        delete updated[runId];
-        return updated;
-      });
+      setRejectReasons((prev) => { const u = { ...prev }; delete u[runId]; return u; });
+      setShowRejectInput((prev) => { const u = { ...prev }; delete u[runId]; return u; });
       if (expandedRunId === runId) setExpandedRunId(null);
     } catch (error: any) {
       setError(error.message);
@@ -163,10 +157,7 @@ const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/ve
   if (loading) {
     return (
       <div className="landing">
-        <div
-          className="section"
-          style={{ paddingTop: "6rem", textAlign: "center" }}
-        >
+        <div className="section" style={{ paddingTop: "6rem", textAlign: "center" }}>
           <p>Loading...</p>
         </div>
       </div>
@@ -177,30 +168,17 @@ const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/ve
     runs: PendingRun[],
     title: string,
     isPending: boolean,
+    isIL: boolean = false,
   ) => {
-    // col count: Runner, Category, Platform, RTA, IGT, Video, + Reason or Actions
-    const colCount = 7;
+    const colCount = isIL ? 8 : 7;
 
     return (
       <>
-        <h2
-          style={{
-            color: "var(--text)",
-            marginTop: "3rem",
-            marginBottom: "1rem",
-            fontSize: "1.5rem",
-          }}
-        >
+        <h2 style={{ color: "var(--text)", marginTop: "3rem", marginBottom: "1rem", fontSize: "1.5rem" }}>
           {title} ({runs.length})
         </h2>
         {runs.length === 0 ? (
-          <div
-            style={{
-              textAlign: "center",
-              padding: "2rem",
-              color: "var(--text-secondary)",
-            }}
-          >
+          <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-secondary)" }}>
             No {isPending ? "pending" : "rejected"} runs
           </div>
         ) : (
@@ -210,6 +188,7 @@ const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/ve
                 <tr>
                   <th>Runner</th>
                   <th>Category</th>
+                  {isIL && <th>Level</th>}
                   <th>Platform</th>
                   <th>RTA</th>
                   <th>IGT</th>
@@ -231,61 +210,29 @@ const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/ve
                       >
                         <td className="runner-cell">
                           {run.is_coop && run.runners ? (
-                            <div
-                              style={{
-                                display: "flex",
-                                flexDirection: "column",
-                                gap: "0.25rem",
-                              }}
-                            >
+                            <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                               {run.runners.map((r) => (
-                                <Link
-                                  key={r.id}
-                                  href={`/profile/${r.username}`}
-                                  className="runner-link"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {r.country && (
-                                    <span className="runner-country">
-                                      {countryCodeToFlag(r.country)}
-                                    </span>
-                                  )}
+                                <Link key={r.id} href={`/profile/${r.username}`} className="runner-link" onClick={(e) => e.stopPropagation()}>
+                                  {r.country && <span className="runner-country">{countryCodeToFlag(r.country)}</span>}
                                   {r.display_name || r.username}
                                 </Link>
                               ))}
                             </div>
                           ) : run.user ? (
-                            <Link
-                              href={`/profile/${run.user.username}`}
-                              className="runner-link"
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {run.user.country && (
-                                <span className="runner-country">
-                                  {countryCodeToFlag(run.user.country)}
-                                </span>
-                              )}
+                            <Link href={`/profile/${run.user.username}`} className="runner-link" onClick={(e) => e.stopPropagation()}>
+                              {run.user.country && <span className="runner-country">{countryCodeToFlag(run.user.country)}</span>}
                               {run.user.display_name || run.user.username}
                             </Link>
                           ) : null}
                         </td>
                         <td>{run.category}</td>
+                        {isIL && <td>{run.level ?? "—"}</td>}
                         <td>{run.platform}</td>
-                        <td className="time-cell">
-                          {run.realtime_display || "—"}
-                        </td>
-                        <td className="time-cell">
-                          {run.gametime_display || "—"}
-                        </td>
+                        <td className="time-cell">{run.realtime_display || "—"}</td>
+                        <td className="time-cell">{run.gametime_display || run.realtime_display || "—"}</td>
                         <td className="video-cell">
                           {run.video_url ? (
-                            <a
-                              href={run.video_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="video-link"
-                              onClick={(e) => e.stopPropagation()}
-                            >
+                            <a href={run.video_url} target="_blank" rel="noopener noreferrer" className="video-link" onClick={(e) => e.stopPropagation()}>
                               ▶ Watch
                             </a>
                           ) : (
@@ -293,135 +240,43 @@ const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/ve
                           )}
                         </td>
                         <td className="system-cell">
-                          {run.system ? (
-                            <span className="run-system-badge">
-                              {run.system}
-                            </span>
-                          ) : (
-                            "—"
-                          )}
+                          {run.system ? <span className="run-system-badge">{run.system}</span> : "—"}
                         </td>
                         {!isPending && (
-                          <td
-                            style={{
-                              color: "var(--text-secondary)",
-                              fontSize: "0.9rem",
-                            }}
-                          >
+                          <td style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
                             {run.reject_reason || "No reason provided"}
                           </td>
                         )}
                         {isPending && (
                           <td onClick={(e) => e.stopPropagation()}>
                             {showRejectInput[run.id] ? (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  flexDirection: "column",
-                                  gap: "0.5rem",
-                                  minWidth: "200px",
-                                }}
-                              >
+                              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", minWidth: "200px" }}>
                                 <input
                                   type="text"
                                   placeholder="Rejection reason..."
                                   value={rejectReasons[run.id] || ""}
-                                  onChange={(e) =>
-                                    setRejectReasons((prev) => ({
-                                      ...prev,
-                                      [run.id]: e.target.value,
-                                    }))
-                                  }
-                                  style={{
-                                    padding: "0.5rem",
-                                    background: "rgba(255, 255, 255, 0.05)",
-                                    border: "1px solid rgba(255, 215, 0, 0.2)",
-                                    borderRadius: "4px",
-                                    color: "var(--text)",
-                                    fontSize: "0.9rem",
-                                  }}
+                                  onChange={(e) => setRejectReasons((prev) => ({ ...prev, [run.id]: e.target.value }))}
+                                  style={{ padding: "0.5rem", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 215, 0, 0.2)", borderRadius: "4px", color: "var(--text)", fontSize: "0.9rem" }}
                                 />
                                 <div style={{ display: "flex", gap: "0.5rem" }}>
-                                  <button
-                                    className="btn"
-                                    onClick={() => handleVerify(run.id, false)}
-                                    disabled={processing[run.id]}
-                                    style={{
-                                      background: "rgba(255, 0, 0, 0.1)",
-                                      border: "1px solid rgba(255, 0, 0, 0.3)",
-                                      color: "#ff4444",
-                                      padding: "0.5rem 1rem",
-                                      fontSize: "0.8rem",
-                                      flex: 1,
-                                    }}
-                                  >
+                                  <button className="btn" onClick={() => handleVerify(run.id, false)} disabled={processing[run.id]}
+                                    style={{ background: "rgba(255, 0, 0, 0.1)", border: "1px solid rgba(255, 0, 0, 0.3)", color: "#ff4444", padding: "0.5rem 1rem", fontSize: "0.8rem", flex: 1 }}>
                                     {processing[run.id] ? "..." : "Confirm"}
                                   </button>
-                                  <button
-                                    className="btn"
-                                    onClick={() => {
-                                      setShowRejectInput((prev) => ({
-                                        ...prev,
-                                        [run.id]: false,
-                                      }));
-                                      setRejectReasons((prev) => {
-                                        const updated = { ...prev };
-                                        delete updated[run.id];
-                                        return updated;
-                                      });
-                                    }}
-                                    style={{
-                                      background: "rgba(255, 255, 255, 0.05)",
-                                      border:
-                                        "1px solid rgba(255, 215, 0, 0.2)",
-                                      padding: "0.5rem 1rem",
-                                      fontSize: "0.8rem",
-                                      flex: 1,
-                                    }}
-                                  >
+                                  <button className="btn" onClick={() => { setShowRejectInput((prev) => ({ ...prev, [run.id]: false })); setRejectReasons((prev) => { const u = { ...prev }; delete u[run.id]; return u; }); }}
+                                    style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 215, 0, 0.2)", padding: "0.5rem 1rem", fontSize: "0.8rem", flex: 1 }}>
                                     Cancel
                                   </button>
                                 </div>
                               </div>
                             ) : (
-                              <div
-                                style={{
-                                  display: "flex",
-                                  gap: "0.5rem",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                <button
-                                  className="btn"
-                                  onClick={() => handleVerify(run.id, true)}
-                                  disabled={processing[run.id]}
-                                  style={{
-                                    background: "rgba(0, 255, 0, 0.1)",
-                                    border: "1px solid rgba(0, 255, 0, 0.3)",
-                                    color: "#00ff00",
-                                    padding: "0.5rem 1rem",
-                                    fontSize: "0.9rem",
-                                  }}
-                                >
+                              <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center" }}>
+                                <button className="btn" onClick={() => handleVerify(run.id, true)} disabled={processing[run.id]}
+                                  style={{ background: "rgba(0, 255, 0, 0.1)", border: "1px solid rgba(0, 255, 0, 0.3)", color: "#00ff00", padding: "0.5rem 1rem", fontSize: "0.9rem" }}>
                                   {processing[run.id] ? "..." : "✓ Approve"}
                                 </button>
-                                <button
-                                  className="btn"
-                                  onClick={() =>
-                                    setShowRejectInput((prev) => ({
-                                      ...prev,
-                                      [run.id]: true,
-                                    }))
-                                  }
-                                  disabled={processing[run.id]}
-                                  style={{
-                                    background: "rgba(255, 0, 0, 0.1)",
-                                    border: "1px solid rgba(255, 0, 0, 0.3)",
-                                    color: "#ff4444",
-                                    padding: "0.5rem 1rem",
-                                    fontSize: "0.9rem",
-                                  }}
-                                >
+                                <button className="btn" onClick={() => setShowRejectInput((prev) => ({ ...prev, [run.id]: true }))} disabled={processing[run.id]}
+                                  style={{ background: "rgba(255, 0, 0, 0.1)", border: "1px solid rgba(255, 0, 0, 0.3)", color: "#ff4444", padding: "0.5rem 1rem", fontSize: "0.9rem" }}>
                                   ✗ Reject
                                 </button>
                               </div>
@@ -429,23 +284,12 @@ const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/ve
                           </td>
                         )}
                       </tr>
-
-                      {/* Accordion row */}
                       {isExpanded && (
-                        <tr
-                          key={`${run.id}-comment`}
-                          className="run-accordion-row"
-                        >
+                        <tr key={`${run.id}-comment`} className="run-accordion-row">
                           <td colSpan={colCount} className="run-accordion-cell">
                             <div className="run-accordion-content">
-                              <span className="run-accordion-label">
-                                Runner's comment:
-                              </span>{" "}
-                              {run.comment ? (
-                                run.comment
-                              ) : (
-                                <em>No comment provided.</em>
-                              )}
+                              <span className="run-accordion-label">Runner's comment:</span>{" "}
+                              {run.comment ? run.comment : <em>No comment provided.</em>}
                             </div>
                           </td>
                         </tr>
@@ -477,23 +321,15 @@ const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/ve
         </div>
 
         {error && (
-          <div
-            style={{
-              padding: "1rem",
-              marginBottom: "2rem",
-              background: "rgba(255, 0, 0, 0.1)",
-              border: "1px solid rgba(255, 0, 0, 0.3)",
-              borderRadius: "4px",
-              color: "#ff4444",
-              textAlign: "center",
-            }}
-          >
+          <div style={{ padding: "1rem", marginBottom: "2rem", background: "rgba(255, 0, 0, 0.1)", border: "1px solid rgba(255, 0, 0, 0.3)", borderRadius: "4px", color: "#ff4444", textAlign: "center" }}>
             {error}
           </div>
         )}
 
-        {renderRunsTable(pendingRuns, "Pending Runs", true)}
-        {renderRunsTable(rejectedRuns, "Rejected Runs", false)}
+        {renderRunsTable(pendingRuns, "Pending Full Game Runs", true, false)}
+        {renderRunsTable(pendingILRuns, "Pending Individual Level Runs", true, true)}
+        {renderRunsTable(rejectedRuns, "Rejected Full Game Runs", false, false)}
+        {renderRunsTable(rejectedILRuns, "Rejected Individual Level Runs", false, true)}
       </div>
     </div>
   );

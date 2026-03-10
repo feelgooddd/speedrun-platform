@@ -13,9 +13,10 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
       game_slug,
       platform_slug,
       category_slug,
-      subcategory_slug, // for simple single-dimension games (HP1-3)
-      variable_values, // for multi-dimensional games (HP4+): [{ variable_slug, value_slug }]
-      runner_ids, // for coop runs: array of user IDs including submitter
+      level_category_id,
+      subcategory_slug,
+      variable_values,
+      runner_ids,
       realtime_ms,
       gametime_ms,
       video_url,
@@ -23,14 +24,17 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
       system_id,
     } = req.body;
 
-    if (!game_slug || !platform_slug || !category_slug) {
-      return res.status(400).json({
-        error: "game_slug, platform_slug, and category_slug are required",
-      });
+    if (!game_slug || !platform_slug) {
+      return res.status(400).json({ error: "game_slug and platform_slug are required" });
+    }
+
+    // Must have either category_slug (full game) or level_category_id (IL)
+    if (!category_slug && !level_category_id) {
+      return res.status(400).json({ error: "category_slug or level_category_id is required" });
     }
 
     // ----------------------------------------------------------------
-    // Resolve game / platform / category
+    // Resolve game / platform
     // ----------------------------------------------------------------
     const game = await prisma.game.findUnique({ where: { slug: game_slug } });
     if (!game) return res.status(404).json({ error: "Game not found" });
@@ -40,36 +44,67 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
     });
     if (!platform) return res.status(404).json({ error: "Platform not found" });
 
+    // ----------------------------------------------------------------
+    // IL run path
+    // ----------------------------------------------------------------
+    if (level_category_id) {
+      const levelCategory = await prisma.levelCategory.findFirst({
+        where: { id: level_category_id, level: { platform_id: platform.id } },
+      });
+      if (!levelCategory) return res.status(404).json({ error: "Level category not found" });
+
+      const run = await prisma.run.create({
+        data: {
+          user_id: req.userId,
+          platform_id: platform.id,
+          level_category_id: levelCategory.id,
+          is_coop: false,
+          realtime_ms: realtime_ms ? parseInt(realtime_ms) : null,
+          gametime_ms: gametime_ms ? parseInt(gametime_ms) : null,
+          video_url: video_url ?? null,
+          comment: comment ?? null,
+          system_id: system_id ?? null,
+          submitted_by_id: req.userId,
+          verified: false,
+        },
+        include: {
+          user: { select: { id: true, username: true, display_name: true, country: true } },
+          level_category: { include: { level: true } },
+          platform: true,
+          system: true,
+        },
+      });
+
+      return res.status(201).json({
+        run,
+        message: "Run submitted successfully. Awaiting verification.",
+      });
+    }
+
+    // ----------------------------------------------------------------
+    // Full game run path
+    // ----------------------------------------------------------------
     const category = await prisma.category.findFirst({
       where: { slug: category_slug, platform_id: platform.id },
     });
     if (!category) return res.status(404).json({ error: "Category not found" });
 
-    // ----------------------------------------------------------------
-    // Resolve subcategory (simple games)
-    // ----------------------------------------------------------------
+    // Resolve subcategory (HP1-3)
     let subcategory_id: string | null = null;
     if (subcategory_slug) {
       const subcategory = await prisma.subcategory.findFirst({
         where: { slug: subcategory_slug, category_id: category.id },
       });
-      if (!subcategory)
-        return res.status(404).json({ error: "Subcategory not found" });
+      if (!subcategory) return res.status(404).json({ error: "Subcategory not found" });
       subcategory_id = subcategory.id;
     }
 
-    // ----------------------------------------------------------------
-    // Resolve variable values (multi-dimensional games)
-    // ----------------------------------------------------------------
+    // Resolve variable values (HP4+)
     let resolvedVariableValueIds: string[] = [];
     let isCoop = false;
     let requiredPlayers: number | null = null;
 
-    if (
-      variable_values &&
-      Array.isArray(variable_values) &&
-      variable_values.length > 0
-    ) {
+    if (variable_values && Array.isArray(variable_values) && variable_values.length > 0) {
       const variables = await prisma.variable.findMany({
         where: { category_id: category.id },
         include: { values: true },
@@ -77,26 +112,16 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
 
       for (const { variable_slug, value_slug } of variable_values) {
         if (!variable_slug || !value_slug) {
-          return res.status(400).json({
-            error:
-              "Each variable_value entry must have variable_slug and value_slug",
-          });
+          return res.status(400).json({ error: "Each variable_value entry must have variable_slug and value_slug" });
         }
 
         const variable = variables.find((v) => v.slug === variable_slug);
-        if (!variable)
-          return res
-            .status(404)
-            .json({ error: `Variable '${variable_slug}' not found` });
+        if (!variable) return res.status(404).json({ error: `Variable '${variable_slug}' not found` });
 
         const value = variable.values.find((v) => v.slug === value_slug);
-        if (!value)
-          return res.status(404).json({
-            error: `Value '${value_slug}' not found for variable '${variable_slug}'`,
-          });
+        if (!value) return res.status(404).json({ error: `Value '${value_slug}' not found for variable '${variable_slug}'` });
 
         resolvedVariableValueIds.push(value.id);
-
         if (value.is_coop) {
           isCoop = true;
           requiredPlayers = value.required_players ?? null;
@@ -104,24 +129,16 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // ----------------------------------------------------------------
     // Coop validation
-    // ----------------------------------------------------------------
     if (isCoop) {
       if (!runner_ids || !Array.isArray(runner_ids) || runner_ids.length < 2) {
-        return res
-          .status(400)
-          .json({ error: "Co-op runs require at least 2 runners" });
+        return res.status(400).json({ error: "Co-op runs require at least 2 runners" });
       }
       if (!runner_ids.includes(req.userId)) {
-        return res
-          .status(400)
-          .json({ error: "Submitter must be one of the runners" });
+        return res.status(400).json({ error: "Submitter must be one of the runners" });
       }
       if (requiredPlayers && runner_ids.length !== requiredPlayers) {
-        return res.status(400).json({
-          error: `This category requires exactly ${requiredPlayers} runners`,
-        });
+        return res.status(400).json({ error: `This category requires exactly ${requiredPlayers} runners` });
       }
       const users = await prisma.user.findMany({
         where: { id: { in: runner_ids } },
@@ -132,9 +149,6 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    // ----------------------------------------------------------------
-    // Create run
-    // ----------------------------------------------------------------
     const run = await prisma.run.create({
       data: {
         user_id: req.userId,
@@ -149,15 +163,11 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
         system_id: system_id ?? null,
         submitted_by_id: req.userId,
         verified: false,
-        // Variable values
         ...(resolvedVariableValueIds.length > 0 && {
           variable_values: {
-            create: resolvedVariableValueIds.map((id) => ({
-              variable_value_id: id,
-            })),
+            create: resolvedVariableValueIds.map((id) => ({ variable_value_id: id })),
           },
         }),
-        // Coop runners
         ...(isCoop && {
           runners: {
             create: (runner_ids as string[]).map((id) => ({ user_id: id })),
@@ -165,36 +175,14 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
         }),
       },
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            display_name: true,
-            country: true,
-          },
-        },
-        runners: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                display_name: true,
-                country: true,
-              },
-            },
-          },
-        },
+        user: { select: { id: true, username: true, display_name: true, country: true } },
+        runners: { include: { user: { select: { id: true, username: true, display_name: true, country: true } } } },
         category: true,
         platform: true,
         subcategory: true,
         system: true,
         variable_values: {
-          include: {
-            variable_value: {
-              include: { variable: true },
-            },
-          },
+          include: { variable_value: { include: { variable: true } } },
         },
       },
     });
@@ -218,7 +206,6 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Failed to submit run" });
   }
 };
-
 export const getRun = async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
@@ -226,56 +213,40 @@ export const getRun = async (req: AuthRequest, res: Response) => {
     const run = await prisma.run.findUnique({
       where: { id },
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            display_name: true,
-            country: true,
-          },
-        },
+        user: { select: { id: true, username: true, display_name: true, country: true } },
         runners: {
           include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                display_name: true,
-                country: true,
-              },
-            },
+            user: { select: { id: true, username: true, display_name: true, country: true } },
           },
         },
-        category: {
-          include: {
-            platform: {
-              include: { game: true },
-            },
-          },
-        },
+        category: { include: { platform: { include: { game: true } } } },
+        level_category: { include: { level: { include: { platform: { include: { game: true } } } } } },
         platform: true,
         subcategory: true,
         system: true,
         variable_values: {
-          include: {
-            variable_value: {
-              include: { variable: true },
-            },
-          },
+          include: { variable_value: { include: { variable: true } } },
         },
       },
     });
 
     if (!run) return res.status(404).json({ error: "Run not found" });
 
+    const isIL = run.level_category_id !== null;
+    const game = isIL
+      ? run.level_category?.level?.platform?.game
+      : run.category?.platform?.game;
+
     res.json({
       id: run.id,
       is_coop: run.is_coop,
+      is_il: isIL,
       user: run.is_coop ? null : run.user,
       runners: run.is_coop ? run.runners.map((r) => r.user) : null,
-      game: run.category.platform!.game.name,
-      game_slug: run.category.platform!.game.slug,
-      category: run.category.name,
+      game: game?.name ?? null,
+      game_slug: game?.slug ?? null,
+      category: run.category?.name ?? run.level_category?.name ?? null,
+      level: run.level_category?.level?.name ?? null,
       subcategory: run.subcategory?.name ?? null,
       variable_values: run.variable_values.map((rv) => ({
         variable: rv.variable_value.variable.name,

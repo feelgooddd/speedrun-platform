@@ -33,6 +33,8 @@ interface Run {
   comment: string | null;
   submitted_at: string;
   verified_at: string | null;
+  is_il: string | null;
+  level: string | null;
 }
 
 function msToComponents(ms: number | null) {
@@ -136,53 +138,59 @@ export default function RunEditPage({
       .finally(() => setLoading(false));
   }, [runId, user, authLoading, router]);
 
-const handleSave = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  setSuccess("");
-  setSubmitting(true);
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setSubmitting(true);
 
-  const realtime_ms = componentsToMs(rtaHours, rtaMinutes, rtaSeconds, rtaMs);
-  const gametime_ms = componentsToMs(igtHours, igtMinutes, igtSeconds, igtMs);
+    const realtime_ms = componentsToMs(rtaHours, rtaMinutes, rtaSeconds, rtaMs);
+    const gametime_ms = componentsToMs(igtHours, igtMinutes, igtSeconds, igtMs);
 
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        realtime_ms: realtime_ms > 0 ? realtime_ms : null,
-        gametime_ms: gametime_ms > 0 ? gametime_ms : null,
-        video_url: videoUrl || null,
-        comment: comment || null,
-      }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to update run");
-    setSuccess("Run updated successfully.");
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setSubmitting(false);
-  }
-};
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`,
+        {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            realtime_ms: realtime_ms > 0 ? realtime_ms : null,
+            gametime_ms: gametime_ms > 0 ? gametime_ms : null,
+            video_url: videoUrl || null,
+            comment: comment || null,
+          }),
+        },
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update run");
+      setSuccess("Run updated successfully.");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
-const handleDelete = async () => {
-  setDeleting(true);
-  try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (!res.ok) throw new Error("Failed to delete run");
-    router.push("/admin");
-  } catch (err: any) {
-    setError(err.message);
-    setDeleting(false);
-  }
-};
+  const handleDelete = async () => {
+    setDeleting(true);
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/runs/${runId}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      if (!res.ok) throw new Error("Failed to delete run");
+      router.push("/admin");
+    } catch (err: any) {
+      setError(err.message);
+      setDeleting(false);
+    }
+  };
 
   if (authLoading || loading) return null;
   if (!user || user.role !== "admin") return null;
@@ -219,12 +227,9 @@ const handleDelete = async () => {
             <h1 className="section-title">Edit Run</h1>
             {run && (
               <p className="section-subtitle">
-                {run.is_coop && run.runners
-                  ? run.runners
-                      .map((r) => r.display_name || r.username)
-                      .join(" & ")
-                  : run.user?.display_name || run.user?.username}{" "}
-                · {run.game} · {run.platform} · {run.category}
+                {run.is_il
+                  ? `${run.user?.display_name || run.user?.username} · ${run.game} · ${run.platform} · ${run.category} · ${run.level}`
+                  : `${run.is_coop && run.runners ? run.runners.map((r) => r.display_name || r.username).join(" & ") : run.user?.display_name || run.user?.username} · ${run.game} · ${run.platform} · ${run.category}`}
               </p>
             )}
           </div>

@@ -71,6 +71,7 @@ export const getUserRuns = async (req: Request, res: Response) => {
         where: { user_id: user.id },
         include: {
           category: { include: { platform: { include: { game: true } } } },
+          level_category: { include: { level: { include: { platform: { include: { game: true } } } } } },
           platform: true,
         },
         orderBy: { submitted_at: "desc" },
@@ -90,11 +91,19 @@ export const getUserRuns = async (req: Request, res: Response) => {
       page: pageNum,
       limit: limitNum,
       runs: runs.map((run) => {
+        const isIL = run.level_category_id !== null;
+        const game = isIL
+          ? run.level_category?.level?.platform?.game
+          : run.category?.platform?.game;
         const timingMethod = run.platform.timing_method;
+
         return {
           id: run.id,
-          game: run.category.platform!.game.name,
-          category: run.category.name,
+          is_il: isIL,
+          game: game?.name ?? null,
+          game_slug: game?.slug ?? null,
+          category: run.category?.name ?? run.level_category?.name ?? null,
+          level: run.level_category?.level?.name ?? null,
           platform: run.platform.name,
           timing_method: timingMethod,
           realtime_ms: run.realtime_ms,
@@ -111,6 +120,7 @@ export const getUserRuns = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch user runs" });
   }
 };
+
 export const getUserPBs = async (req: Request, res: Response) => {
   try {
     const identifier = req.params.id as string;
@@ -125,7 +135,7 @@ export const getUserPBs = async (req: Request, res: Response) => {
     const id = user.id;
 
     function getPbKey(run: {
-      category_id: string;
+      category_id: string | null;
       subcategory_id: string | null;
       variable_values: { variable_value_id: string }[];
     }): string {
@@ -138,7 +148,7 @@ export const getUserPBs = async (req: Request, res: Response) => {
 
     const [soloRuns, coopParticipations] = await Promise.all([
       prisma.run.findMany({
-        where: { user_id: id, verified: true, is_coop: false },
+        where: { user_id: id, verified: true, is_coop: false, category_id: { not: null } },
         include: {
           category: { include: { platform: { include: { game: true } } } },
           platform: true,
@@ -246,12 +256,12 @@ export const getUserPBs = async (req: Request, res: Response) => {
 
         return {
           is_coop: false,
-          game_id: run.category.platform!.game.id,
-          game_name: run.category.platform!.game.name,
-          game_slug: run.category.platform!.game.slug,
+          game_id: run.category!.platform!.game.id,
+          game_name: run.category!.platform!.game.name,
+          game_slug: run.category!.platform!.game.slug,
           category_id: run.category_id,
-          category_name: run.category.name,
-          category_slug: run.category.slug,
+          category_name: run.category!.name,
+          category_slug: run.category!.slug,
           subcategory_name: run.subcategory?.name ?? null,
           variable_values: run.variable_values.map((rv) => ({
             variable: rv.variable_value.variable.name,
@@ -274,10 +284,10 @@ export const getUserPBs = async (req: Request, res: Response) => {
       }),
     );
 
-    // Coop PBs
+    // Coop PBs — exclude IL runs
     const verifiedCoopRuns = coopParticipations
       .map((p) => p.run)
-      .filter((r) => r.verified);
+      .filter((r) => r.verified && r.category_id !== null);
 
     const coopPBMap = new Map<string, (typeof verifiedCoopRuns)[0]>();
     for (const run of verifiedCoopRuns) {
@@ -353,12 +363,12 @@ export const getUserPBs = async (req: Request, res: Response) => {
 
         return {
           is_coop: true,
-          game_id: run.category.platform!.game.id,
-          game_name: run.category.platform!.game.name,
-          game_slug: run.category.platform!.game.slug,
+          game_id: run.category!.platform!.game.id,
+          game_name: run.category!.platform!.game.name,
+          game_slug: run.category!.platform!.game.slug,
           category_id: run.category_id,
-          category_name: run.category.name,
-          category_slug: run.category.slug,
+          category_name: run.category!.name,
+          category_slug: run.category!.slug,
           subcategory_name: run.subcategory?.name ?? null,
           variable_values: run.variable_values.map((rv) => ({
             variable: rv.variable_value.variable.name,

@@ -51,6 +51,9 @@ model Platform {
   runs            Run[]
   categories      Category[]
   platformSystems PlatformSystem[]
+
+  levels     Level[]
+
 }
 
 model Category {
@@ -86,15 +89,16 @@ model Subcategory {
 
 // For multi-dimensional variable systems (e.g. Players + Cut, Version)
 model Variable {
-  id           String  @id @default(cuid())
-  category_id  String
-  name         String
-  slug         String
-  // mirrors SRDC: is this variable a subcategory (affects leaderboard grouping)?
-  is_subcategory Boolean @default(true)
+  id                String  @id @default(cuid())
+  category_id       String?
+  level_category_id String?
+  name              String
+  slug              String
+  is_subcategory    Boolean @default(true)
 
-  category Category        @relation(fields: [category_id], references: [id])
-  values   VariableValue[]
+  category       Category?      @relation(fields: [category_id], references: [id])
+  level_category LevelCategory? @relation(fields: [level_category_id], references: [id])
+  values         VariableValue[]
 }
 
 model VariableValue {
@@ -110,30 +114,30 @@ model VariableValue {
 }
 
 model Run {
-  id              String    @id @default(cuid())
-  // For solo runs, user_id is the runner.
-  // For coop runs, user_id is the submitter and runners are in RunRunner.
-  user_id         String
-  category_id     String
-  platform_id     String
-  subcategory_id  String?
-  is_coop         Boolean   @default(false)
-  realtime_ms     Int?
-  gametime_ms     Int?
-  comment         String?
-  video_url       String?
-  verified        Boolean   @default(false)
-  rejected        Boolean   @default(false)
-  reject_reason   String?
-  submitted_at    DateTime  @default(now())
-  verified_at     DateTime?
-  speedrun_com_id String?   @unique
-  system_id       String?
+  id                String    @id @default(cuid())
+  user_id           String
+  category_id       String?
+  level_category_id String?
+  platform_id       String
+  subcategory_id    String?
+  is_coop           Boolean   @default(false)
+  realtime_ms       Int?
+  gametime_ms       Int?
+  comment           String?
+  video_url         String?
+  verified          Boolean   @default(false)
+  rejected          Boolean   @default(false)
+  reject_reason     String?
+  submitted_at      DateTime  @default(now())
+  verified_at       DateTime?
+  speedrun_com_id   String?   @unique
+  system_id         String?
+  submitted_by_id   String?
 
   user            User               @relation(fields: [user_id], references: [id])
   submitted_by    User?              @relation("RunSubmitter", fields: [submitted_by_id], references: [id])
-  submitted_by_id String?
-  category        Category           @relation(fields: [category_id], references: [id])
+  category        Category?          @relation(fields: [category_id], references: [id])
+  level_category  LevelCategory?     @relation(fields: [level_category_id], references: [id])
   platform        Platform           @relation(fields: [platform_id], references: [id])
   subcategory     Subcategory?       @relation(fields: [subcategory_id], references: [id])
   system          System?            @relation(fields: [system_id], references: [id])
@@ -190,4 +194,29 @@ model PlatformSystem {
   system   System   @relation(fields: [system_id], references: [id])
 
   @@id([platform_id, system_id])
+}
+
+model Level {
+  id          String    @id @default(cuid())
+  platform_id String
+  name        String
+  slug        String
+  order       Int       @default(0)
+  deleted_at  DateTime?
+
+  platform         Platform        @relation(fields: [platform_id], references: [id])
+  level_categories LevelCategory[]
+}
+
+model LevelCategory {
+  id          String    @id @default(cuid())
+  level_id    String
+  name        String
+  slug        String
+  order       Int       @default(0)
+  deleted_at  DateTime?
+
+  level     Level      @relation(fields: [level_id], references: [id])
+  runs      Run[]
+  variables Variable[]
 }

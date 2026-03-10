@@ -2,6 +2,11 @@ import { Request, Response } from "express";
 import prisma from "../lib/prisma";
 import { formatTime } from "../lib/utils";
 import { AuthRequest } from "../middleware/auth";
+
+// ----------------------------------------------------------------
+// Games
+// ----------------------------------------------------------------
+
 export const getAllGames = async (req: Request, res: Response) => {
   try {
     const games = await prisma.game.findMany({
@@ -35,318 +40,6 @@ export const getGameBySlug = async (req: Request, res: Response) => {
   }
 };
 
-export const getLeaderboard = async (req: Request, res: Response) => {
-  try {
-    const slug = req.params.slug as string;
-    const platformSlug = req.params.platform as string;
-    const categorySlug = req.params.category as string;
-    const subcategorySlug = req.params.subcategory as string | undefined;
-    const { page = "1", limit = "25" } = req.query;
-
-    // Variable filters: e.g. ?players=1p&cut=standard
-    const variableFilters: Record<string, string> = {};
-    for (const [key, value] of Object.entries(req.query)) {
-      if (key === "page" || key === "limit") continue;
-      if (typeof value === "string") variableFilters[key] = value;
-    }
-
-    const game = await prisma.game.findUnique({
-      where: { slug },
-      include: { platforms: true },
-    });
-    if (!game) return res.status(404).json({ error: "Game not found" });
-
-    const platform = await prisma.platform.findFirst({
-      where: { slug: platformSlug, game_id: game.id },
-    });
-    if (!platform) return res.status(404).json({ error: "Platform not found" });
-
-    const category = await prisma.category.findFirst({
-      where: { slug: categorySlug, platform_id: platform.id },
-    });
-    if (!category) return res.status(404).json({ error: "Category not found" });
-
-    const pageNum = parseInt(page as string);
-    const limitNum = parseInt(limit as string);
-    const skip = (pageNum - 1) * limitNum;
-
-    const timingField =
-      platform.timing_method === "gametime" ? "gametime_ms" : "realtime_ms";
-
-    // ----------------------------------------------------------------
-    // Resolve subcategory (HP1-3)
-    // ----------------------------------------------------------------
-    let subcategory = null;
-    if (subcategorySlug) {
-      subcategory = await prisma.subcategory.findFirst({
-        where: { slug: subcategorySlug, category_id: category.id },
-      });
-      if (!subcategory)
-        return res.status(404).json({ error: "Subcategory not found" });
-    }
-
-    // ----------------------------------------------------------------
-    // Resolve variable value IDs from query params (HP4+)
-    // ----------------------------------------------------------------
-    const resolvedVariableValueIds: string[] = [];
-    let isCoop = false;
-
-    if (Object.keys(variableFilters).length > 0) {
-      const variables = await prisma.variable.findMany({
-        where: { category_id: category.id },
-        include: { values: true },
-      });
-
-      for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
-        const variable = variables.find((v) => v.slug === varSlug);
-        if (!variable)
-          return res
-            .status(404)
-            .json({ error: `Variable '${varSlug}' not found` });
-
-        const value = variable.values.find((v) => v.slug === valSlug);
-        if (!value)
-          return res.status(404).json({
-            error: `Value '${valSlug}' not found for variable '${varSlug}'`,
-          });
-
-        resolvedVariableValueIds.push(value.id);
-        if (value.is_coop) isCoop = true;
-      }
-    }
-
-    const hasVariableFilter = resolvedVariableValueIds.length > 0;
-
-    // ----------------------------------------------------------------
-    // Build run query
-    // ----------------------------------------------------------------
-    const baseWhere = {
-      category_id: category.id,
-      platform_id: platform.id,
-      verified: true,
-      ...(subcategory ? { subcategory_id: subcategory.id } : {}),
-      ...(hasVariableFilter ? { is_coop: isCoop } : {}),
-      ...(hasVariableFilter
-        ? {
-            variable_values: {
-              some: {
-                variable_value_id: { in: resolvedVariableValueIds },
-              },
-            },
-          }
-        : {}),
-    };
-
-    const allRuns = await prisma.run.findMany({
-      where: baseWhere,
-      include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            display_name: true,
-            country: true,
-          },
-        },
-        runners: {
-          include: {
-            user: {
-              select: {
-                id: true,
-                username: true,
-                display_name: true,
-                country: true,
-              },
-            },
-          },
-        },
-        system: true,
-        variable_values: {
-          include: {
-            variable_value: {
-              include: { variable: true },
-            },
-          },
-        },
-      },
-      orderBy: { [timingField]: "asc" as const },
-    });
-
-    // ----------------------------------------------------------------
-    // Ensure run has ALL requested variable values (Prisma `some` is OR)
-    // ----------------------------------------------------------------
-    const filteredRuns = hasVariableFilter
-      ? allRuns.filter((run) => {
-          const runValueIds = run.variable_values.map(
-            (rv) => rv.variable_value_id,
-          );
-          return resolvedVariableValueIds.every((id) =>
-            runValueIds.includes(id),
-          );
-        })
-      : allRuns;
-
-    // ----------------------------------------------------------------
-    // PB dedup
-    // ----------------------------------------------------------------
-    let dedupedRuns: typeof filteredRuns;
-
-    if (isCoop) {
-      const bestTimePerUser = new Map<string, number>();
-      for (const run of filteredRuns) {
-        const time = (run as any)[timingField] ?? Infinity;
-        for (const runner of run.runners) {
-          const existing = bestTimePerUser.get(runner.user_id);
-          if (existing === undefined || time < existing) {
-            bestTimePerUser.set(runner.user_id, time);
-          }
-        }
-      }
-      dedupedRuns = filteredRuns.filter((run) => {
-        const time = (run as any)[timingField] ?? Infinity;
-        return run.runners.some(
-          (runner) => bestTimePerUser.get(runner.user_id) === time,
-        );
-      });
-    } else {
-      const seen = new Set<string>();
-      dedupedRuns = filteredRuns.filter((run) => {
-        if (seen.has(run.user_id)) return false;
-        seen.add(run.user_id);
-        return true;
-      });
-    }
-
-    // ----------------------------------------------------------------
-    // Assign tie-aware ranks across full deduped list
-    // ----------------------------------------------------------------
-    const rankedWithTies: ((typeof dedupedRuns)[number] & { _rank: number })[] =
-      [];
-    for (let i = 0; i < dedupedRuns.length; i++) {
-      const run = dedupedRuns[i];
-      let rank: number;
-      if (i === 0) {
-        rank = 1;
-      } else {
-        const prevTime = (dedupedRuns[i - 1] as any)[timingField];
-        const currTime = (run as any)[timingField];
-        rank = currTime === prevTime ? rankedWithTies[i - 1]._rank : i + 1;
-      }
-      rankedWithTies.push({ ...run, _rank: rank });
-    }
-
-    // ----------------------------------------------------------------
-    // Paginate + build response
-    // ----------------------------------------------------------------
-    const total = rankedWithTies.length;
-    const paginatedRuns = rankedWithTies.slice(skip, skip + limitNum);
-
-    const rankedRuns = paginatedRuns.map((run) => ({
-      rank: run._rank,
-      id: run.id,
-      is_coop: run.is_coop,
-      ...(run.is_coop
-        ? { runners: run.runners.map((r) => r.user) }
-        : { user: run.user }),
-      system: run.system?.name ?? null,
-      system_id: run.system_id,
-      comment: run.comment,
-      realtime_ms: run.realtime_ms,
-      gametime_ms: run.gametime_ms,
-      realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
-      gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
-      platform: platform.name,
-      timing_method: platform.timing_method,
-      video_url: run.video_url,
-      submitted_at: run.submitted_at,
-      variable_values: run.variable_values.map((rv) => ({
-        variable: rv.variable_value.variable.name,
-        variable_slug: rv.variable_value.variable.slug,
-        value: rv.variable_value.name,
-        value_slug: rv.variable_value.slug,
-      })),
-    }));
-
-    // ----------------------------------------------------------------
-    // Response metadata
-    // ----------------------------------------------------------------
-    const subcategoryName = subcategory?.name ?? null;
-    const variableContext = hasVariableFilter
-      ? Object.entries(variableFilters).map(([varSlug, valSlug]) => ({
-          variable: varSlug,
-          value: valSlug,
-        }))
-      : [];
-
-    return res.json({
-      game: game.name,
-      platform: platform.name,
-      timing_method: platform.timing_method,
-      category: category.name,
-      subcategory: subcategoryName,
-      variable_filters: variableContext,
-      is_coop: isCoop,
-      total,
-      page: pageNum,
-      limit: limitNum,
-      runs: rankedRuns,
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to fetch leaderboard" });
-  }
-};
-export const getPlatformCategories = async (req: Request, res: Response) => {
-  try {
-    const slug = req.params.slug as string;
-    const platformSlug = req.params.platform as string;
-
-    const game = await prisma.game.findUnique({
-      where: { slug },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        platforms: true,
-      },
-    });
-
-    if (!game) return res.status(404).json({ error: "Game not found" });
-
-    const platform = await prisma.platform.findFirst({
-      where: {
-        slug: platformSlug,
-        game_id: game.id,
-        deleted_at: null,
-      },
-      include: {
-        categories: {
-          where: { deleted_at: null },
-          orderBy: { order: "asc" },
-
-          include: {
-            subcategories: {
-              where: { deleted_at: null },
-              orderBy: { order: "asc" }, // ← add this
-            },
-            variables: {
-              include: {
-                values: true,
-              },
-            },
-          },
-        },
-      },
-    });
-
-    if (!platform) return res.status(404).json({ error: "Platform not found" });
-
-    res.json({ categories: platform.categories });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch categories" });
-  }
-};
-
 export const createGame = async (req: AuthRequest, res: Response) => {
   try {
     const { slug, name } = req.body;
@@ -355,19 +48,13 @@ export const createGame = async (req: AuthRequest, res: Response) => {
       return res.status(400).json({ error: "Slug and name are required" });
     }
 
-    // Check if game already exists
     const existing = await prisma.game.findUnique({ where: { slug } });
     if (existing) {
-      return res
-        .status(400)
-        .json({ error: "Game with this slug already exists" });
+      return res.status(400).json({ error: "Game with this slug already exists" });
     }
 
     const game = await prisma.game.create({
-      data: {
-        slug,
-        name,
-      },
+      data: { slug, name },
     });
 
     res.status(201).json({ game });
@@ -399,30 +86,19 @@ export const deleteGame = async (req: AuthRequest, res: Response) => {
 export const getStats = async (req: Request, res: Response) => {
   try {
     const [totalRuns, runners, categories, pbs] = await Promise.all([
-      // All verified runs (solo + coop unified)
       prisma.run.count({ where: { verified: true } }),
-
-      // Unique runners: solo runs + coop run runners
       prisma.run.groupBy({
         by: ["user_id"],
         where: { verified: true, is_coop: false },
       }),
-
       prisma.category.count(),
-
-      // PBs: unique user+category+platform combos for solo runs
       prisma.run.groupBy({
         by: ["user_id", "category_id", "platform_id"],
         where: { verified: true, is_coop: false },
       }),
     ]);
 
-    // Unique runners from coop runs via RunRunner join table
-    const coopRunners = await prisma.runRunner.groupBy({
-      by: ["user_id"],
-    });
-
-    // Unique coop PBs: unique category+platform combos across coop runs
+    const coopRunners = await prisma.runRunner.groupBy({ by: ["user_id"] });
     const coopPbs = await prisma.run.groupBy({
       by: ["category_id", "platform_id"],
       where: { verified: true, is_coop: true },
@@ -442,6 +118,10 @@ export const getStats = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch stats" });
   }
 };
+
+// ----------------------------------------------------------------
+// Platforms
+// ----------------------------------------------------------------
 
 export const createPlatform = async (req: AuthRequest, res: Response) => {
   try {
@@ -470,6 +150,142 @@ export const createPlatform = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const deletePlatform = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    await prisma.platform.update({
+      where: { id: platform.id },
+      data: { deleted_at: new Date() },
+    });
+
+    res.json({ message: "Platform deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete platform" });
+  }
+};
+
+// ----------------------------------------------------------------
+// Systems
+// ----------------------------------------------------------------
+
+export const getAllSystems = async (req: Request, res: Response) => {
+  try {
+    const systems = await prisma.system.findMany({ orderBy: { name: "asc" } });
+    res.json({ systems });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch systems" });
+  }
+};
+
+export const getPlatformSystems = async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const platformSystems = await prisma.platformSystem.findMany({
+      where: { platform_id: platform.id },
+      include: { system: true },
+    });
+
+    res.json({ systems: platformSystems.map((ps) => ps.system) });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch systems" });
+  }
+};
+
+export const addSystemToPlatform = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const { name } = req.body;
+
+    if (!name) return res.status(400).json({ error: "System name is required" });
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const system = await prisma.system.upsert({
+      where: { name },
+      create: { name },
+      update: {},
+    });
+
+    await prisma.platformSystem.upsert({
+      where: { platform_id_system_id: { platform_id: platform.id, system_id: system.id } },
+      create: { platform_id: platform.id, system_id: system.id },
+      update: {},
+    });
+
+    res.status(201).json({ system });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to add system to platform" });
+  }
+};
+
+// ----------------------------------------------------------------
+// Categories
+// ----------------------------------------------------------------
+
+export const getPlatformCategories = async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+
+    const game = await prisma.game.findUnique({
+      where: { slug },
+      select: { id: true, name: true, slug: true, platforms: true },
+    });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id, deleted_at: null },
+      include: {
+        categories: {
+          where: { deleted_at: null },
+          orderBy: { order: "asc" },
+          include: {
+            subcategories: {
+              where: { deleted_at: null },
+              orderBy: { order: "asc" },
+            },
+            variables: {
+              include: { values: true },
+            },
+          },
+        },
+      },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    res.json({ categories: platform.categories });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch categories" });
+  }
+};
+
 export const createCategory = async (req: AuthRequest, res: Response) => {
   try {
     const slug = req.params.slug as string;
@@ -486,8 +302,7 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
     const platformRecord = await prisma.platform.findFirst({
       where: { slug: platform, game_id: game.id },
     });
-    if (!platformRecord)
-      return res.status(404).json({ error: "Platform not found" });
+    if (!platformRecord) return res.status(404).json({ error: "Platform not found" });
 
     const category = await prisma.category.create({
       data: {
@@ -502,6 +317,40 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Failed to create category" });
   }
 };
+
+export const deleteCategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const categorySlug = req.params.category as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const category = await prisma.category.findFirst({
+      where: { slug: categorySlug, platform_id: platform.id },
+    });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    await prisma.category.update({
+      where: { id: category.id },
+      data: { deleted_at: new Date() },
+    });
+
+    res.json({ message: "Category deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete category" });
+  }
+};
+
+// ----------------------------------------------------------------
+// Subcategories (legacy — supports HP1-3)
+// ----------------------------------------------------------------
 
 export const createSubcategory = async (req: AuthRequest, res: Response) => {
   try {
@@ -538,79 +387,18 @@ export const createSubcategory = async (req: AuthRequest, res: Response) => {
       },
     });
 
-    // If this is the first subcategory, migrate all existing runs to it
+    // Migrate existing runs to first subcategory
     if (hadNoSubcategories) {
       const migrated = await prisma.run.updateMany({
-        where: {
-          category_id: category.id,
-          subcategory_id: null,
-        },
-        data: {
-          subcategory_id: subcategory.id,
-        },
+        where: { category_id: category.id, subcategory_id: null },
+        data: { subcategory_id: subcategory.id },
       });
-      return res.status(201).json({
-        subcategory,
-        migrated_runs: migrated.count,
-      });
+      return res.status(201).json({ subcategory, migrated_runs: migrated.count });
     }
 
     res.status(201).json({ subcategory });
   } catch (error) {
     res.status(500).json({ error: "Failed to create subcategory" });
-  }
-};
-export const deletePlatform = async (req: AuthRequest, res: Response) => {
-  try {
-    const slug = req.params.slug as string;
-    const platformSlug = req.params.platform as string;
-
-    const game = await prisma.game.findUnique({ where: { slug } });
-    if (!game) return res.status(404).json({ error: "Game not found" });
-
-    const platform = await prisma.platform.findFirst({
-      where: { slug: platformSlug, game_id: game.id },
-    });
-    if (!platform) return res.status(404).json({ error: "Platform not found" });
-
-    await prisma.platform.update({
-      where: { id: platform.id },
-      data: { deleted_at: new Date() },
-    });
-
-    res.json({ message: "Platform deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete platform" });
-  }
-};
-
-export const deleteCategory = async (req: AuthRequest, res: Response) => {
-  try {
-    const slug = req.params.slug as string;
-    const platformSlug = req.params.platform as string;
-    const categorySlug = req.params.category as string;
-
-    const game = await prisma.game.findUnique({ where: { slug } });
-    if (!game) return res.status(404).json({ error: "Game not found" });
-
-    const platform = await prisma.platform.findFirst({
-      where: { slug: platformSlug, game_id: game.id },
-    });
-    if (!platform) return res.status(404).json({ error: "Platform not found" });
-
-    const category = await prisma.category.findFirst({
-      where: { slug: categorySlug, platform_id: platform.id },
-    });
-    if (!category) return res.status(404).json({ error: "Category not found" });
-
-    await prisma.category.update({
-      where: { id: category.id },
-      data: { deleted_at: new Date() },
-    });
-
-    res.json({ message: "Category deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to delete category" });
   }
 };
 
@@ -637,8 +425,7 @@ export const deleteSubcategory = async (req: AuthRequest, res: Response) => {
     const subcategory = await prisma.subcategory.findFirst({
       where: { slug: subcategorySlug, category_id: category.id },
     });
-    if (!subcategory)
-      return res.status(404).json({ error: "Subcategory not found" });
+    if (!subcategory) return res.status(404).json({ error: "Subcategory not found" });
 
     await prisma.subcategory.update({
       where: { id: subcategory.id },
@@ -651,86 +438,16 @@ export const deleteSubcategory = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export const getPlatformSystems = async (req: Request, res: Response) => {
-  try {
-    const slug = req.params.slug as string;
-    const platformSlug = req.params.platform as string;
+// ----------------------------------------------------------------
+// Variables
+// ----------------------------------------------------------------
 
-    const game = await prisma.game.findUnique({ where: { slug } });
-    if (!game) return res.status(404).json({ error: "Game not found" });
-
-    const platform = await prisma.platform.findFirst({
-      where: { slug: platformSlug, game_id: game.id },
-    });
-    if (!platform) return res.status(404).json({ error: "Platform not found" });
-
-    const platformSystems = await prisma.platformSystem.findMany({
-      where: { platform_id: platform.id },
-      include: { system: true },
-    });
-
-    res.json({ systems: platformSystems.map((ps) => ps.system) });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch systems" });
-  }
-};
-export const addSystemToPlatform = async (req: AuthRequest, res: Response) => {
-  try {
-    const slug = req.params.slug as string;
-    const platformSlug = req.params.platform as string;
-    const { name } = req.body;
-
-    if (!name) return res.status(400).json({ error: "System name is required" });
-
-    const game = await prisma.game.findUnique({ where: { slug } });
-    if (!game) return res.status(404).json({ error: "Game not found" });
-
-    const platform = await prisma.platform.findFirst({
-      where: { slug: platformSlug, game_id: game.id },
-    });
-    if (!platform) return res.status(404).json({ error: "Platform not found" });
-
-    // Find or create the system
-    const system = await prisma.system.upsert({
-      where: { name },
-      create: { name },
-      update: {},
-    });
-
-    // Link to platform if not already linked
-    await prisma.platformSystem.upsert({
-      where: { platform_id_system_id: { platform_id: platform.id, system_id: system.id } },
-      create: { platform_id: platform.id, system_id: system.id },
-      update: {},
-    });
-
-    res.status(201).json({ system });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to add system to platform" });
-  }
-};
-export const getAllSystems = async (req: Request, res: Response) => {
-  try {
-    const systems = await prisma.system.findMany({
-      orderBy: { name: "asc" },
-    });
-    res.json({ systems });
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch systems" });
-  }
-};
 export const createVariable = async (req: AuthRequest, res: Response) => {
   try {
     const slug = req.params.slug as string;
     const platformSlug = req.params.platform as string;
     const categorySlug = req.params.category as string;
-
-    const {
-      variable_name,
-      variable_slug,
-      is_subcategory = true,
-      values, // [{ name, slug, is_coop, required_players }]
-    } = req.body;
+    const { variable_name, variable_slug, is_subcategory = true, values } = req.body;
 
     if (!variable_name || !variable_slug || !Array.isArray(values) || values.length === 0) {
       return res.status(400).json({ error: "variable_name, variable_slug, and at least one value are required" });
@@ -771,5 +488,565 @@ export const createVariable = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error("Error creating variable:", error);
     res.status(500).json({ error: "Failed to create variable" });
+  }
+};
+
+// ----------------------------------------------------------------
+// Levels
+// ----------------------------------------------------------------
+
+export const createLevel = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const { name, level_slug, order = 0 } = req.body;
+
+    if (!name || !level_slug) {
+      return res.status(400).json({ error: "Name and slug are required" });
+    }
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const level = await prisma.level.create({
+      data: {
+        name,
+        slug: level_slug,
+        order,
+        platform_id: platform.id,
+      },
+    });
+
+    res.status(201).json({ level });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create level" });
+  }
+};
+
+export const createLevelCategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const levelSlug = req.params.level as string;
+    const { name, category_slug, order = 0 } = req.body;
+
+    if (!name || !category_slug) {
+      return res.status(400).json({ error: "Name and slug are required" });
+    }
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const level = await prisma.level.findFirst({
+      where: { slug: levelSlug, platform_id: platform.id },
+    });
+    if (!level) return res.status(404).json({ error: "Level not found" });
+
+    const levelCategory = await prisma.levelCategory.create({
+      data: {
+        name,
+        slug: category_slug,
+        order,
+        level_id: level.id,
+      },
+    });
+
+    res.status(201).json({ levelCategory });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create level category" });
+  }
+};
+
+export const deleteLevel = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const levelSlug = req.params.level as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const level = await prisma.level.findFirst({
+      where: { slug: levelSlug, platform_id: platform.id },
+    });
+    if (!level) return res.status(404).json({ error: "Level not found" });
+
+    await prisma.level.update({
+      where: { id: level.id },
+      data: { deleted_at: new Date() },
+    });
+
+    res.json({ message: "Level deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete level" });
+  }
+};
+
+export const deleteLevelCategory = async (req: AuthRequest, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const levelSlug = req.params.level as string;
+    const categorySlug = req.params.category as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const level = await prisma.level.findFirst({
+      where: { slug: levelSlug, platform_id: platform.id },
+    });
+    if (!level) return res.status(404).json({ error: "Level not found" });
+
+    const levelCategory = await prisma.levelCategory.findFirst({
+      where: { slug: categorySlug, level_id: level.id },
+    });
+    if (!levelCategory) return res.status(404).json({ error: "Level category not found" });
+
+    await prisma.levelCategory.update({
+      where: { id: levelCategory.id },
+      data: { deleted_at: new Date() },
+    });
+
+    res.json({ message: "Level category deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete level category" });
+  }
+};
+
+export const getPlatformLevels = async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const levels = await prisma.level.findMany({
+      where: { platform_id: platform.id, deleted_at: null },
+      orderBy: { order: "asc" },
+      include: {
+        level_categories: {
+          where: { deleted_at: null },
+          orderBy: { order: "asc" },
+        },
+      },
+    });
+
+    res.json({ levels });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch levels" });
+  }
+};
+
+// ----------------------------------------------------------------
+// Leaderboards
+// ----------------------------------------------------------------
+
+export const getLeaderboard = async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const categorySlug = req.params.category as string;
+    const subcategorySlug = req.params.subcategory as string | undefined;
+    const { page = "1", limit = "25" } = req.query;
+
+    // Variable filters: e.g. ?players=1p&cut=standard
+    const variableFilters: Record<string, string> = {};
+    for (const [key, value] of Object.entries(req.query)) {
+      if (key === "page" || key === "limit") continue;
+      if (typeof value === "string") variableFilters[key] = value;
+    }
+
+    const game = await prisma.game.findUnique({
+      where: { slug },
+      include: { platforms: true },
+    });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const category = await prisma.category.findFirst({
+      where: { slug: categorySlug, platform_id: platform.id },
+    });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+    const skip = (pageNum - 1) * limitNum;
+
+    const timingField =
+      platform.timing_method === "gametime" ? "gametime_ms" : "realtime_ms";
+
+    // Resolve subcategory (HP1-3)
+    let subcategory = null;
+    if (subcategorySlug) {
+      subcategory = await prisma.subcategory.findFirst({
+        where: { slug: subcategorySlug, category_id: category.id },
+      });
+      if (!subcategory) return res.status(404).json({ error: "Subcategory not found" });
+    }
+
+    // Resolve variable value IDs from query params (HP4+)
+    const resolvedVariableValueIds: string[] = [];
+    let isCoop = false;
+
+    if (Object.keys(variableFilters).length > 0) {
+      const variables = await prisma.variable.findMany({
+        where: { category_id: category.id },
+        include: { values: true },
+      });
+
+      for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
+        const variable = variables.find((v) => v.slug === varSlug);
+        if (!variable) return res.status(404).json({ error: `Variable '${varSlug}' not found` });
+
+        const value = variable.values.find((v) => v.slug === valSlug);
+        if (!value) return res.status(404).json({ error: `Value '${valSlug}' not found for variable '${varSlug}'` });
+
+        resolvedVariableValueIds.push(value.id);
+        if (value.is_coop) isCoop = true;
+      }
+    }
+
+    const hasVariableFilter = resolvedVariableValueIds.length > 0;
+
+    const baseWhere = {
+      category_id: category.id,
+      platform_id: platform.id,
+      verified: true,
+      ...(subcategory ? { subcategory_id: subcategory.id } : {}),
+      ...(hasVariableFilter ? { is_coop: isCoop } : {}),
+      ...(hasVariableFilter
+        ? { variable_values: { some: { variable_value_id: { in: resolvedVariableValueIds } } } }
+        : {}),
+    };
+
+    const allRuns = await prisma.run.findMany({
+      where: baseWhere,
+      include: {
+        user: { select: { id: true, username: true, display_name: true, country: true } },
+        runners: { include: { user: { select: { id: true, username: true, display_name: true, country: true } } } },
+        system: true,
+        variable_values: { include: { variable_value: { include: { variable: true } } } },
+      },
+      orderBy: { [timingField]: "asc" as const },
+    });
+
+    // Ensure run has ALL requested variable values (Prisma `some` is OR)
+    const filteredRuns = hasVariableFilter
+      ? allRuns.filter((run) => {
+          const runValueIds = run.variable_values.map((rv) => rv.variable_value_id);
+          return resolvedVariableValueIds.every((id) => runValueIds.includes(id));
+        })
+      : allRuns;
+
+    // PB dedup
+    let dedupedRuns: typeof filteredRuns;
+    if (isCoop) {
+      const bestTimePerUser = new Map<string, number>();
+      for (const run of filteredRuns) {
+        const time = (run as any)[timingField] ?? Infinity;
+        for (const runner of run.runners) {
+          const existing = bestTimePerUser.get(runner.user_id);
+          if (existing === undefined || time < existing) bestTimePerUser.set(runner.user_id, time);
+        }
+      }
+      dedupedRuns = filteredRuns.filter((run) => {
+        const time = (run as any)[timingField] ?? Infinity;
+        return run.runners.some((runner) => bestTimePerUser.get(runner.user_id) === time);
+      });
+    } else {
+      const seen = new Set<string>();
+      dedupedRuns = filteredRuns.filter((run) => {
+        if (seen.has(run.user_id)) return false;
+        seen.add(run.user_id);
+        return true;
+      });
+    }
+
+    // Tie-aware ranking
+    const rankedWithTies: ((typeof dedupedRuns)[number] & { _rank: number })[] = [];
+    for (let i = 0; i < dedupedRuns.length; i++) {
+      const run = dedupedRuns[i];
+      let rank: number;
+      if (i === 0) {
+        rank = 1;
+      } else {
+        const prevTime = (dedupedRuns[i - 1] as any)[timingField];
+        const currTime = (run as any)[timingField];
+        rank = currTime === prevTime ? rankedWithTies[i - 1]._rank : i + 1;
+      }
+      rankedWithTies.push({ ...run, _rank: rank });
+    }
+
+    const total = rankedWithTies.length;
+    const paginatedRuns = rankedWithTies.slice(skip, skip + limitNum);
+
+    const rankedRuns = paginatedRuns.map((run) => ({
+      rank: run._rank,
+      id: run.id,
+      is_coop: run.is_coop,
+      ...(run.is_coop ? { runners: run.runners.map((r) => r.user) } : { user: run.user }),
+      system: run.system?.name ?? null,
+      system_id: run.system_id,
+      comment: run.comment,
+      realtime_ms: run.realtime_ms,
+      gametime_ms: run.gametime_ms,
+      realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+      gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+      platform: platform.name,
+      timing_method: platform.timing_method,
+      video_url: run.video_url,
+      submitted_at: run.submitted_at,
+      variable_values: run.variable_values.map((rv) => ({
+        variable: rv.variable_value.variable.name,
+        variable_slug: rv.variable_value.variable.slug,
+        value: rv.variable_value.name,
+        value_slug: rv.variable_value.slug,
+      })),
+    }));
+
+    return res.json({
+      game: game.name,
+      platform: platform.name,
+      timing_method: platform.timing_method,
+      category: category.name,
+      subcategory: subcategory?.name ?? null,
+      variable_filters: hasVariableFilter
+        ? Object.entries(variableFilters).map(([varSlug, valSlug]) => ({ variable: varSlug, value: valSlug }))
+        : [],
+      is_coop: isCoop,
+      total,
+      page: pageNum,
+      limit: limitNum,
+      runs: rankedRuns,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
+  }
+};
+
+export const getILLeaderboard = async (req: Request, res: Response) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const categorySlug = req.params.category as string;
+    const { page = "1", limit = "25" } = req.query;
+
+    // Variable filters: e.g. ?players=1p
+    const variableFilters: Record<string, string> = {};
+    for (const [key, value] of Object.entries(req.query)) {
+      if (key === "page" || key === "limit") continue;
+      if (typeof value === "string") variableFilters[key] = value;
+    }
+
+    const game = await prisma.game.findUnique({
+      where: { slug },
+      include: { platforms: true },
+    });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const levelCategory = await prisma.levelCategory.findFirst({
+      where: { slug: categorySlug, level: { platform_id: platform.id } },
+    });
+    if (!levelCategory) return res.status(404).json({ error: "IL category not found" });
+
+    const pageNum = parseInt(page as string);
+    const limitNum = parseInt(limit as string);
+
+    const timingField =
+      platform.timing_method === "gametime" ? "gametime_ms" : "realtime_ms";
+
+    // Resolve variable value IDs from query params
+    const resolvedVariableValueIds: string[] = [];
+    let isCoop = false;
+
+    if (Object.keys(variableFilters).length > 0) {
+      const variables = await prisma.variable.findMany({
+        where: { level_category_id: levelCategory.id },
+        include: { values: true },
+      });
+
+      for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
+        const variable = variables.find((v) => v.slug === varSlug);
+        if (!variable) return res.status(404).json({ error: `Variable '${varSlug}' not found` });
+
+        const value = variable.values.find((v) => v.slug === valSlug);
+        if (!value) return res.status(404).json({ error: `Value '${valSlug}' not found for variable '${varSlug}'` });
+
+        resolvedVariableValueIds.push(value.id);
+        if (value.is_coop) isCoop = true;
+      }
+    }
+
+    const hasVariableFilter = resolvedVariableValueIds.length > 0;
+
+    // Fetch all levels for this platform that have this category slug
+    const levels = await prisma.level.findMany({
+      where: {
+        platform_id: platform.id,
+        deleted_at: null,
+        level_categories: { some: { slug: categorySlug, deleted_at: null } },
+      },
+      orderBy: { order: "asc" },
+    });
+
+    const baseWhere = {
+      level_category_id: levelCategory.id,
+      platform_id: platform.id,
+      verified: true,
+      ...(hasVariableFilter ? { is_coop: isCoop } : {}),
+      ...(hasVariableFilter
+        ? { variable_values: { some: { variable_value_id: { in: resolvedVariableValueIds } } } }
+        : {}),
+    };
+
+    const allRuns = await prisma.run.findMany({
+      where: baseWhere,
+      include: {
+        user: { select: { id: true, username: true, display_name: true, country: true } },
+        runners: { include: { user: { select: { id: true, username: true, display_name: true, country: true } } } },
+        level_category: { include: { level: true } },
+        system: true,
+        variable_values: { include: { variable_value: { include: { variable: true } } } },
+      },
+      orderBy: { [timingField]: "asc" as const },
+    });
+
+    // Ensure run has ALL requested variable values
+    const filteredRuns = hasVariableFilter
+      ? allRuns.filter((run) => {
+          const runValueIds = run.variable_values.map((rv) => rv.variable_value_id);
+          return resolvedVariableValueIds.every((id) => runValueIds.includes(id));
+        })
+      : allRuns;
+
+    // Group runs by level
+    const levelMap = new Map<string, typeof filteredRuns>();
+    for (const level of levels) levelMap.set(level.id, []);
+    for (const run of filteredRuns) {
+      const levelId = run.level_category?.level?.id;
+      if (levelId && levelMap.has(levelId)) levelMap.get(levelId)!.push(run);
+    }
+
+    // PB dedup + tie-aware ranking per level
+    const levelResults = levels.map((level) => {
+      const runs = levelMap.get(level.id) ?? [];
+
+      let dedupedRuns: typeof runs;
+      if (isCoop) {
+        const bestTimePerUser = new Map<string, number>();
+        for (const run of runs) {
+          const time = (run as any)[timingField] ?? Infinity;
+          for (const runner of run.runners) {
+            const existing = bestTimePerUser.get(runner.user_id);
+            if (existing === undefined || time < existing) bestTimePerUser.set(runner.user_id, time);
+          }
+        }
+        dedupedRuns = runs.filter((run) => {
+          const time = (run as any)[timingField] ?? Infinity;
+          return run.runners.some((runner) => bestTimePerUser.get(runner.user_id) === time);
+        });
+      } else {
+        const seen = new Set<string>();
+        dedupedRuns = runs.filter((run) => {
+          if (seen.has(run.user_id)) return false;
+          seen.add(run.user_id);
+          return true;
+        });
+      }
+
+      const ranked = dedupedRuns.map((run, i) => {
+        let rank: number;
+        if (i === 0) {
+          rank = 1;
+        } else {
+          const prevTime = (dedupedRuns[i - 1] as any)[timingField];
+          const currTime = (run as any)[timingField];
+          rank = currTime === prevTime ? i : i + 1;
+        }
+        return {
+          rank,
+          id: run.id,
+          is_coop: run.is_coop,
+          ...(run.is_coop ? { runners: run.runners.map((r) => r.user) } : { user: run.user }),
+          system: run.system?.name ?? null,
+          system_id: run.system_id,
+          comment: run.comment,
+          realtime_ms: run.realtime_ms,
+          gametime_ms: run.gametime_ms,
+          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+          video_url: run.video_url,
+          submitted_at: run.submitted_at,
+          variable_values: run.variable_values.map((rv) => ({
+            variable: rv.variable_value.variable.name,
+            variable_slug: rv.variable_value.variable.slug,
+            value: rv.variable_value.name,
+            value_slug: rv.variable_value.slug,
+          })),
+        };
+      });
+
+      return {
+        level: level.name,
+        level_slug: level.slug,
+        order: level.order,
+        total: ranked.length,
+        runs: ranked,
+      };
+    });
+
+    return res.json({
+      game: game.name,
+      platform: platform.name,
+      timing_method: platform.timing_method,
+      category: levelCategory.name,
+      category_slug: categorySlug,
+      variable_filters: hasVariableFilter
+        ? Object.entries(variableFilters).map(([varSlug, valSlug]) => ({ variable: varSlug, value: valSlug }))
+        : [],
+      is_coop: isCoop,
+      page: pageNum,
+      limit: limitNum,
+      levels: levelResults,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch IL leaderboard" });
   }
 };

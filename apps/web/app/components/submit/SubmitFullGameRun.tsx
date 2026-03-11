@@ -38,6 +38,7 @@ interface Category {
   slug: string;
   name: string;
   variables: Variable[];
+  subcategories: { id: string; name: string; slug: string }[];
 }
 
 interface Runner {
@@ -54,7 +55,7 @@ export default function SubmitFullGameRun() {
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [systems, setSystems] = useState<{ id: string; name: string }[]>([]);
-
+  const [selectedSubcategory, setSelectedSubcategory] = useState("");
   const [selectedGame, setSelectedGame] = useState("");
   const [selectedPlatform, setSelectedPlatform] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("");
@@ -245,107 +246,122 @@ export default function SubmitFullGameRun() {
   // ----------------------------------------------------------------
   // Submit
   // ----------------------------------------------------------------
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError("");
-  setSuccess(false);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess(false);
 
-  const rta =
-    parseInt(hours || "0") * 3600000 +
-    parseInt(minutes || "0") * 60000 +
-    parseInt(seconds || "0") * 1000 +
-    parseInt(milliseconds || "0");
+    // 1. Time Calculation
+    const rta =
+      parseInt(hours || "0") * 3600000 +
+      parseInt(minutes || "0") * 60000 +
+      parseInt(seconds || "0") * 1000 +
+      parseInt(milliseconds || "0");
 
-  if (rta <= 0) {
-    setError("Please enter a valid RTA time");
-    return;
-  }
-  if (!videoUrl) {
-    setError("Video URL is required");
-    return;
-  }
-
-  if (isCoop) {
-    if (requiredPlayers && runners.length !== requiredPlayers) {
-      setError(`This category requires exactly ${requiredPlayers} runners`);
-      return;
-    } else if (!requiredPlayers && runners.length < 2) {
-      setError("Co-op runs require at least 2 runners");
+    if (rta <= 0) {
+      setError("Please enter a valid RTA time");
       return;
     }
-  }
+    if (!videoUrl) {
+      setError("Video URL is required");
+      return;
+    }
 
-  const variable_values = subcategoryVariables
-    .filter((v) => selectedVariableValues[v.id])
-    .map((v) => {
-      const valueId = selectedVariableValues[v.id];
-      const value = v.values.find((val) => val.id === valueId);
-      return { variable_slug: v.slug, value_slug: value?.slug };
-    })
-    .filter((v) => v.value_slug);
+    // 2. Co-op Validation
+    if (isCoop) {
+      if (requiredPlayers && runners.length !== requiredPlayers) {
+        setError(`This category requires exactly ${requiredPlayers} runners`);
+        return;
+      } else if (!requiredPlayers && runners.length < 2) {
+        setError("Co-op runs require at least 2 runners");
+        return;
+      }
+    }
 
-  const igt =
-    parseInt(igtHours || "0") * 3600000 +
-    parseInt(igtMinutes || "0") * 60000 +
-    parseInt(igtSeconds || "0") * 1000 +
-    parseInt(igtMilliseconds || "0");
+    // 3. Resolve Slugs for Backend (Subcategory vs Variables)
+    // Identify if any selected variable is meant for the legacy subcategory_slug field
+    const subcategoryVar = subcategoryVariables.find((v) => v.is_subcategory);
+    const selectedSubValueId = subcategoryVar
+      ? selectedVariableValues[subcategoryVar.id]
+      : null;
+    const selectedSubValue = subcategoryVar?.values.find(
+      (val) => val.id === selectedSubValueId,
+    );
 
-  const finalIgt = isGametime && igt <= 0 ? rta : igt;
+    const variable_values = subcategoryVariables
+      .filter((v) => selectedVariableValues[v.id])
+      .map((v) => {
+        const valueId = selectedVariableValues[v.id];
+        const value = v.values.find((val) => val.id === valueId);
+        return { variable_slug: v.slug, value_slug: value?.slug };
+      })
+      .filter((v) => v.value_slug);
 
-  setSubmitting(true);
+    const igt =
+      parseInt(igtHours || "0") * 3600000 +
+      parseInt(igtMinutes || "0") * 60000 +
+      parseInt(igtSeconds || "0") * 1000 +
+      parseInt(igtMilliseconds || "0");
 
-  try {
-    const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/runs`;
+    const finalIgt = isGametime && igt <= 0 ? rta : igt;
 
-    const body = {
-      game_slug: selectedGame,
-      platform_slug: selectedPlatform,
-      category_slug: selectedCategory,
-      variable_values,
-      realtime_ms: rta,
-      gametime_ms: finalIgt > 0 ? finalIgt : null,
-      video_url: videoUrl,
-      comment,
-      system_id: selectedSystem || undefined,
-      ...(isCoop && { runner_ids: runners.map((r) => r.id) }),
-    };
+    setSubmitting(true);
 
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
+    try {
+      const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/runs`;
 
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Failed to submit run");
+      const body = {
+        game_slug: selectedGame,
+        platform_slug: selectedPlatform,
+        category_slug: selectedCategory,
+        // For HP1-3 Ace/No Ace logic
+        subcategory_slug: selectedSubcategory || undefined, // For HP4+ Variables logic
+        variable_values,
+        realtime_ms: rta,
+        gametime_ms: finalIgt > 0 ? finalIgt : null,
+        video_url: videoUrl,
+        comment: comment || "",
+        system_id: selectedSystem || undefined,
+        ...(isCoop && { runner_ids: runners.map((r) => r.id) }),
+      };
 
-    setSuccess(true);
-    setSelectedGame("");
-    setSelectedPlatform("");
-    setSelectedCategory("");
-    setSelectedVariableValues({});
-    setHours("");
-    setMinutes("");
-    setSeconds("");
-    setMilliseconds("");
-    setIgtHours("");
-    setIgtMinutes("");
-    setIgtSeconds("");
-    setIgtMilliseconds("");
-    setVideoUrl("");
-    setComment("");
-    setSelectedSystem("");
-    setRunners([]);
-  } catch (err: any) {
-    setError(err.message);
-  } finally {
-    setSubmitting(false);
-  }
-};
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
 
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to submit run");
+
+      // 4. Success State & Reset
+      setSuccess(true);
+      setSelectedGame("");
+      setSelectedPlatform("");
+      setSelectedCategory("");
+      setSelectedVariableValues({});
+      setHours("");
+      setMinutes("");
+      setSeconds("");
+      setMilliseconds("");
+      setIgtHours("");
+      setIgtMinutes("");
+      setIgtSeconds("");
+      setIgtMilliseconds("");
+      setVideoUrl("");
+      setComment("");
+      setSelectedSystem("");
+      setRunners([]);
+    } catch (err: any) {
+      console.error("Submission error:", err);
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
   if (loading) return null;
 
   if (!user) {
@@ -505,7 +521,26 @@ const handleSubmit = async (e: React.FormEvent) => {
                 </select>
               </div>
             ))}
-
+            {/* Subcategories (Legacy HP1-3 Ace/No Ace) */}
+            {selectedCategoryData?.subcategories &&
+              selectedCategoryData.subcategories.length > 0 && (
+                <div className="form-group">
+                  <label className="form-label">Subcategory *</label>
+                  <select
+                    value={selectedSubcategory}
+                    onChange={(e) => setSelectedSubcategory(e.target.value)}
+                    required
+                    className="auth-input"
+                  >
+                    <option value="">Select a subcategory</option>
+                    {selectedCategoryData.subcategories.map((sub) => (
+                      <option key={sub.id} value={sub.slug}>
+                        {sub.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             {/* Co-op runners */}
             {isCoop && (
               <div className="runners-form-group">

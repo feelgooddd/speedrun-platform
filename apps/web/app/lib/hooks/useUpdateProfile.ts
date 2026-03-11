@@ -1,11 +1,31 @@
 import { useState, useEffect } from "react";
 
-export function useUpdateProfile(user: any, token: string | null, login: Function) {
-  const [form, setForm] = useState({
+export interface ProfileFormState {
+  email: string;
+  country: string;
+  display_name: string;
+}
+
+export interface UseUpdateProfileReturn {
+  form: ProfileFormState;
+  setForm: React.Dispatch<React.SetStateAction<ProfileFormState>>;
+  error: string;
+  success: string;
+  submitting: boolean;
+  handleSubmit: (e: React.FormEvent) => Promise<void>;
+}
+
+export function useUpdateProfile(
+  user: any, 
+  token: string | null, 
+  login: Function
+): UseUpdateProfileReturn { // <--- Added the return type here
+  const [form, setForm] = useState<ProfileFormState>({
     email: "",
     country: "",
     display_name: "",
   });
+  
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [submitting, setSubmitting] = useState(false);

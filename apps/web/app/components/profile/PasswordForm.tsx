@@ -1,14 +1,9 @@
 "use client";
 
+import { UseChangePasswordReturn } from "@/app/lib/hooks/useChangePassword";
+
 interface PasswordFormProps {
-  security: {
-    pwForm: any;
-    setPwForm: (form: any) => void;
-    pwError: string;
-    pwSuccess: boolean;
-    pwLoading: boolean;
-    handleChangePassword: (e: React.FormEvent) => void;
-  };
+  security: UseChangePasswordReturn;
 }
 
 export function PasswordForm({ security }: PasswordFormProps) {

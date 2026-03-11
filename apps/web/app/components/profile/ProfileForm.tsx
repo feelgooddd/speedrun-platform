@@ -3,15 +3,10 @@ import { useState } from "react";
 import { COUNTRIES } from "@/app/lib/countries";
 import InfoPanel from "@/app/components/ui/InfoPanel";
 
+import { UseUpdateProfileReturn } from "@/app/lib/hooks/useUpdateProfile";
+
 interface ProfileFormProps {
-  profile: {
-    form: any;
-    setForm: (form: any) => void;
-    error: string;
-    success: string;
-    submitting: boolean;
-    handleSubmit: (e: React.FormEvent) => void;
-  };
+  profile: UseUpdateProfileReturn; 
 }
 
 export function ProfileForm({ profile }: ProfileFormProps) {

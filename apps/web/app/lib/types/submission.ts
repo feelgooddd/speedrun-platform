@@ -55,3 +55,17 @@ export interface TimeParts {
   s: string;
   ms: string;
 }
+
+export interface LevelCategory {
+  id: string;
+  slug: string;
+  name: string;
+}
+
+export interface Level {
+  id: string;
+  slug: string;
+  name: string;
+  order: number;
+  level_categories: LevelCategory[];
+}

@@ -1,14 +1,18 @@
 import { useState, useMemo } from "react";
-import { Category, VariableValue, TimeParts } from "../types/submission";
+import { Category, VariableValue, TimeParts, Level } from "../types/submission";
 
 interface UseSubmitRunFormProps {
   token: string | null;
   selectedGame: string;
   selectedPlatform: string;
   selectedCategory: string;
-  selectedCategoryData: Category | undefined;
+  selectedCategoryData?: Category | undefined;
   isGametime: boolean;
   runners: { id: string }[];
+  // IL Specifics
+  isIL?: boolean;
+  selectedLevel?: string;
+  levels?: Level[];
 }
 
 export function useSubmitRunForm({
@@ -19,6 +23,9 @@ export function useSubmitRunForm({
   selectedCategoryData,
   isGametime,
   runners,
+  isIL = false,
+  selectedLevel,
+  levels = [],
 }: UseSubmitRunFormProps) {
   // --- Basic Input States ---
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
@@ -97,58 +104,80 @@ export function useSubmitRunForm({
   const handleSubmit = async (
     e: React.FormEvent,
     runnersOverride?: { id: string }[],
-  ) => {
+  ): Promise<boolean> => {
     e.preventDefault();
     setError("");
     setSuccess(false);
 
     const rta = calculateMs(rtaParts);
     const igt = calculateMs(igtParts);
-
     const runnersToSubmit = runnersOverride || runners;
 
     // Basic Validation
-    if (rta <= 0) return setError("Please enter a valid RTA time");
-    if (!videoUrl) return setError("Video URL is required");
+    if (rta <= 0) {
+      setError("Please enter a valid RTA time");
+      return false;
+    }
+    if (!videoUrl) {
+      setError("Video URL is required");
+      return false;
+    }
     if (isCoop && requiredPlayers && runnersToSubmit.length !== requiredPlayers) {
-      return setError(
-        `This category requires exactly ${requiredPlayers} runners`,
-      );
+      setError(`This category requires exactly ${requiredPlayers} runners`);
+      return false;
     }
 
-    const variable_values = subcategoryVariables
-      .filter((v) => selectedVariableValues[v.id])
-      .map((v) => ({
-        variable_slug: v.slug,
-        value_slug: v.values.find(
-          (val) => val.id === selectedVariableValues[v.id],
-        )?.slug,
-      }))
-      .filter((v) => v.value_slug);
+    // IL Category Resolution
+    let levelCategoryId: string | undefined;
+    if (isIL && selectedLevel) {
+      const level = levels.find((l) => l.slug === selectedLevel);
+      levelCategoryId = level?.level_categories.find((c) => c.slug === selectedCategory)?.id;
+      if (!levelCategoryId) {
+        setError("Could not resolve level category");
+        return false;
+      }
+    }
 
     const finalIgt = isGametime && igt <= 0 ? rta : igt;
 
     setSubmitting(true);
     try {
+      const payload: any = {
+        game_slug: selectedGame,
+        platform_slug: selectedPlatform,
+        realtime_ms: rta,
+        gametime_ms: finalIgt > 0 ? finalIgt : null,
+        video_url: videoUrl,
+        comment: comment || "",
+        system_id: selectedSystem || undefined,
+        ...(runnersToSubmit.length > 0 && {
+          runner_ids: runnersToSubmit.map((r) => r.id),
+        }),
+      };
+
+      if (isIL) {
+        payload.level_category_id = levelCategoryId;
+      } else {
+        payload.category_slug = selectedCategory;
+        payload.subcategory_slug = selectedSubcategory || undefined;
+        payload.variable_values = subcategoryVariables
+          .filter((v) => selectedVariableValues[v.id])
+          .map((v) => ({
+            variable_slug: v.slug,
+            value_slug: v.values.find(
+              (val) => val.id === selectedVariableValues[v.id],
+            )?.slug,
+          }))
+          .filter((v) => v.value_slug);
+      }
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/runs`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          game_slug: selectedGame,
-          platform_slug: selectedPlatform,
-          category_slug: selectedCategory,
-          subcategory_slug: selectedSubcategory || undefined,
-          variable_values,
-          realtime_ms: rta,
-          gametime_ms: finalIgt > 0 ? finalIgt : null,
-          video_url: videoUrl,
-          comment: comment || "",
-          system_id: selectedSystem || undefined,
-          ...(isCoop && { runner_ids: runnersToSubmit.map((r) => r.id) }),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();

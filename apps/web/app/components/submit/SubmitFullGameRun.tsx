@@ -204,7 +204,25 @@ export default function SubmitFullGameRun() {
                 currentUser={user}
               />
             )}
-
+{/* System Selection */}
+{systems.length > 0 && (
+  <div className="form-group">
+    <label className="form-label">System *</label>
+    <select
+      value={states.selectedSystem}
+      onChange={(e) => states.setSelectedSystem(e.target.value)}
+      required
+      className="auth-input"
+    >
+      <option value="">Select a system</option>
+      {systems.map((s) => (
+        <option key={s.id} value={s.id}>
+          {s.name}
+        </option>
+      ))}
+    </select>
+  </div>
+)}
             {/* Time, Video, and Comments... */}
             <TimeInputGroup
               label="Real Time Attack (RTA) *"

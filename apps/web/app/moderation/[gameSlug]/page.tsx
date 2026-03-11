@@ -1,157 +1,36 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { countryCodeToFlag } from "@/app/lib/flags";
-
-interface User {
-  id: string;
-  username: string;
-  display_name: string | null;
-  country: string | null;
-}
-
-interface PendingRun {
-  id: string;
-  is_coop: boolean;
-  is_il: boolean;
-  level?: string | null;
-  user: User | null;
-  runners: User[] | null;
-  subcategory?: string | null;
-  category: string;
-  platform: string;
-  comment: string | null;
-  system: string | null;
-  realtime_ms?: number | null;
-  gametime_ms?: number | null;
-  realtime_display?: string | null;
-  gametime_display?: string | null;
-  video_url: string;
-  submitted_at: string;
-  rejected?: boolean;
-  reject_reason?: string | null;
-}
+import { PendingRun } from "@/app/lib/types/moderation";
+import { useModQueue } from "@/app/lib/hooks/useModQueue";
 
 export default function ModQueuePage({
   params,
 }: {
   params: Promise<{ gameSlug: string }>;
 }) {
-  const router = useRouter();
-  const [gameSlug, setGameSlug] = useState<string>("");
-  const [gameName, setGameName] = useState<string>("");
-  const [pendingRuns, setPendingRuns] = useState<PendingRun[]>([]);
-  const [pendingILRuns, setPendingILRuns] = useState<PendingRun[]>([]);
-  const [rejectedRuns, setRejectedRuns] = useState<PendingRun[]>([]);
-  const [rejectedILRuns, setRejectedILRuns] = useState<PendingRun[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [processing, setProcessing] = useState<Record<string, boolean>>({});
+  const [slug, setSlug] = useState<string>("");
+  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
   const [rejectReasons, setRejectReasons] = useState<Record<string, string>>({});
   const [showRejectInput, setShowRejectInput] = useState<Record<string, boolean>>({});
-  const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
+  // Unwrap params
   useEffect(() => {
-    params.then((p) => setGameSlug(p.gameSlug));
+    params.then((p) => setSlug(p.gameSlug));
   }, [params]);
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
+  // Our new logic "Brain"
+  const { queue, gameName, loading, error, processing, verifyRun, setError } = useModQueue(slug);
 
-    if (!token) {
-      router.push("/login");
-      return;
-    }
-
-    if (!gameSlug) return;
-
-    const fetchQueue = async () => {
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/moderation/${gameSlug}/mod-queue`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-
-        if (!res.ok) throw new Error("Failed to fetch mod queue");
-
-        const data = await res.json();
-        setGameName(data.game || gameSlug);
-
-        const runs = data.runs || [];
-        setPendingRuns(runs.filter((r: PendingRun) => !r.rejected && !r.is_il));
-        setPendingILRuns(runs.filter((r: PendingRun) => !r.rejected && r.is_il));
-        setRejectedRuns(runs.filter((r: PendingRun) => r.rejected && !r.is_il));
-        setRejectedILRuns(runs.filter((r: PendingRun) => r.rejected && r.is_il));
-      } catch (error: any) {
-        setError(error.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchQueue();
-  }, [gameSlug, router]);
-
-  const handleVerify = async (runId: string, approve: boolean) => {
-    if (!approve && !rejectReasons[runId]?.trim()) {
-      setError("Please provide a reason for rejection");
-      return;
-    }
-
-    setProcessing((prev) => ({ ...prev, [runId]: true }));
-    setError("");
-
-    try {
-      const token = localStorage.getItem("token");
-      const endpoint = `${process.env.NEXT_PUBLIC_API_URL}/moderation/runs/${runId}/verify`;
-
-      const res = await fetch(endpoint, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          verified: approve,
-          reject_reason: approve ? undefined : rejectReasons[runId],
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to verify run");
-      }
-
-      const run = [...pendingRuns, ...pendingILRuns].find((r) => r.id === runId);
-
-      if (approve) {
-        setPendingRuns((prev) => prev.filter((r) => r.id !== runId));
-        setPendingILRuns((prev) => prev.filter((r) => r.id !== runId));
-      } else {
-        if (run) {
-          if (run.is_il) {
-            setPendingILRuns((prev) => prev.filter((r) => r.id !== runId));
-            setRejectedILRuns((prev) => [...prev, { ...run, rejected: true, reject_reason: rejectReasons[runId] }]);
-          } else {
-            setPendingRuns((prev) => prev.filter((r) => r.id !== runId));
-            setRejectedRuns((prev) => [...prev, { ...run, rejected: true, reject_reason: rejectReasons[runId] }]);
-          }
-        }
-      }
-
+  const handleAction = async (runId: string, approve: boolean) => {
+    const success = await verifyRun(runId, approve, rejectReasons[runId]);
+    if (success) {
+      // Clear local UI states for this specific row
       setRejectReasons((prev) => { const u = { ...prev }; delete u[runId]; return u; });
       setShowRejectInput((prev) => { const u = { ...prev }; delete u[runId]; return u; });
       if (expandedRunId === runId) setExpandedRunId(null);
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setProcessing((prev) => ({ ...prev, [runId]: false }));
     }
-  };
-
-  const handleRowClick = (runId: string) => {
-    setExpandedRunId((prev) => (prev === runId ? null : runId));
   };
 
   if (loading) {
@@ -168,10 +47,9 @@ export default function ModQueuePage({
     runs: PendingRun[],
     title: string,
     isPending: boolean,
-    isIL: boolean = false,
+    isIL: boolean = false
   ) => {
     const colCount = isIL ? 8 : 7;
-
     return (
       <>
         <h2 style={{ color: "var(--text)", marginTop: "3rem", marginBottom: "1rem", fontSize: "1.5rem" }}>
@@ -205,10 +83,11 @@ export default function ModQueuePage({
                     <>
                       <tr
                         key={run.id}
-                        onClick={() => handleRowClick(run.id)}
+                        onClick={() => setExpandedRunId(isExpanded ? null : run.id)}
                         style={{ cursor: "pointer" }}
                       >
                         <td className="runner-cell">
+                          {/* Runner rendering logic... (kept same for styles) */}
                           {run.is_coop && run.runners ? (
                             <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                               {run.runners.map((r) => (
@@ -235,9 +114,7 @@ export default function ModQueuePage({
                             <a href={run.video_url} target="_blank" rel="noopener noreferrer" className="video-link" onClick={(e) => e.stopPropagation()}>
                               ▶ Watch
                             </a>
-                          ) : (
-                            <span className="no-video">—</span>
-                          )}
+                          ) : <span className="no-video">—</span>}
                         </td>
                         <td className="system-cell">
                           {run.system ? <span className="run-system-badge">{run.system}</span> : "—"}
@@ -259,11 +136,11 @@ export default function ModQueuePage({
                                   style={{ padding: "0.5rem", background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 215, 0, 0.2)", borderRadius: "4px", color: "var(--text)", fontSize: "0.9rem" }}
                                 />
                                 <div style={{ display: "flex", gap: "0.5rem" }}>
-                                  <button className="btn" onClick={() => handleVerify(run.id, false)} disabled={processing[run.id]}
+                                  <button className="btn" onClick={() => handleAction(run.id, false)} disabled={processing[run.id]}
                                     style={{ background: "rgba(255, 0, 0, 0.1)", border: "1px solid rgba(255, 0, 0, 0.3)", color: "#ff4444", padding: "0.5rem 1rem", fontSize: "0.8rem", flex: 1 }}>
                                     {processing[run.id] ? "..." : "Confirm"}
                                   </button>
-                                  <button className="btn" onClick={() => { setShowRejectInput((prev) => ({ ...prev, [run.id]: false })); setRejectReasons((prev) => { const u = { ...prev }; delete u[run.id]; return u; }); }}
+                                  <button className="btn" onClick={() => { setShowRejectInput((prev) => ({ ...prev, [run.id]: false })); }}
                                     style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 215, 0, 0.2)", padding: "0.5rem 1rem", fontSize: "0.8rem", flex: 1 }}>
                                     Cancel
                                   </button>
@@ -271,7 +148,7 @@ export default function ModQueuePage({
                               </div>
                             ) : (
                               <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center" }}>
-                                <button className="btn" onClick={() => handleVerify(run.id, true)} disabled={processing[run.id]}
+                                <button className="btn" onClick={() => handleAction(run.id, true)} disabled={processing[run.id]}
                                   style={{ background: "rgba(0, 255, 0, 0.1)", border: "1px solid rgba(0, 255, 0, 0.3)", color: "#00ff00", padding: "0.5rem 1rem", fontSize: "0.9rem" }}>
                                   {processing[run.id] ? "..." : "✓ Approve"}
                                 </button>
@@ -309,12 +186,8 @@ export default function ModQueuePage({
     <div className="landing">
       <div className="section" style={{ paddingTop: "6rem" }}>
         <div className="section-header">
-          <Link href="/moderation" className="auth-back">
-            ← Back to Dashboard
-          </Link>
-          <div className="section-ornament" style={{ marginTop: "1rem" }}>
-            ✦ ✦ ✦
-          </div>
+          <Link href="/moderation" className="auth-back">← Back to Dashboard</Link>
+          <div className="section-ornament" style={{ marginTop: "1rem" }}>✦ ✦ ✦</div>
           <div className="section-divider" />
           <h1 className="section-title">{gameName}</h1>
           <p className="section-subtitle">Moderation Queue</p>
@@ -326,10 +199,10 @@ export default function ModQueuePage({
           </div>
         )}
 
-        {renderRunsTable(pendingRuns, "Pending Full Game Runs", true, false)}
-        {renderRunsTable(pendingILRuns, "Pending Individual Level Runs", true, true)}
-        {renderRunsTable(rejectedRuns, "Rejected Full Game Runs", false, false)}
-        {renderRunsTable(rejectedILRuns, "Rejected Individual Level Runs", false, true)}
+        {renderRunsTable(queue.pending, "Pending Full Game Runs", true, false)}
+        {renderRunsTable(queue.pendingIL, "Pending Individual Level Runs", true, true)}
+        {renderRunsTable(queue.rejected, "Rejected Full Game Runs", false, false)}
+        {renderRunsTable(queue.rejectedIL, "Rejected Individual Level Runs", false, true)}
       </div>
     </div>
   );

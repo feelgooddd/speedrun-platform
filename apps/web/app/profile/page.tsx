@@ -3,6 +3,7 @@ import { useAuth } from "../components/auth/AuthContext";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
+// app/profile/page.tsx
 export default function ProfileRedirect() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -13,5 +14,7 @@ export default function ProfileRedirect() {
     router.push(`/profile/${user.username}`);
   }, [user, loading, router]);
 
-  return null;
+  // Returning this ensures the screen stays dark and matched to your UI
+  // while the redirect is processing in the background.
+  return <div className="landing" style={{ minHeight: '100vh' }} />;
 }

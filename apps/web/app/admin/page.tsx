@@ -39,15 +39,32 @@ interface UserResult {
 
 interface QueueRun {
   id: string;
+  is_coop: boolean;
   user: {
     id: string;
     username: string;
     display_name: string | null;
     country: string | null;
-  };
+  } | null;
+  runners:
+    | {
+        id: string;
+        username: string;
+        display_name: string | null;
+        country: string | null;
+      }[]
+    | null;
   game: string;
   game_slug: string;
   category: string;
+  level: string | null;
+  subcategory: string | null;
+  variable_values: {
+    variable: string;
+    variable_slug: string;
+    value: string;
+    value_slug: string;
+  }[];
   platform: string;
   timing_method: string;
   realtime_ms: number | null;
@@ -547,16 +564,50 @@ export default function AdminPage() {
                             marginBottom: "0.25rem",
                           }}
                         >
-                          {run.user.display_name || run.user.username}
-                          {run.user.country && (
-                            <span className="runner-country">
-                              {countryCodeToFlag(run.user.country)}
+                          {run.is_coop && run.runners ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.25rem",
+                              }}
+                            >
+                              {run.runners.map((r) => (
+                                <span key={r.id}>
+                                  {r.country && (
+                                    <span className="runner-country">
+                                      {countryCodeToFlag(r.country)}
+                                    </span>
+                                  )}
+                                  {r.display_name || r.username}
+                                </span>
+                              ))}
+                            </div>
+                          ) : run.user ? (
+                            <span>
+                              {run.user.country && (
+                                <span className="runner-country">
+                                  {countryCodeToFlag(run.user.country)}
+                                </span>
+                              )}
+                              {run.user.display_name || run.user.username}
                             </span>
-                          )}
+                          ) : null}
                         </div>
                         <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
                           {run.game} · {run.platform} · {run.category}
                         </div>
+                        <div style={{ fontSize: "0.85rem", opacity: 0.7 }}>
+</div>
+{run.variable_values?.length > 0 && (
+  <div style={{ fontSize: "0.85rem", opacity: 0.7, marginTop: "0.25rem" }}>
+    {run.variable_values.map((v) => (
+      <span key={v.variable_slug} style={{ marginRight: "0.75rem" }}>
+        <span style={{ opacity: 0.5 }}>{v.variable}:</span> {v.value}
+      </span>
+    ))}
+  </div>
+)}
                         <div
                           style={{ fontSize: "0.85rem", marginTop: "0.25rem" }}
                         >

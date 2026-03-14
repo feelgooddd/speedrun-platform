@@ -1,0 +1,185 @@
+/* ── Run Card ── */
+.admin-run-card {
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+}
+
+.admin-run-card-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.admin-run-runner {
+  font-weight: bold;
+  margin-bottom: 0.25rem;
+}
+
+.admin-run-coop-runners {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.admin-run-meta {
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.admin-run-variables {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-top: 0.25rem;
+}
+
+.admin-run-variable {
+  margin-right: 0.75rem;
+}
+
+.admin-run-variable-name {
+  opacity: 0.5;
+}
+
+.admin-run-time {
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
+}
+
+.admin-run-comment {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  margin-top: 0.25rem;
+}
+
+.admin-run-date {
+  font-size: 0.75rem;
+  opacity: 0.5;
+  margin-top: 0.25rem;
+}
+
+.admin-run-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.admin-run-btn {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.8rem;
+}
+
+.admin-run-btn--reject {
+  color: #ff4444;
+  border-color: #ff4444;
+  white-space: nowrap;
+}
+
+.admin-run-reject-row {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* ── Users Tab ── */
+.admin-users-tab {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.admin-user-card {
+  padding: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  margin-top: 1rem;
+}
+
+.admin-user-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.admin-user-name {
+  font-weight: bold;
+}
+
+.admin-user-meta {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.admin-user-role-select {
+  width: auto;
+}
+
+.admin-user-moderates-label {
+  font-size: 0.85rem;
+  opacity: 0.7;
+  margin-bottom: 0.5rem;
+}
+
+.admin-user-games {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.admin-user-no-games {
+  font-size: 0.8rem;
+  opacity: 0.5;
+}
+
+.admin-user-game-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.6rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  font-size: 0.8rem;
+}
+
+.admin-user-game-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ff4444;
+  font-size: 0.9rem;
+}
+
+/* ── Games Tab ── */
+.admin-games-tab {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.admin-games-subtabs {
+  margin-bottom: 2rem;
+}
+
+.admin-category-selects {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.admin-category-name-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.admin-category-name-field {
+  flex: 2;
+}
+
+.admin-category-slug-field {
+  flex: 1;
+}

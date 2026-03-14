@@ -177,6 +177,15 @@
 
 /* Sub tabs on leaderboard like Ace/No Ace Emu/Console etc */
 
+/* The CONTAINER */
+.leaderboard-subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+  border-bottom: 1px solid var(--card-border);
+}
+
+/* The individual BUTTON */
 .leaderboard-subtab {
   padding: 0.75rem 1.5rem;
   background: transparent;
@@ -238,4 +247,49 @@
 .run-accordion-content em {
   opacity: 0.4;
   font-style: italic;
+}
+
+/* Filter row (is_subcategory: false variables) */
+.leaderboard-filter-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--card-border);
+  margin-bottom: 0;
+}
+
+.leaderboard-filter-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #555;
+  margin-right: 0.5rem;
+}
+
+.leaderboard-filter-btn {
+  font-family: 'EB Garamond', serif;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.35rem 1rem;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 2px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.leaderboard-filter-btn:hover {
+  color: rgba(255, 255, 255, 0.8);
+  border-color: var(--card-border);
+}
+
+.leaderboard-filter-btn.active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--card-bg);
 }

@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
 import { apiFetch } from "@/app/lib/api";
+import "../../styles/creategamewizard.css"
 
 // ----------------------------------------------------------------
 // Types
@@ -21,13 +22,15 @@ interface VariableValueDraft {
 interface VariableDraft {
   name: string;
   slug: string;
+  is_subcategory: boolean;
+  order: number;
   values: VariableValueDraft[];
 }
 
 interface CategoryDraft {
   name: string;
   slug: string;
-  variable: VariableDraft | null; // one variable per category (can be expanded later)
+  variables: VariableDraft[];
 }
 
 interface PlatformDraft {
@@ -37,17 +40,6 @@ interface PlatformDraft {
   systems: string[];
   categories: CategoryDraft[];
 }
-
-type Step = "game" | "platforms" | "systems" | "categories" | "confirm";
-
-const STEPS: Step[] = ["game", "platforms", "systems", "categories", "confirm"];
-const STEP_LABELS: Record<Step, string> = {
-  game: "Game Details",
-  platforms: "Platforms",
-  systems: "Systems",
-  categories: "Categories",
-  confirm: "Create",
-};
 
 function slugify(str: string) {
   return str.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "");
@@ -59,31 +51,51 @@ function slugify(str: string) {
 export default function CreateGameWizard({ onDoneAction }: { onDoneAction: (game: any) => void }) {
   const { token } = useAuth();
 
-  const [step, setStep] = useState<Step>("game");
   const [allSystems, setAllSystems] = useState<SystemOption[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  // Step 1
+  // Game
   const [gameName, setGameName] = useState("");
   const [gameSlug, setGameSlug] = useState("");
 
-  // Step 2
+  // Platforms
   const [platforms, setPlatforms] = useState<PlatformDraft[]>([]);
-  const [platForm, setPlatForm] = useState<PlatformDraft>({
-    name: "", slug: "", timing_method: "realtime", systems: [], categories: [],
-  });
+  const [platForm, setPlatForm] = useState<{ name: string; slug: string; timing_method: "realtime" | "gametime" }>({ name: "", slug: "", timing_method: "realtime" });
 
-  // Step 3
+  // Active platform tab
   const [activePlatIdx, setActivePlatIdx] = useState(0);
+
+  // System input
   const [systemInput, setSystemInput] = useState("");
 
-  // Step 4
-  const [catPlatIdx, setCatPlatIdx] = useState(0);
-  const [expandedCatIdx, setExpandedCatIdx] = useState<number | null>(null);
+  // Category form
   const [catForm, setCatForm] = useState({ name: "", slug: "" });
-  const [varForm, setVarForm] = useState({ name: "", slug: "" });
-  const [valForm, setValForm] = useState({ name: "", slug: "", is_coop: false, required_players: 2 });
+
+  // Variable form per category: keyed by "platIdx-catIdx"
+  const [varForms, setVarForms] = useState<Record<string, { name: string; slug: string }>>({});
+
+  // Value form per variable: keyed by "platIdx-catIdx-varIdx"
+  const [valForms, setValForms] = useState<Record<string, { name: string; slug: string; is_coop: boolean; required_players: number }>>({});
+
+  // Expanded state
+  const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({});
+  const [expandedVars, setExpandedVars] = useState<Record<string, boolean>>({});
+
+  // Per-category guided decisions: "platIdx-catIdx" -> decisions
+  const [catDecisions, setCatDecisions] = useState<Record<string, {
+    hasSubcategories: boolean | null;
+    hasVariables: boolean | null;
+  }>>({});
+
+  const setCatDecision = (platIdx: number, catIdx: number, key: "hasSubcategories" | "hasVariables", value: boolean) => {
+    const dKey = `${platIdx}-${catIdx}`;
+    setCatDecisions((prev) => ({
+      ...prev,
+      [dKey]: { ...(prev[dKey] ?? { hasSubcategories: null, hasVariables: null }), [key]: value },
+    }));
+  };
 
   useEffect(() => {
     apiFetch("/games/systems")
@@ -92,107 +104,204 @@ export default function CreateGameWizard({ onDoneAction }: { onDoneAction: (game
       .catch(console.error);
   }, []);
 
-  const currentStepIndex = STEPS.indexOf(step);
-
-  const canAdvance = () => {
-    if (step === "game") return gameName.trim() && gameSlug.trim();
-    if (step === "platforms") return platforms.length > 0;
-    return true;
-  };
-
-  const advance = () => { const next = STEPS[currentStepIndex + 1]; if (next) setStep(next); };
-  const back = () => { const prev = STEPS[currentStepIndex - 1]; if (prev) setStep(prev); };
-
   // ----------------------------------------------------------------
   // Platforms
   // ----------------------------------------------------------------
   const addPlatform = () => {
     if (!platForm.name.trim() || !platForm.slug.trim()) return;
     setPlatforms((prev) => [...prev, { ...platForm, systems: [], categories: [] }]);
-    setPlatForm({ name: "", slug: "", timing_method: "realtime", systems: [], categories: [] });
+    setPlatForm({ name: "", slug: "", timing_method: "realtime" });
+    setActivePlatIdx(platforms.length);
   };
-  const removePlatform = (i: number) => setPlatforms((prev) => prev.filter((_, idx) => idx !== i));
+
+  const removePlatform = (i: number) => {
+    setPlatforms((prev) => prev.filter((_, idx) => idx !== i));
+    setActivePlatIdx(0);
+  };
 
   // ----------------------------------------------------------------
   // Systems
   // ----------------------------------------------------------------
-  const addSystemToPlatform = (platIdx: number, name: string) => {
+  const addSystem = (platIdx: number, name: string) => {
     if (!name.trim()) return;
-    setPlatforms((prev) => prev.map((p, i) => i === platIdx && !p.systems.includes(name) ? { ...p, systems: [...p.systems, name] } : p));
+    setPlatforms((prev) => prev.map((p, i) =>
+      i === platIdx && !p.systems.includes(name) ? { ...p, systems: [...p.systems, name] } : p
+    ));
     setSystemInput("");
   };
-  const removeSystemFromPlatform = (platIdx: number, name: string) => {
-    setPlatforms((prev) => prev.map((p, i) => i === platIdx ? { ...p, systems: p.systems.filter((s) => s !== name) } : p));
+
+  const removeSystem = (platIdx: number, name: string) => {
+    setPlatforms((prev) => prev.map((p, i) =>
+      i === platIdx ? { ...p, systems: p.systems.filter((s) => s !== name) } : p
+    ));
   };
 
   // ----------------------------------------------------------------
   // Categories
   // ----------------------------------------------------------------
-  const addCategoryToPlatform = (platIdx: number) => {
+  const addCategory = (platIdx: number) => {
     if (!catForm.name.trim() || !catForm.slug.trim()) return;
-    setPlatforms((prev) => prev.map((p, i) => i === platIdx ? { ...p, categories: [...p.categories, { name: catForm.name, slug: catForm.slug, variable: null }] } : p));
-    setExpandedCatIdx(platforms[platIdx].categories.length);
+    const newCat: CategoryDraft = { name: catForm.name, slug: catForm.slug, variables: [] };
+    setPlatforms((prev) => prev.map((p, i) =>
+      i === platIdx ? { ...p, categories: [...p.categories, newCat] } : p
+    ));
+    const catIdx = platforms[platIdx].categories.length;
+    setExpandedCats((prev) => ({ ...prev, [`${platIdx}-${catIdx}`]: true }));
     setCatForm({ name: "", slug: "" });
-    setVarForm({ name: "", slug: "" });
   };
-  const removeCategoryFromPlatform = (platIdx: number, catIdx: number) => {
-    setPlatforms((prev) => prev.map((p, i) => i === platIdx ? { ...p, categories: p.categories.filter((_, ci) => ci !== catIdx) } : p));
-    setExpandedCatIdx(null);
+
+  const removeCategory = (platIdx: number, catIdx: number) => {
+    setPlatforms((prev) => prev.map((p, i) =>
+      i === platIdx ? { ...p, categories: p.categories.filter((_, ci) => ci !== catIdx) } : p
+    ));
+  };
+
+  const toggleCat = (platIdx: number, catIdx: number) => {
+    const key = `${platIdx}-${catIdx}`;
+    setExpandedCats((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   // ----------------------------------------------------------------
-  // Variable (one per category)
+  // Variables
   // ----------------------------------------------------------------
-  const setVariableOnCategory = (platIdx: number, catIdx: number) => {
-    if (!varForm.name.trim() || !varForm.slug.trim()) return;
-    setPlatforms((prev) => prev.map((p, pi) => pi !== platIdx ? p : {
-      ...p,
-      categories: p.categories.map((c, ci) => ci !== catIdx ? c : {
-        ...c,
-        variable: { name: varForm.name, slug: varForm.slug, values: c.variable?.values ?? [] },
-      }),
-    }));
+  const addVariable = (platIdx: number, catIdx: number) => {
+    const key = `${platIdx}-${catIdx}`;
+    const form = varForms[key];
+    if (!form?.name.trim() || !form?.slug.trim()) return;
+
+    const cat = platforms[platIdx].categories[catIdx];
+    const hasSubcatVar = cat.variables.some((v) => v.is_subcategory);
+    const newVar: VariableDraft = {
+      name: form.name,
+      slug: form.slug,
+      is_subcategory: !hasSubcatVar, // first variable is subcategory, rest are filters
+      order: cat.variables.length,
+      values: [],
+    };
+
+    setPlatforms((prev) => prev.map((p, pi) =>
+      pi !== platIdx ? p : {
+        ...p,
+        categories: p.categories.map((c, ci) =>
+          ci !== catIdx ? c : { ...c, variables: [...c.variables, newVar] }
+        ),
+      }
+    ));
+
+    const varIdx = cat.variables.length;
+    setExpandedVars((prev) => ({ ...prev, [`${platIdx}-${catIdx}-${varIdx}`]: true }));
+    setVarForms((prev) => ({ ...prev, [key]: { name: "", slug: "" } }));
   };
 
-  const removeVariable = (platIdx: number, catIdx: number) => {
-    setPlatforms((prev) => prev.map((p, pi) => pi !== platIdx ? p : {
-      ...p,
-      categories: p.categories.map((c, ci) => ci !== catIdx ? c : { ...c, variable: null }),
-    }));
-    setVarForm({ name: "", slug: "" });
+  const removeVariable = (platIdx: number, catIdx: number, varIdx: number) => {
+    setPlatforms((prev) => prev.map((p, pi) =>
+      pi !== platIdx ? p : {
+        ...p,
+        categories: p.categories.map((c, ci) =>
+          ci !== catIdx ? c : {
+            ...c,
+            variables: c.variables
+              .filter((_, vi) => vi !== varIdx)
+              .map((v, i) => ({ ...v, order: i })),
+          }
+        ),
+      }
+    ));
+  };
+
+  const toggleIsSubcategory = (platIdx: number, catIdx: number, varIdx: number) => {
+    const cat = platforms[platIdx].categories[catIdx];
+    const targetVar = cat.variables[varIdx];
+    if (!targetVar.is_subcategory) {
+      // Promoting to subcategory — demote any existing subcategory var
+      setPlatforms((prev) => prev.map((p, pi) =>
+        pi !== platIdx ? p : {
+          ...p,
+          categories: p.categories.map((c, ci) =>
+            ci !== catIdx ? c : {
+              ...c,
+              variables: c.variables.map((v, vi) => ({
+                ...v,
+                is_subcategory: vi === varIdx,
+              })),
+            }
+          ),
+        }
+      ));
+    } else {
+      // Demoting — just set to false
+      setPlatforms((prev) => prev.map((p, pi) =>
+        pi !== platIdx ? p : {
+          ...p,
+          categories: p.categories.map((c, ci) =>
+            ci !== catIdx ? c : {
+              ...c,
+              variables: c.variables.map((v, vi) =>
+                vi === varIdx ? { ...v, is_subcategory: false } : v
+              ),
+            }
+          ),
+        }
+      ));
+    }
+  };
+
+  const toggleVar = (platIdx: number, catIdx: number, varIdx: number) => {
+    const key = `${platIdx}-${catIdx}-${varIdx}`;
+    setExpandedVars((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
   // ----------------------------------------------------------------
   // Variable Values
   // ----------------------------------------------------------------
-  const addValueToVariable = (platIdx: number, catIdx: number) => {
-    if (!valForm.name.trim() || !valForm.slug.trim()) return;
-    setPlatforms((prev) => prev.map((p, pi) => pi !== platIdx ? p : {
-      ...p,
-      categories: p.categories.map((c, ci) => {
-        if (ci !== catIdx || !c.variable) return c;
-        return { ...c, variable: { ...c.variable, values: [...c.variable.values, { ...valForm }] } };
-      }),
-    }));
-    setValForm({ name: "", slug: "", is_coop: false, required_players: 2 });
+  const addValue = (platIdx: number, catIdx: number, varIdx: number) => {
+    const key = `${platIdx}-${catIdx}-${varIdx}`;
+    const form = valForms[key];
+    if (!form?.name.trim() || !form?.slug.trim()) return;
+
+    setPlatforms((prev) => prev.map((p, pi) =>
+      pi !== platIdx ? p : {
+        ...p,
+        categories: p.categories.map((c, ci) =>
+          ci !== catIdx ? c : {
+            ...c,
+            variables: c.variables.map((v, vi) =>
+              vi !== varIdx ? v : { ...v, values: [...v.values, { ...form }] }
+            ),
+          }
+        ),
+      }
+    ));
+    setValForms((prev) => ({ ...prev, [key]: { name: "", slug: "", is_coop: false, required_players: 2 } }));
   };
 
-  const removeValueFromVariable = (platIdx: number, catIdx: number, valIdx: number) => {
-    setPlatforms((prev) => prev.map((p, pi) => pi !== platIdx ? p : {
-      ...p,
-      categories: p.categories.map((c, ci) => {
-        if (ci !== catIdx || !c.variable) return c;
-        return { ...c, variable: { ...c.variable, values: c.variable.values.filter((_, vi) => vi !== valIdx) } };
-      }),
-    }));
+  const removeValue = (platIdx: number, catIdx: number, varIdx: number, valIdx: number) => {
+    setPlatforms((prev) => prev.map((p, pi) =>
+      pi !== platIdx ? p : {
+        ...p,
+        categories: p.categories.map((c, ci) =>
+          ci !== catIdx ? c : {
+            ...c,
+            variables: c.variables.map((v, vi) =>
+              vi !== varIdx ? v : { ...v, values: v.values.filter((_, vli) => vli !== valIdx) }
+            ),
+          }
+        ),
+      }
+    ));
   };
 
   // ----------------------------------------------------------------
   // Submit
   // ----------------------------------------------------------------
   const handleSubmit = async () => {
+    if (!gameName.trim() || !gameSlug.trim()) { setError("Game name and slug are required"); return; }
+    if (platforms.length === 0) { setError("Add at least one platform"); return; }
+
     setSubmitting(true);
     setError("");
+    setSuccess("");
+
     try {
       const gameRes = await apiFetch("/games", {
         method: "POST",
@@ -230,15 +339,17 @@ export default function CreateGameWizard({ onDoneAction }: { onDoneAction: (game
           if (!catRes.ok) throw new Error(catData.error || `Failed to create category ${cat.name}`);
           const createdCat = catData.category;
 
-          if (cat.variable && cat.variable.values.length > 0) {
+          for (const variable of cat.variables) {
+            if (variable.values.length === 0) continue;
             const varRes = await apiFetch(`/games/${game.slug}/${plat.slug}/${createdCat.slug}/variables`, {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
               body: JSON.stringify({
-                variable_name: cat.variable.name,
-                variable_slug: cat.variable.slug,
-                is_subcategory: true,
-                values: cat.variable.values.map((v) => ({
+                variable_name: variable.name,
+                variable_slug: variable.slug,
+                is_subcategory: variable.is_subcategory,
+                order: variable.order,
+                values: variable.values.map((v) => ({
                   name: v.name,
                   slug: v.slug,
                   is_coop: v.is_coop,
@@ -247,11 +358,14 @@ export default function CreateGameWizard({ onDoneAction }: { onDoneAction: (game
               }),
             });
             const varData = await varRes.json();
-            if (!varRes.ok) throw new Error(varData.error || `Failed to create variable for ${cat.name}`);
+            if (!varRes.ok) throw new Error(varData.error || `Failed to create variable ${variable.name}`);
           }
         }
       }
 
+      setSuccess(`"${gameName}" created successfully.`);
+      setGameName(""); setGameSlug("");
+      setPlatforms([]);
       onDoneAction(game);
     } catch (err: any) {
       setError(err.message);
@@ -260,229 +374,443 @@ export default function CreateGameWizard({ onDoneAction }: { onDoneAction: (game
     }
   };
 
+  const activePlat = platforms[activePlatIdx];
+
   // ----------------------------------------------------------------
   // Render
   // ----------------------------------------------------------------
   return (
-    <div className="profile-section">
-      {/* Step indicator */}
-      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "2rem", flexWrap: "wrap" }}>
-        {STEPS.map((s, i) => (
-          <div key={s} style={{ display: "flex", alignItems: "center", gap: "0.4rem", opacity: i > currentStepIndex ? 0.35 : 1 }}>
-            <span style={{ width: "1.5rem", height: "1.5rem", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "0.75rem", fontWeight: "bold", background: s === step ? "var(--accent, #c9a84c)" : i < currentStepIndex ? "rgba(255,255,255,0.3)" : "rgba(255,255,255,0.1)", color: s === step ? "#000" : "#fff" }}>
-              {i < currentStepIndex ? "✓" : i + 1}
-            </span>
-            <span style={{ fontSize: "0.8rem" }}>{STEP_LABELS[s]}</span>
-            {i < STEPS.length - 1 && <span style={{ opacity: 0.3, marginLeft: "0.25rem" }}>›</span>}
-          </div>
-        ))}
-      </div>
+    <div className="cgw">
 
-      {/* ── Step 1: Game Details ── */}
-      {step === "game" && (
-        <div>
-          <h2 className="profile-section-title">✨ Game Details</h2>
+      {/* ── Game Details ── */}
+      <section className="cgw-section">
+        <h3 className="cgw-section-title">Game Details</h3>
+        <div className="cgw-row">
           <div className="form-group">
             <label className="form-label">Game Name</label>
-            <input className="auth-input" placeholder="e.g. Harry Potter and the Philosopher's Stone" value={gameName} onChange={(e) => { setGameName(e.target.value); setGameSlug(slugify(e.target.value)); }} />
+            <input
+              className="auth-input"
+              placeholder="e.g. Harry Potter and the Philosopher's Stone"
+              value={gameName}
+              onChange={(e) => { setGameName(e.target.value); setGameSlug(slugify(e.target.value)); }}
+            />
           </div>
-          <div className="form-group">
+          <div className="form-group cgw-slug-group">
             <label className="form-label">Slug</label>
-            <input className="auth-input" placeholder="hp1" value={gameSlug} onChange={(e) => setGameSlug(e.target.value)} />
+            <input
+              className="auth-input"
+              placeholder="hp1"
+              value={gameSlug}
+              onChange={(e) => setGameSlug(e.target.value)}
+            />
           </div>
         </div>
-      )}
+      </section>
 
-      {/* ── Step 2: Platforms ── */}
-      {step === "platforms" && (
-        <div>
-          <h2 className="profile-section-title">🎮 Platforms</h2>
-          {platforms.length > 0 && (
-            <div style={{ marginBottom: "1.5rem" }}>
-              {platforms.map((p, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0.75rem", background: "rgba(255,255,255,0.05)", borderRadius: "4px", marginBottom: "0.5rem", fontSize: "0.9rem" }}>
-                  <span><strong>{p.name}</strong><span style={{ opacity: 0.5, marginLeft: "0.5rem" }}>/{p.slug}</span><span style={{ opacity: 0.5, marginLeft: "0.75rem", fontSize: "0.8rem" }}>{p.timing_method === "realtime" ? "RTA" : "IGT"}</span></span>
-                  <button onClick={() => removePlatform(i)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ff4444", fontSize: "1rem" }}>×</button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap" }}>
-            <input className="auth-input" placeholder="Name (e.g. PC)" style={{ flex: 2, minWidth: "140px" }} value={platForm.name} onChange={(e) => setPlatForm({ ...platForm, name: e.target.value, slug: slugify(e.target.value) })} />
-            <input className="auth-input" placeholder="slug" style={{ flex: 1, minWidth: "80px" }} value={platForm.slug} onChange={(e) => setPlatForm({ ...platForm, slug: e.target.value })} />
-            <select className="auth-input" style={{ flex: 1, minWidth: "100px" }} value={platForm.timing_method} onChange={(e) => setPlatForm({ ...platForm, timing_method: e.target.value as "realtime" | "gametime" })}>
-              <option value="realtime">RTA</option>
-              <option value="gametime">IGT</option>
-            </select>
-          </div>
-          <button className="btn btn-primary btn-full" onClick={addPlatform} disabled={!platForm.name || !platForm.slug}>+ Add Platform</button>
-        </div>
-      )}
+      {/* ── Platforms ── */}
+      <section className="cgw-section">
+        <h3 className="cgw-section-title">Platforms</h3>
 
-      {/* ── Step 3: Systems ── */}
-      {step === "systems" && (
-        <div>
-          <h2 className="profile-section-title">🖥️ Systems</h2>
-          <p style={{ fontSize: "0.85rem", opacity: 0.6, marginBottom: "1.5rem" }}>Optionally assign hardware systems. Leave empty if not applicable.</p>
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+        {platforms.length > 0 && (
+          <div className="cgw-tag-list">
             {platforms.map((p, i) => (
-              <button key={i} className={`leaderboard-tab ${activePlatIdx === i ? "active" : ""}`} onClick={() => { setActivePlatIdx(i); setSystemInput(""); }}>
-                {p.name}{p.systems.length > 0 && <span style={{ marginLeft: "0.4rem", opacity: 0.6, fontSize: "0.75rem" }}>({p.systems.length})</span>}
-              </button>
-            ))}
-          </div>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
-            {platforms[activePlatIdx]?.systems.length === 0 && <span style={{ fontSize: "0.85rem", opacity: 0.4 }}>None assigned</span>}
-            {platforms[activePlatIdx]?.systems.map((s) => (
-              <span key={s} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.6rem", background: "rgba(255,255,255,0.1)", borderRadius: "4px", fontSize: "0.85rem" }}>
-                {s}<button onClick={() => removeSystemFromPlatform(activePlatIdx, s)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ff4444", lineHeight: 1 }}>×</button>
+              <span key={i} className={`cgw-tag ${activePlatIdx === i ? "cgw-tag--active" : ""}`} onClick={() => setActivePlatIdx(i)}>
+                {p.name}
+                <span className="cgw-tag-meta">{p.timing_method === "realtime" ? "RTA" : "IGT"}</span>
+                <button className="cgw-remove" onClick={(e) => { e.stopPropagation(); removePlatform(i); }}>×</button>
               </span>
             ))}
           </div>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
-            <input className="auth-input" list="systems-list" placeholder="Type or pick a system..." value={systemInput} onChange={(e) => setSystemInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSystemToPlatform(activePlatIdx, systemInput); } }} style={{ flex: 1 }} />
-            <datalist id="systems-list">{allSystems.map((s) => <option key={s.id} value={s.name} />)}</datalist>
-            <button className="btn btn-primary" onClick={() => addSystemToPlatform(activePlatIdx, systemInput)} disabled={!systemInput.trim()}>Add</button>
-          </div>
+        )}
+
+        <div className="cgw-inline-form">
+          <input
+            className="auth-input"
+            placeholder="Name (e.g. PC)"
+            value={platForm.name}
+            onChange={(e) => setPlatForm({ ...platForm, name: e.target.value, slug: slugify(e.target.value) })}
+          />
+          <input
+            className="auth-input cgw-slug-input"
+            placeholder="slug"
+            value={platForm.slug}
+            onChange={(e) => setPlatForm({ ...platForm, slug: e.target.value })}
+          />
+          <select
+            className="auth-input cgw-timing-select"
+            value={platForm.timing_method}
+            onChange={(e) => setPlatForm({ ...platForm, timing_method: e.target.value as "realtime" | "gametime" })}
+          >
+            <option value="realtime">RTA</option>
+            <option value="gametime">IGT</option>
+          </select>
+          <button className="btn btn-primary cgw-add-btn" onClick={addPlatform} disabled={!platForm.name || !platForm.slug}>
+            + Add
+          </button>
         </div>
-      )}
+      </section>
 
-      {/* ── Step 4: Categories ── */}
-      {step === "categories" && (
-        <div>
-          <h2 className="profile-section-title">🏆 Categories</h2>
-
+      {/* ── Per-Platform: Systems + Categories ── */}
+      {platforms.length > 0 && (
+        <>
           {/* Platform tabs */}
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+          <div className="cgw-plat-tabs">
             {platforms.map((p, i) => (
-              <button key={i} className={`leaderboard-tab ${catPlatIdx === i ? "active" : ""}`} onClick={() => { setCatPlatIdx(i); setCatForm({ name: "", slug: "" }); setExpandedCatIdx(null); }}>
-                {p.name}{p.categories.length > 0 && <span style={{ marginLeft: "0.4rem", opacity: 0.6, fontSize: "0.75rem" }}>({p.categories.length})</span>}
+              <button
+                key={i}
+                className={`leaderboard-tab ${activePlatIdx === i ? "active" : ""}`}
+                onClick={() => setActivePlatIdx(i)}
+              >
+                {p.name}
               </button>
             ))}
           </div>
 
-          {/* Existing categories */}
-          {platforms[catPlatIdx]?.categories.map((c, ci) => (
-            <div key={ci} style={{ background: "rgba(255,255,255,0.04)", borderRadius: "6px", marginBottom: "0.75rem", overflow: "hidden" }}>
-              {/* Category header */}
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0.75rem" }}>
-                <button onClick={() => { setExpandedCatIdx(expandedCatIdx === ci ? null : ci); setVarForm({ name: c.variable?.name || "", slug: c.variable?.slug || "" }); setValForm({ name: "", slug: "", is_coop: false, required_players: 2 }); }} style={{ background: "none", border: "none", cursor: "pointer", textAlign: "left", flex: 1, color: "inherit", fontSize: "0.9rem" }}>
-                  <strong>{c.name}</strong>
-                  <span style={{ opacity: 0.5, marginLeft: "0.5rem" }}>/{c.slug}</span>
-                  {c.variable && <span style={{ opacity: 0.5, marginLeft: "0.75rem", fontSize: "0.75rem" }}>{c.variable.name} · {c.variable.values.length} values</span>}
-                  <span style={{ opacity: 0.4, marginLeft: "0.5rem", fontSize: "0.75rem" }}>{expandedCatIdx === ci ? "▲" : "▼"}</span>
-                </button>
-                <button onClick={() => removeCategoryFromPlatform(catPlatIdx, ci)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ff4444", fontSize: "1rem" }}>×</button>
-              </div>
+          {activePlat && (
+            <>
+              {/* Systems */}
+              <section className="cgw-section cgw-section--inset">
+                <h3 className="cgw-section-title">Systems <span className="cgw-optional">(optional)</span></h3>
 
-              {/* Variable panel */}
-              {expandedCatIdx === ci && (
-                <div style={{ padding: "0.75rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-
-                  {/* Variable name/slug */}
-                  {!c.variable ? (
-                    <>
-                      <p style={{ fontSize: "0.8rem", opacity: 0.5, marginBottom: "0.75rem" }}>Add a variable to define subcategories (e.g. "Players", "Version")</p>
-                      <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
-                        <input className="auth-input" placeholder="Variable name (e.g. Players)" style={{ flex: 2, minWidth: "130px", fontSize: "0.85rem" }} value={varForm.name} onChange={(e) => setVarForm({ name: e.target.value, slug: slugify(e.target.value) })} />
-                        <input className="auth-input" placeholder="slug" style={{ flex: 1, minWidth: "70px", fontSize: "0.85rem" }} value={varForm.slug} onChange={(e) => setVarForm({ ...varForm, slug: e.target.value })} />
-                      </div>
-                      <button className="btn btn-primary" onClick={() => setVariableOnCategory(catPlatIdx, ci)} disabled={!varForm.name || !varForm.slug} style={{ fontSize: "0.85rem", padding: "0.4rem 0.8rem" }}>
-                        Set Variable
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      {/* Variable header */}
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-                        <span style={{ fontSize: "0.85rem", fontWeight: "bold" }}>
-                          Variable: {c.variable.name}
-                          <span style={{ opacity: 0.5, marginLeft: "0.4rem", fontWeight: "normal" }}>/{c.variable.slug}</span>
-                        </span>
-                        <button onClick={() => removeVariable(catPlatIdx, ci)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ff4444", fontSize: "0.8rem" }}>Remove</button>
-                      </div>
-
-                      {/* Existing values */}
-                      {c.variable.values.length === 0 && <p style={{ fontSize: "0.8rem", opacity: 0.4, marginBottom: "0.75rem" }}>No values yet</p>}
-                      {c.variable.values.map((val, vi) => (
-                        <div key={vi} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.3rem 0.5rem", background: "rgba(255,255,255,0.05)", borderRadius: "4px", marginBottom: "0.4rem", fontSize: "0.8rem" }}>
-                          <span>
-                            {val.name}<span style={{ opacity: 0.5, marginLeft: "0.4rem" }}>/{val.slug}</span>
-                            {val.is_coop && <span style={{ opacity: 0.5, marginLeft: "0.5rem" }}>· co-op {val.required_players}p</span>}
-                          </span>
-                          <button onClick={() => removeValueFromVariable(catPlatIdx, ci, vi)} style={{ background: "none", border: "none", cursor: "pointer", color: "#ff4444" }}>×</button>
-                        </div>
-                      ))}
-
-                      {/* Add value form */}
-                      <div style={{ marginTop: "0.5rem" }}>
-                        <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
-                          <input className="auth-input" placeholder="Value name (e.g. 1 Player)" style={{ flex: 2, minWidth: "120px", fontSize: "0.85rem" }} value={valForm.name} onChange={(e) => setValForm({ ...valForm, name: e.target.value, slug: slugify(e.target.value) })} />
-                          <input className="auth-input" placeholder="slug" style={{ flex: 1, minWidth: "70px", fontSize: "0.85rem" }} value={valForm.slug} onChange={(e) => setValForm({ ...valForm, slug: e.target.value })} />
-                        </div>
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "0.5rem" }}>
-                          <input type="checkbox" id={`coop-${ci}`} checked={valForm.is_coop} onChange={(e) => setValForm({ ...valForm, is_coop: e.target.checked })} />
-                          <label htmlFor={`coop-${ci}`} className="form-label" style={{ margin: 0, fontSize: "0.8rem" }}>Co-op</label>
-                          {valForm.is_coop && (
-                            <input type="number" className="auth-input" min={2} value={valForm.required_players} onChange={(e) => setValForm({ ...valForm, required_players: parseInt(e.target.value) })} style={{ width: "80px", fontSize: "0.85rem" }} />
-                          )}
-                        </div>
-                        <button className="btn btn-primary" onClick={() => addValueToVariable(catPlatIdx, ci)} disabled={!valForm.name || !valForm.slug} style={{ fontSize: "0.85rem", padding: "0.4rem 0.8rem" }}>
-                          + Add Value
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-          ))}
-
-          {/* Add category */}
-          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
-            <input className="auth-input" placeholder="Category name (e.g. Any%)" style={{ flex: 2, minWidth: "140px" }} value={catForm.name} onChange={(e) => setCatForm({ ...catForm, name: e.target.value, slug: slugify(e.target.value) })} />
-            <input className="auth-input" placeholder="slug" style={{ flex: 1, minWidth: "80px" }} value={catForm.slug} onChange={(e) => setCatForm({ ...catForm, slug: e.target.value })} />
-          </div>
-          <button className="btn btn-primary btn-full" onClick={() => addCategoryToPlatform(catPlatIdx)} disabled={!catForm.name || !catForm.slug}>+ Add Category</button>
-        </div>
-      )}
-
-      {/* ── Step 5: Confirm ── */}
-      {step === "confirm" && (
-        <div>
-          <h2 className="profile-section-title">Review & Create</h2>
-          <div style={{ marginBottom: "1.5rem", padding: "1rem", background: "rgba(255,255,255,0.04)", borderRadius: "6px" }}>
-            <div style={{ marginBottom: "0.75rem" }}>
-              <span style={{ opacity: 0.5, fontSize: "0.8rem" }}>GAME</span>
-              <div style={{ fontWeight: "bold", fontSize: "1.1rem" }}>{gameName}</div>
-              <div style={{ opacity: 0.5, fontSize: "0.85rem" }}>/{gameSlug}</div>
-            </div>
-            {platforms.map((p, i) => (
-              <div key={i} style={{ marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                <div style={{ fontWeight: "bold" }}>{p.name}<span style={{ opacity: 0.5, marginLeft: "0.5rem", fontSize: "0.8rem" }}>/{p.slug} · {p.timing_method === "realtime" ? "RTA" : "IGT"}</span></div>
-                {p.systems.length > 0 && <div style={{ fontSize: "0.8rem", opacity: 0.6, marginTop: "0.25rem" }}>Systems: {p.systems.join(", ")}</div>}
-                {p.categories.length === 0 && <div style={{ fontSize: "0.8rem", opacity: 0.4, marginTop: "0.25rem" }}>No categories</div>}
-                {p.categories.map((c, ci) => (
-                  <div key={ci} style={{ fontSize: "0.8rem", opacity: 0.6, marginTop: "0.25rem", paddingLeft: "0.75rem" }}>
-                    · {c.name}
-                    {c.variable && <span style={{ opacity: 0.7 }}> → {c.variable.name}: {c.variable.values.map((v) => v.name).join(", ")}</span>}
+                {activePlat.systems.length > 0 && (
+                  <div className="cgw-tag-list">
+                    {activePlat.systems.map((s) => (
+                      <span key={s} className="cgw-tag">
+                        {s}
+                        <button className="cgw-remove" onClick={() => removeSystem(activePlatIdx, s)}>×</button>
+                      </span>
+                    ))}
                   </div>
-                ))}
-              </div>
-            ))}
-          </div>
-          {error && <p className="auth-error">{error}</p>}
-          <button className="btn btn-primary btn-full" onClick={handleSubmit} disabled={submitting}>
-            {submitting ? "Creating..." : "✨ Create Game"}
-          </button>
-        </div>
+                )}
+
+                <div className="cgw-inline-form">
+                  <input
+                    className="auth-input"
+                    list="systems-list"
+                    placeholder="Type or pick a system..."
+                    value={systemInput}
+                    onChange={(e) => setSystemInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSystem(activePlatIdx, systemInput); } }}
+                  />
+                  <datalist id="systems-list">
+                    {allSystems.map((s) => <option key={s.id} value={s.name} />)}
+                  </datalist>
+                  <button className="btn btn-primary cgw-add-btn" onClick={() => addSystem(activePlatIdx, systemInput)} disabled={!systemInput.trim()}>
+                    + Add
+                  </button>
+                </div>
+              </section>
+
+              {/* Categories */}
+              <section className="cgw-section cgw-section--inset">
+                <h3 className="cgw-section-title">Categories</h3>
+
+                {activePlat.categories.map((cat, ci) => {
+                  const catKey = `${activePlatIdx}-${ci}`;
+                  const isExpanded = expandedCats[catKey];
+                  const hasSubcatVar = cat.variables.some((v) => v.is_subcategory);
+
+                  return (
+                    <div key={ci} className="cgw-card">
+                      {/* Category header */}
+                      <div className="cgw-card-header">
+                        <button className="cgw-card-toggle" onClick={() => toggleCat(activePlatIdx, ci)}>
+                          <span className="cgw-card-name">{cat.name}</span>
+                          <span className="cgw-card-slug">/{cat.slug}</span>
+                          {cat.variables.length > 0 && (
+                            <span className="cgw-card-meta">{cat.variables.length} variable{cat.variables.length !== 1 ? "s" : ""}</span>
+                          )}
+                          <span className="cgw-chevron">{isExpanded ? "▲" : "▼"}</span>
+                        </button>
+                        <button className="cgw-remove cgw-remove--lg" onClick={() => removeCategory(activePlatIdx, ci)}>×</button>
+                      </div>
+
+                      {/* Category body */}
+                      {isExpanded && (
+                        <div className="cgw-card-body">
+                          {(() => {
+                            const dKey = `${activePlatIdx}-${ci}`;
+                            const decision = catDecisions[dKey] ?? { hasSubcategories: null, hasVariables: null };
+                            const subcatVar = cat.variables.find((v) => v.is_subcategory);
+                            const filterVars = cat.variables.filter((v) => !v.is_subcategory);
+
+                            return (
+                              <>
+                                {/* ── Q1: Does this category have subcategories? ── */}
+                                <div className="cgw-question">
+                                  <span className="cgw-question-label">Does this category have subcategories?</span>
+                                  <div className="cgw-yn">
+                                    <button
+                                      className={`cgw-yn-btn ${decision.hasSubcategories === true ? "cgw-yn-btn--active" : ""}`}
+                                      onClick={() => setCatDecision(activePlatIdx, ci, "hasSubcategories", true)}
+                                    >Yes</button>
+                                    <button
+                                      className={`cgw-yn-btn ${decision.hasSubcategories === false ? "cgw-yn-btn--active" : ""}`}
+                                      onClick={() => {
+                                        setCatDecision(activePlatIdx, ci, "hasSubcategories", false);
+                                        // Remove subcategory variable if present
+                                        if (subcatVar) {
+                                          const vi = cat.variables.findIndex((v) => v.is_subcategory);
+                                          if (vi !== -1) removeVariable(activePlatIdx, ci, vi);
+                                        }
+                                      }}
+                                    >No</button>
+                                  </div>
+                                </div>
+
+                                {/* Subcategory variable builder */}
+                                {decision.hasSubcategories === true && (
+                                  <div className="cgw-guided-section">
+                                    {subcatVar ? (
+                                      // Show existing subcategory variable
+                                      <div className="cgw-var-card">
+                                        <div className="cgw-var-header">
+                                          <button className="cgw-card-toggle" onClick={() => toggleVar(activePlatIdx, ci, cat.variables.findIndex((v) => v.is_subcategory))}>
+                                            <span className="cgw-card-name">{subcatVar.name}</span>
+                                            <span className="cgw-card-slug">/{subcatVar.slug}</span>
+                                            <span className="cgw-var-type cgw-var-type--sub">Subcategory</span>
+                                            <span className="cgw-card-meta">{subcatVar.values.length} values</span>
+                                            <span className="cgw-chevron">{expandedVars[`${activePlatIdx}-${ci}-${cat.variables.findIndex((v) => v.is_subcategory)}`] ? "▲" : "▼"}</span>
+                                          </button>
+                                          <button className="cgw-remove cgw-remove--lg" onClick={() => removeVariable(activePlatIdx, ci, cat.variables.findIndex((v) => v.is_subcategory))}>×</button>
+                                        </div>
+                                        {expandedVars[`${activePlatIdx}-${ci}-${cat.variables.findIndex((v) => v.is_subcategory)}`] && (
+                                          <div className="cgw-var-body">
+                                            {subcatVar.values.length > 0 && (
+                                              <div className="cgw-tag-list">
+                                                {subcatVar.values.map((val, vli) => (
+                                                  <span key={vli} className="cgw-tag">
+                                                    {val.name}
+                                                    {val.is_coop && <span className="cgw-tag-meta">co-op {val.required_players}p</span>}
+                                                    <button className="cgw-remove" onClick={() => removeValue(activePlatIdx, ci, cat.variables.findIndex((v) => v.is_subcategory), vli)}>×</button>
+                                                  </span>
+                                                ))}
+                                              </div>
+                                            )}
+                                            {(() => {
+                                              const subVi = cat.variables.findIndex((v) => v.is_subcategory);
+                                              const vKey = `${activePlatIdx}-${ci}-${subVi}`;
+                                              const vf = valForms[vKey] ?? { name: "", slug: "", is_coop: false, required_players: 2 };
+                                              return (
+                                                <>
+                                                  <div className="cgw-inline-form">
+                                                    <input className="auth-input" placeholder="Value name (e.g. Clare)" value={vf.name} onChange={(e) => setValForms((prev) => ({ ...prev, [vKey]: { ...vf, name: e.target.value, slug: slugify(e.target.value) } }))} />
+                                                    <input className="auth-input cgw-slug-input" placeholder="slug" value={vf.slug} onChange={(e) => setValForms((prev) => ({ ...prev, [vKey]: { ...vf, slug: e.target.value } }))} />
+                                                  </div>
+                                                  <div className="cgw-coop-row">
+                                                    <input type="checkbox" id={`coop-${vKey}`} checked={vf.is_coop} onChange={(e) => setValForms((prev) => ({ ...prev, [vKey]: { ...vf, is_coop: e.target.checked } }))} />
+                                                    <label htmlFor={`coop-${vKey}`} className="form-label cgw-coop-label">Co-op</label>
+                                                    {vf.is_coop && <input type="number" className="auth-input cgw-players-input" min={2} value={vf.required_players} onChange={(e) => setValForms((prev) => ({ ...prev, [vKey]: { ...vf, required_players: parseInt(e.target.value) } }))} />}
+                                                  </div>
+                                                  <button className="btn cgw-sm-btn" onClick={() => addValue(activePlatIdx, ci, subVi)} disabled={!vf.name || !vf.slug}>+ Add Value</button>
+                                                </>
+                                              );
+                                            })()}
+                                          </div>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      // Add subcategory variable
+                                      <>
+                                        <p className="cgw-hint">Name the subcategory split (e.g. "Path" for Clare / Leon)</p>
+                                        <div className="cgw-inline-form">
+                                          <input
+                                            className="auth-input"
+                                            placeholder="Variable name (e.g. Path)"
+                                            value={varForms[`${activePlatIdx}-${ci}-sub`]?.name ?? ""}
+                                            onChange={(e) => setVarForms((prev) => ({ ...prev, [`${activePlatIdx}-${ci}-sub`]: { name: e.target.value, slug: slugify(e.target.value) } }))}
+                                          />
+                                          <input
+                                            className="auth-input cgw-slug-input"
+                                            placeholder="slug"
+                                            value={varForms[`${activePlatIdx}-${ci}-sub`]?.slug ?? ""}
+                                            onChange={(e) => setVarForms((prev) => ({ ...prev, [`${activePlatIdx}-${ci}-sub`]: { ...varForms[`${activePlatIdx}-${ci}-sub`], slug: e.target.value } }))}
+                                          />
+                                          <button
+                                            className="btn btn-primary cgw-add-btn"
+                                            onClick={() => {
+                                              const form = varForms[`${activePlatIdx}-${ci}-sub`];
+                                              if (!form?.name || !form?.slug) return;
+                                              const newVar: VariableDraft = { name: form.name, slug: form.slug, is_subcategory: true, order: 0, values: [] };
+                                              setPlatforms((prev) => prev.map((p, pi) => pi !== activePlatIdx ? p : {
+                                                ...p,
+                                                categories: p.categories.map((c, cii) => cii !== ci ? c : { ...c, variables: [newVar, ...c.variables.filter((v) => !v.is_subcategory)] }),
+                                              }));
+                                              const newVi = 0;
+                                              setExpandedVars((prev) => ({ ...prev, [`${activePlatIdx}-${ci}-${newVi}`]: true }));
+                                              setVarForms((prev) => ({ ...prev, [`${activePlatIdx}-${ci}-sub`]: { name: "", slug: "" } }));
+                                            }}
+                                            disabled={!varForms[`${activePlatIdx}-${ci}-sub`]?.name}
+                                          >
+                                            + Set Subcategory Variable
+                                          </button>
+                                        </div>
+                                      </>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* ── Q2: Does this category have variables? ── */}
+                                {decision.hasSubcategories !== null && (
+                                  <div className="cgw-question cgw-question--indented">
+                                    <span className="cgw-question-label">Does this category have additional variables? <span className="cgw-question-meta">(e.g. Players, Platform)</span></span>
+                                    <div className="cgw-yn">
+                                      <button
+                                        className={`cgw-yn-btn ${decision.hasVariables === true ? "cgw-yn-btn--active" : ""}`}
+                                        onClick={() => setCatDecision(activePlatIdx, ci, "hasVariables", true)}
+                                      >Yes</button>
+                                      <button
+                                        className={`cgw-yn-btn ${decision.hasVariables === false ? "cgw-yn-btn--active" : ""}`}
+                                        onClick={() => {
+                                          setCatDecision(activePlatIdx, ci, "hasVariables", false);
+                                          // Remove all filter variables
+                                          filterVars.forEach((_, fvi) => {
+                                            const realIdx = cat.variables.findIndex((v, i) => !v.is_subcategory && i === fvi);
+                                            if (realIdx !== -1) removeVariable(activePlatIdx, ci, realIdx);
+                                          });
+                                        }}
+                                      >No</button>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Filter variable builder */}
+                                {decision.hasVariables === true && (
+                                  <div className="cgw-guided-section">
+                                    {/* Existing filter variables */}
+                                    {filterVars.map((variable, fvi) => {
+                                      const vi = cat.variables.findIndex((v, i) => !v.is_subcategory && cat.variables.filter((vv) => !vv.is_subcategory).indexOf(v) === fvi);
+                                      const varKey = `${activePlatIdx}-${ci}-${vi}`;
+                                      const isVarExpanded = expandedVars[varKey];
+                                      const valForm = valForms[varKey] ?? { name: "", slug: "", is_coop: false, required_players: 2 };
+
+                                      return (
+                                        <div key={fvi} className="cgw-var-card">
+                                          <div className="cgw-var-header">
+                                            <button className="cgw-card-toggle" onClick={() => toggleVar(activePlatIdx, ci, vi)}>
+                                              <span className="cgw-card-name">{variable.name}</span>
+                                              <span className="cgw-card-slug">/{variable.slug}</span>
+                                              <span className="cgw-var-type cgw-var-type--filter">Filter</span>
+                                              <span className="cgw-card-meta">{variable.values.length} values</span>
+                                              <span className="cgw-chevron">{isVarExpanded ? "▲" : "▼"}</span>
+                                            </button>
+                                            <button className="cgw-remove cgw-remove--lg" onClick={() => removeVariable(activePlatIdx, ci, vi)}>×</button>
+                                          </div>
+                                          {isVarExpanded && (
+                                            <div className="cgw-var-body">
+                                              {variable.values.length > 0 && (
+                                                <div className="cgw-tag-list">
+                                                  {variable.values.map((val, vli) => (
+                                                    <span key={vli} className="cgw-tag">
+                                                      {val.name}
+                                                      {val.is_coop && <span className="cgw-tag-meta">co-op {val.required_players}p</span>}
+                                                      <button className="cgw-remove" onClick={() => removeValue(activePlatIdx, ci, vi, vli)}>×</button>
+                                                    </span>
+                                                  ))}
+                                                </div>
+                                              )}
+                                              <div className="cgw-inline-form">
+                                                <input className="auth-input" placeholder="Value name (e.g. 1 Player)" value={valForm.name} onChange={(e) => setValForms((prev) => ({ ...prev, [varKey]: { ...valForm, name: e.target.value, slug: slugify(e.target.value) } }))} />
+                                                <input className="auth-input cgw-slug-input" placeholder="slug" value={valForm.slug} onChange={(e) => setValForms((prev) => ({ ...prev, [varKey]: { ...valForm, slug: e.target.value } }))} />
+                                              </div>
+                                              <div className="cgw-coop-row">
+                                                <input type="checkbox" id={`coop-${varKey}`} checked={valForm.is_coop} onChange={(e) => setValForms((prev) => ({ ...prev, [varKey]: { ...valForm, is_coop: e.target.checked } }))} />
+                                                <label htmlFor={`coop-${varKey}`} className="form-label cgw-coop-label">Co-op</label>
+                                                {valForm.is_coop && <input type="number" className="auth-input cgw-players-input" min={2} value={valForm.required_players} onChange={(e) => setValForms((prev) => ({ ...prev, [varKey]: { ...valForm, required_players: parseInt(e.target.value) } }))} />}
+                                              </div>
+                                              <button className="btn cgw-sm-btn" onClick={() => addValue(activePlatIdx, ci, vi)} disabled={!valForm.name || !valForm.slug}>+ Add Value</button>
+                                            </div>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+
+                                    {/* Add filter variable */}
+                                    <div className="cgw-add-var">
+                                      <div className="cgw-inline-form">
+                                        <input
+                                          className="auth-input"
+                                          placeholder="Variable name (e.g. Players)"
+                                          value={varForms[`${activePlatIdx}-${ci}-filter`]?.name ?? ""}
+                                          onChange={(e) => setVarForms((prev) => ({ ...prev, [`${activePlatIdx}-${ci}-filter`]: { name: e.target.value, slug: slugify(e.target.value) } }))}
+                                        />
+                                        <input
+                                          className="auth-input cgw-slug-input"
+                                          placeholder="slug"
+                                          value={varForms[`${activePlatIdx}-${ci}-filter`]?.slug ?? ""}
+                                          onChange={(e) => setVarForms((prev) => ({ ...prev, [`${activePlatIdx}-${ci}-filter`]: { ...varForms[`${activePlatIdx}-${ci}-filter`], slug: e.target.value } }))}
+                                        />
+                                        <button
+                                          className="btn btn-primary cgw-add-btn"
+                                          onClick={() => {
+                                            const form = varForms[`${activePlatIdx}-${ci}-filter`];
+                                            if (!form?.name || !form?.slug) return;
+                                            const newVar: VariableDraft = { name: form.name, slug: form.slug, is_subcategory: false, order: cat.variables.length, values: [] };
+                                            const newVi = cat.variables.length;
+                                            setPlatforms((prev) => prev.map((p, pi) => pi !== activePlatIdx ? p : {
+                                              ...p,
+                                              categories: p.categories.map((c, cii) => cii !== ci ? c : { ...c, variables: [...c.variables, newVar] }),
+                                            }));
+                                            setExpandedVars((prev) => ({ ...prev, [`${activePlatIdx}-${ci}-${newVi}`]: true }));
+                                            setVarForms((prev) => ({ ...prev, [`${activePlatIdx}-${ci}-filter`]: { name: "", slug: "" } }));
+                                          }}
+                                          disabled={!varForms[`${activePlatIdx}-${ci}-filter`]?.name}
+                                        >
+                                          + Add Variable
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+
+                {/* Add category */}
+                <div className="cgw-inline-form cgw-add-cat">
+                  <input
+                    className="auth-input"
+                    placeholder="Category name (e.g. Any%)"
+                    value={catForm.name}
+                    onChange={(e) => setCatForm({ name: e.target.value, slug: slugify(e.target.value) })}
+                  />
+                  <input
+                    className="auth-input cgw-slug-input"
+                    placeholder="slug"
+                    value={catForm.slug}
+                    onChange={(e) => setCatForm({ ...catForm, slug: e.target.value })}
+                  />
+                  <button
+                    className="btn btn-primary cgw-add-btn"
+                    onClick={() => addCategory(activePlatIdx)}
+                    disabled={!catForm.name || !catForm.slug}
+                  >
+                    + Add Category
+                  </button>
+                </div>
+              </section>
+            </>
+          )}
+        </>
       )}
 
-      {/* Navigation */}
-      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "1.5rem" }}>
-        <button className="btn" onClick={back} disabled={step === "game"} style={{ visibility: step === "game" ? "hidden" : "visible" }}>← Back</button>
-        {step !== "confirm" && <button className="btn btn-primary" onClick={advance} disabled={!canAdvance()}>Next →</button>}
-      </div>
+      {/* ── Submit ── */}
+      <section className="cgw-section cgw-submit-section">
+        {error && <p className="auth-error">{error}</p>}
+        {success && <p className="auth-success">{success}</p>}
+        <button
+          className="btn btn-primary btn-full"
+          onClick={handleSubmit}
+          disabled={submitting || !gameName || !gameSlug || platforms.length === 0}
+        >
+          {submitting ? "Creating..." : "✨ Create Game"}
+        </button>
+      </section>
     </div>
   );
 }

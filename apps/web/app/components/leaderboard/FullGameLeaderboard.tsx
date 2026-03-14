@@ -46,6 +46,7 @@ interface VariableValue {
   slug: string;
   is_coop: boolean;
   required_players: number;
+  hidden_variables?: { variable_id: string }[];
 }
 
 interface Variable {
@@ -53,6 +54,7 @@ interface Variable {
   name: string;
   slug: string;
   is_subcategory: boolean;
+  order: number;
   values: VariableValue[];
 }
 
@@ -67,23 +69,55 @@ interface Category {
   variableRuns?: Record<string, { runs: Run[]; total: number }>;
 }
 
-interface LeaderboardTabsProps {
+interface FullGameLeaderboardProps {
   categories: Category[];
   gameSlug: string;
   platformSlug: string;
 }
 
-export default function LeaderboardTabs({
+function serializeFilters(filters: Record<string, string>): string {
+  return Object.entries(filters)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}:${v}`)
+    .join("|");
+}
+
+function buildDefaultFilters(variables: Variable[]): Record<string, string> {
+  const filters: Record<string, string> = {};
+  for (const v of variables) {
+    if (v.values[0]) filters[v.slug] = v.values[0].slug;
+  }
+  return filters;
+}
+
+// Given the current active filters, compute which variable IDs should be hidden
+function computeHiddenVariableIds(
+  variables: Variable[],
+  currentFilters: Record<string, string>,
+): Set<string> {
+  const hidden = new Set<string>();
+  for (const variable of variables) {
+    const activeSlug = currentFilters[variable.slug];
+    if (!activeSlug) continue;
+    const activeValue = variable.values.find((v) => v.slug === activeSlug);
+    if (!activeValue?.hidden_variables) continue;
+    for (const h of activeValue.hidden_variables) {
+      hidden.add(h.variable_id);
+    }
+  }
+  return hidden;
+}
+
+export default function FullGameLeaderboard({
   categories: initialCategories,
   gameSlug,
   platformSlug,
-}: LeaderboardTabsProps) {
+}: FullGameLeaderboardProps) {
   const [activeCategory, setActiveCategory] = useState(
     initialCategories[0]?.slug ?? "",
   );
   const [activeSubcategory, setActiveSubcategory] = useState<Record<string, string>>({});
-  // For variable-based categories: keyed by categorySlug, value is "varSlug:valueSlug"
-  const [activeVariableValue, setActiveVariableValue] = useState<Record<string, string>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, Record<string, string>>>({});
   const [categories, setCategories] = useState(initialCategories);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
@@ -92,26 +126,44 @@ export default function LeaderboardTabs({
 
   const category = categories.find((c) => c.slug === activeCategory);
 
-  // Determine if this category uses variables or subcategories
-  const primaryVar = category?.variables?.find((v) => v.is_subcategory) ?? category?.variables?.[0];
-  const isVariableCategory = !!primaryVar && (!category?.subcategories || category.subcategories.length === 0);
+  const hasVariables = !!category?.variables && category.variables.length > 0;
+  const hasSubcategories = !!category?.subcategories && category.subcategories.length > 0;
+  const isVariableCategory = hasVariables && !hasSubcategories;
 
-  // Current subcategory slug (legacy)
-  const currentSubcategorySlug = !isVariableCategory && category?.subcategories?.length
-    ? activeSubcategory[activeCategory] || category.subcategories[0].slug
-    : null;
+  const subcategoryVar = category?.variables?.find((v) => v.is_subcategory);
+  const filterVars = category?.variables
+    ?.filter((v) => !v.is_subcategory)
+    .sort((a, b) => a.order - b.order) ?? [];
 
-  // Current variable value key e.g. "players:1p"
-  const currentVariableKey = isVariableCategory && primaryVar
-    ? activeVariableValue[activeCategory] || `${primaryVar.slug}:${primaryVar.values[0]?.slug}`
-    : null;
+  const currentFilters: Record<string, string> = isVariableCategory && category?.variables
+    ? {
+        ...(buildDefaultFilters(category.variables)),
+        ...(activeFilters[activeCategory] ?? {}),
+      }
+    : {};
 
-  // Resolve active runs
+  // Compute which variable IDs are hidden given current selections
+  const hiddenVariableIds = isVariableCategory && category?.variables
+    ? computeHiddenVariableIds(category.variables, currentFilters)
+    : new Set<string>();
+
+  // Filter out hidden variables from filter rows
+  const visibleFilterVars = filterVars.filter((v) => !hiddenVariableIds.has(v.id));
+
+  const currentCacheKey = isVariableCategory
+    ? serializeFilters(currentFilters)
+    : "";
+
+  const currentSubcategorySlug =
+    !isVariableCategory && hasSubcategories
+      ? activeSubcategory[activeCategory] || category!.subcategories![0].slug
+      : null;
+
   let runs: Run[] = [];
   let total = 0;
 
-  if (isVariableCategory && currentVariableKey) {
-    const varData = category?.variableRuns?.[currentVariableKey];
+  if (isVariableCategory) {
+    const varData = category?.variableRuns?.[currentCacheKey];
     runs = varData?.runs ?? [];
     total = varData?.total ?? 0;
   } else if (currentSubcategorySlug && category?.subcategories) {
@@ -143,55 +195,65 @@ export default function LeaderboardTabs({
     setExpandedRunId((prev) => (prev === runId ? null : runId));
   };
 
-  // Switch variable value tab — fetch if not cached
-  const handleVariableTabClick = async (varSlug: string, valueSlug: string) => {
-    const key = `${varSlug}:${valueSlug}`;
-    setActiveVariableValue((prev) => ({ ...prev, [activeCategory]: key }));
+  const fetchVariableRuns = async (
+    catSlug: string,
+    filters: Record<string, string>,
+    page = 1,
+  ) => {
+    const params = new URLSearchParams({ page: String(page), limit: "25" });
+    for (const [k, v] of Object.entries(filters)) params.set(k, v);
+    const url = `${process.env.NEXT_PUBLIC_API_URL}/games/${gameSlug}/${platformSlug}/${catSlug}?${params}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    return { runs: data.runs ?? [], total: data.total ?? 0 };
+  };
 
-    // Already loaded
-    if (category?.variableRuns?.[key]) return;
+  const handleVariableFilterClick = async (varSlug: string, valueSlug: string) => {
+    const newFilters = {
+      ...(buildDefaultFilters(category?.variables ?? [])),
+      ...(activeFilters[activeCategory] ?? {}),
+      [varSlug]: valueSlug,
+    };
 
-    setLoading((prev) => ({ ...prev, [`${activeCategory}-${key}`]: true }));
+    setActiveFilters((prev) => ({
+      ...prev,
+      [activeCategory]: { ...(prev[activeCategory] ?? {}), [varSlug]: valueSlug },
+    }));
+
+    const cacheKey = serializeFilters(newFilters);
+    if (category?.variableRuns?.[cacheKey]) return;
+
+    const loadKey = `${activeCategory}-${cacheKey}`;
+    setLoading((prev) => ({ ...prev, [loadKey]: true }));
     try {
-      const url = `${process.env.NEXT_PUBLIC_API_URL}/games/${gameSlug}/${platformSlug}/${activeCategory}?page=1&limit=25&${varSlug}=${valueSlug}`;
-      const res = await fetch(url);
-      const data = await res.json();
-
+      const result = await fetchVariableRuns(activeCategory, newFilters);
       setCategories((prev) =>
         prev.map((cat) => {
           if (cat.slug !== activeCategory) return cat;
           return {
             ...cat,
-            variableRuns: {
-              ...cat.variableRuns,
-              [key]: { runs: data.runs ?? [], total: data.total ?? 0 },
-            },
+            variableRuns: { ...cat.variableRuns, [cacheKey]: result },
           };
         }),
       );
     } catch (e) {
       console.error("Failed to load variable runs:", e);
     } finally {
-      setLoading((prev) => ({ ...prev, [`${activeCategory}-${key}`]: false }));
+      setLoading((prev) => ({ ...prev, [loadKey]: false }));
     }
   };
 
   const handleShowMore = async () => {
     if (!category) return;
 
-    if (isVariableCategory && currentVariableKey && primaryVar) {
-      const [varSlug, valueSlug] = currentVariableKey.split(":");
-      const currentRuns = category.variableRuns?.[currentVariableKey]?.runs ?? [];
+    if (isVariableCategory) {
+      const currentRuns = category.variableRuns?.[currentCacheKey]?.runs ?? [];
       const nextPage = Math.ceil(currentRuns.length / 25) + 1;
-      const loadKey = `${activeCategory}-${currentVariableKey}`;
-
+      const loadKey = `${activeCategory}-${currentCacheKey}`;
       setLoading((prev) => ({ ...prev, [loadKey]: true }));
       try {
-        const url = `${process.env.NEXT_PUBLIC_API_URL}/games/${gameSlug}/${platformSlug}/${activeCategory}?page=${nextPage}&limit=25&${varSlug}=${valueSlug}`;
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (data.runs?.length > 0) {
+        const result = await fetchVariableRuns(activeCategory, currentFilters, nextPage);
+        if (result.runs.length > 0) {
           setCategories((prev) =>
             prev.map((cat) => {
               if (cat.slug !== activeCategory) return cat;
@@ -199,9 +261,9 @@ export default function LeaderboardTabs({
                 ...cat,
                 variableRuns: {
                   ...cat.variableRuns,
-                  [currentVariableKey]: {
-                    runs: [...currentRuns, ...data.runs],
-                    total: data.total,
+                  [currentCacheKey]: {
+                    runs: [...currentRuns, ...result.runs],
+                    total: result.total,
                   },
                 },
               };
@@ -216,14 +278,12 @@ export default function LeaderboardTabs({
       return;
     }
 
-    // Legacy subcategory / plain category show more
-    const currentPage = Math.ceil(runs.length / 25);
-    const nextPage = currentPage + 1;
-    const key = currentSubcategorySlug
+    const nextPage = Math.ceil(runs.length / 25) + 1;
+    const loadKey = currentSubcategorySlug
       ? `${activeCategory}-${currentSubcategorySlug}`
       : activeCategory;
 
-    setLoading((prev) => ({ ...prev, [key]: true }));
+    setLoading((prev) => ({ ...prev, [loadKey]: true }));
     try {
       const url = currentSubcategorySlug
         ? `${process.env.NEXT_PUBLIC_API_URL}/games/${gameSlug}/${platformSlug}/${activeCategory}/${currentSubcategorySlug}?page=${nextPage}&limit=25`
@@ -252,13 +312,13 @@ export default function LeaderboardTabs({
     } catch (e) {
       console.error("Failed to load more runs:", e);
     } finally {
-      setLoading((prev) => ({ ...prev, [key]: false }));
+      setLoading((prev) => ({ ...prev, [loadKey]: false }));
     }
   };
 
   const hasMore = total > runs.length;
-  const loadingKey = isVariableCategory && currentVariableKey
-    ? `${activeCategory}-${currentVariableKey}`
+  const loadingKey = isVariableCategory
+    ? `${activeCategory}-${currentCacheKey}`
     : currentSubcategorySlug
       ? `${activeCategory}-${currentSubcategorySlug}`
       : activeCategory;
@@ -279,17 +339,16 @@ export default function LeaderboardTabs({
         ))}
       </div>
 
-      {/* Variable subtabs (HP4+) */}
-      {isVariableCategory && primaryVar && (
+      {/* Subcategory variable subtabs (is_subcategory: true) */}
+      {isVariableCategory && subcategoryVar && !hiddenVariableIds.has(subcategoryVar.id) && (
         <div className="leaderboard-subtabs">
-          {primaryVar.values.map((val) => {
-            const key = `${primaryVar.slug}:${val.slug}`;
-            const isActive = currentVariableKey === key;
+          {subcategoryVar.values.map((val) => {
+            const isActive = (currentFilters[subcategoryVar.slug] ?? subcategoryVar.values[0]?.slug) === val.slug;
             return (
               <button
                 key={val.id}
                 className={`leaderboard-subtab ${isActive ? "active" : ""}`}
-                onClick={() => handleVariableTabClick(primaryVar.slug, val.slug)}
+                onClick={() => handleVariableFilterClick(subcategoryVar.slug, val.slug)}
               >
                 {val.name}
               </button>
@@ -298,10 +357,29 @@ export default function LeaderboardTabs({
         </div>
       )}
 
+      {/* Filter variable rows — only visible ones */}
+      {isVariableCategory && visibleFilterVars.map((filterVar) => (
+        <div key={filterVar.id} className="leaderboard-filter-row">
+          <span className="leaderboard-filter-label">{filterVar.name}:</span>
+          {filterVar.values.map((val) => {
+            const isActive = (currentFilters[filterVar.slug] ?? filterVar.values[0]?.slug) === val.slug;
+            return (
+              <button
+                key={val.id}
+                className={`leaderboard-filter-btn ${isActive ? "active" : ""}`}
+                onClick={() => handleVariableFilterClick(filterVar.slug, val.slug)}
+              >
+                {val.name}
+              </button>
+            );
+          })}
+        </div>
+      ))}
+
       {/* Legacy subcategory subtabs */}
-      {!isVariableCategory && category?.subcategories && category.subcategories.length > 0 && (
+      {!isVariableCategory && hasSubcategories && (
         <div className="leaderboard-subtabs">
-          {category.subcategories.map((sub) => (
+          {category!.subcategories!.map((sub) => (
             <button
               key={sub.id}
               className={`leaderboard-subtab ${currentSubcategorySlug === sub.slug ? "active" : ""}`}

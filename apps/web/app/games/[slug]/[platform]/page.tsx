@@ -38,6 +38,7 @@ interface VariableValue {
   slug: string;
   is_coop: boolean;
   required_players: number;
+  hidden_variables?: { variable_id: string }[];
 }
 
 interface Variable {
@@ -106,8 +107,7 @@ async function getLeaderboard(
     }
   }
 
-  const res = await fetch(url, { next: { revalidate: 60 } });
-  if (!res.ok) return { runs: [], total: 0 };
+const res = await fetch(url, { cache: "no-store" });  if (!res.ok) return { runs: [], total: 0 };
   const data = await res.json();
   return { runs: data.runs ?? [], total: data.total ?? 0 };
 }
@@ -132,7 +132,12 @@ export default async function PlatformPage({
       if (cat.subcategories && cat.subcategories.length > 0) {
         const subcategoriesWithRuns: Subcategory[] = await Promise.all(
           cat.subcategories.map(async (sub) => {
-            const { runs, total } = await getLeaderboard(slug, platform, cat.slug, sub.slug);
+            const { runs, total } = await getLeaderboard(
+              slug,
+              platform,
+              cat.slug,
+              sub.slug,
+            );
             return { ...sub, runs, total };
           }),
         );
@@ -141,17 +146,28 @@ export default async function PlatformPage({
 
       // Has variables (HP4+)
       if (cat.variables && cat.variables.length > 0) {
-        // Find the first subcategory-style variable (is_subcategory: true)
-        const primaryVar = cat.variables.find((v) => v.is_subcategory) ?? cat.variables[0];
         const variableRuns: Record<string, { runs: Run[]; total: number }> = {};
 
-        // Only fetch the first value on SSR; client fetches the rest on tab switch
-        const firstValue = primaryVar.values[0];
-        if (firstValue) {
-          const key = `${primaryVar.slug}:${firstValue.slug}`;
-          const result = await getLeaderboard(slug, platform, cat.slug, undefined, {
-            [primaryVar.slug]: firstValue.slug,
-          });
+        // Build default filters for ALL variables (first value of each)
+        const defaultFilters: Record<string, string> = {};
+        for (const v of cat.variables) {
+          if (v.values[0]) defaultFilters[v.slug] = v.values[0].slug;
+        }
+
+        if (Object.keys(defaultFilters).length > 0) {
+          // Serialize using same logic as client
+          const key = Object.entries(defaultFilters)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([k, v]) => `${k}:${v}`)
+            .join("|");
+
+          const result = await getLeaderboard(
+            slug,
+            platform,
+            cat.slug,
+            undefined,
+            defaultFilters,
+          );
           variableRuns[key] = result;
         }
 

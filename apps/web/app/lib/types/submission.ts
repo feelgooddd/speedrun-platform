@@ -20,6 +20,7 @@ export interface VariableValue {
   slug: string;
   is_coop: boolean;
   required_players: number | null;
+  hidden_variables?: { variable_id: string }[];
 }
 
 export interface Variable {

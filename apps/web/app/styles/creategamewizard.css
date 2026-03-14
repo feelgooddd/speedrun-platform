@@ -1,0 +1,415 @@
+/* ============================= */
+/* Create Game Form (CGW)        */
+/* ============================= */
+
+.cgw {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.cgw-section {
+  padding: 1.5rem 0;
+  border-bottom: 1px solid var(--card-border);
+}
+
+.cgw-section:last-child {
+  border-bottom: none;
+}
+
+.cgw-section--inset {
+  padding-left: 0;
+}
+
+.cgw-section-title {
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.cgw-optional {
+  opacity: 0.5;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: 'Crimson Text', serif;
+  font-size: 0.8rem;
+}
+
+.cgw-submit-section {
+  padding-top: 2rem;
+}
+
+/* Row layout for game name + slug */
+.cgw-row {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.cgw-row .form-group {
+  flex: 2;
+  margin-bottom: 0;
+}
+
+.cgw-slug-group {
+  flex: 1 !important;
+}
+
+/* Inline add forms */
+.cgw-inline-form {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-top: 0.75rem;
+}
+
+.cgw-inline-form .auth-input {
+  flex: 2;
+  min-width: 120px;
+}
+
+.cgw-slug-input {
+  flex: 1 !important;
+  min-width: 80px !important;
+}
+
+.cgw-timing-select {
+  flex: 0 0 80px !important;
+  min-width: unset !important;
+}
+
+.cgw-add-btn {
+  flex-shrink: 0;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Tags */
+.cgw-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.75rem;
+}
+
+.cgw-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.75rem;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--card-border);
+  border-radius: 2px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #aaa;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cgw-tag--active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cgw-tag-meta {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.75rem;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.5;
+}
+
+.cgw-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #555;
+  font-size: 0.9rem;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.15s ease;
+  flex-shrink: 0;
+}
+
+.cgw-remove:hover {
+  color: #ff4444;
+}
+
+.cgw-remove--lg {
+  font-size: 1.1rem;
+}
+
+/* Platform tabs */
+.cgw-plat-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 0;
+  padding: 1rem 0 0;
+  border-top: 1px solid var(--card-border);
+}
+
+/* Cards (categories + variables) */
+.cgw-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--card-border);
+  border-radius: 2px;
+  margin-bottom: 0.5rem;
+  overflow: hidden;
+}
+
+.cgw-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+}
+
+.cgw-card-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  flex: 1;
+  color: inherit;
+  min-width: 0;
+}
+
+.cgw-card-name {
+  font-family: 'Cinzel', serif;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #ddd;
+}
+
+.cgw-card-slug {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.85rem;
+  color: #555;
+}
+
+.cgw-card-meta {
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #444;
+  margin-left: auto;
+  padding-right: 0.5rem;
+}
+
+.cgw-chevron {
+  font-size: 0.65rem;
+  color: #444;
+  flex-shrink: 0;
+}
+
+.cgw-card-body {
+  padding: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Variable cards (nested inside category cards) */
+.cgw-var-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  margin-bottom: 0.4rem;
+  overflow: hidden;
+}
+
+.cgw-var-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 0.6rem;
+}
+
+.cgw-var-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.cgw-var-type {
+  font-family: 'Cinzel', serif;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 0.15rem 0.5rem;
+  border-radius: 2px;
+  border: 1px solid;
+}
+
+.cgw-var-type--sub {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cgw-var-type--filter {
+  color: #555;
+  border-color: #333;
+}
+
+.cgw-type-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: 'Cinzel', serif;
+  font-size: 0.6rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #555;
+  transition: color 0.15s ease;
+  white-space: nowrap;
+}
+
+.cgw-type-toggle:hover {
+  color: var(--accent);
+}
+
+.cgw-var-body {
+  padding: 0.6rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+/* Co-op row */
+.cgw-coop-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.cgw-coop-label {
+  margin: 0 !important;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.cgw-players-input {
+  width: 80px !important;
+  flex: 0 0 80px !important;
+  font-size: 0.85rem;
+}
+
+/* Small button variant */
+.cgw-sm-btn {
+  padding: 0.4rem 0.9rem;
+  font-size: 0.7rem;
+  margin-top: 0.25rem;
+}
+
+/* Add variable section */
+.cgw-add-var {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.cgw-hint {
+  font-family: 'Crimson Text', serif;
+  font-style: italic;
+  font-size: 0.85rem;
+  color: #444;
+  margin-top: 0.4rem;
+  margin-bottom: 0;
+}
+
+/* Add category row */
+.cgw-add-cat {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--card-border);
+}
+
+/* ── Yes/No guided flow ── */
+.cgw-question {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.cgw-question:last-child {
+  border-bottom: none;
+}
+
+.cgw-question--indented {
+  padding-left: 1rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.06);
+  margin-top: 0.5rem;
+}
+
+.cgw-question-label {
+  font-family: 'Cinzel', serif;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  color: #bbb;
+  flex: 1;
+}
+
+.cgw-question-meta {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.8rem;
+  font-style: italic;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #555;
+}
+
+.cgw-yn {
+  display: flex;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.cgw-yn-btn {
+  background: none;
+  border: 1px solid #333;
+  border-radius: 2px;
+  cursor: pointer;
+  font-family: 'Cinzel', serif;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #555;
+  padding: 0.3rem 0.75rem;
+  transition: all 0.15s ease;
+}
+
+.cgw-yn-btn:hover {
+  border-color: #555;
+  color: #aaa;
+}
+
+.cgw-yn-btn--active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.cgw-guided-section {
+  padding: 0.75rem 0 0.5rem 1rem;
+  border-left: 2px solid rgba(255, 255, 255, 0.06);
+  margin-top: 0.25rem;
+  margin-bottom: 0.5rem;
+}

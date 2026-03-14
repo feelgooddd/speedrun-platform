@@ -280,7 +280,16 @@ export const getPlatformCategories = async (req: Request, res: Response) => {
               orderBy: { order: "asc" },
             },
             variables: {
-              include: { values: true },
+              orderBy: { order: "asc" },
+              include: {
+                values: {
+                  include: {
+                    hidden_variables: {
+                      select: { variable_id: true },
+                    },
+                  },
+                },
+              },
             },
           },
         },
@@ -462,7 +471,8 @@ export const createVariable = async (req: AuthRequest, res: Response) => {
     const {
       variable_name,
       variable_slug,
-      is_subcategory = true,
+      is_subcategory = false,
+      order,
       values,
     } = req.body;
 
@@ -472,12 +482,10 @@ export const createVariable = async (req: AuthRequest, res: Response) => {
       !Array.isArray(values) ||
       values.length === 0
     ) {
-      return res
-        .status(400)
-        .json({
-          error:
-            "variable_name, variable_slug, and at least one value are required",
-        });
+      return res.status(400).json({
+        error:
+          "variable_name, variable_slug, and at least one value are required",
+      });
     }
 
     const game = await prisma.game.findUnique({ where: { slug } });
@@ -493,11 +501,33 @@ export const createVariable = async (req: AuthRequest, res: Response) => {
     });
     if (!category) return res.status(404).json({ error: "Category not found" });
 
+    // Enforce one is_subcategory variable per category
+    if (is_subcategory) {
+      const existing = await prisma.variable.findFirst({
+        where: { category_id: category.id, is_subcategory: true },
+      });
+      if (existing) {
+        return res.status(400).json({
+          error: `Category already has a subcategory variable: "${existing.name}". Only one is allowed.`,
+        });
+      }
+    }
+
+    // Auto-calculate order if not provided
+    let resolvedOrder = order;
+    if (resolvedOrder === undefined || resolvedOrder === null) {
+      const count = await prisma.variable.count({
+        where: { category_id: category.id },
+      });
+      resolvedOrder = count;
+    }
+
     const variable = await prisma.variable.create({
       data: {
         name: variable_name,
         slug: variable_slug,
         is_subcategory,
+        order: resolvedOrder,
         category_id: category.id,
         values: {
           create: values.map(
@@ -522,6 +552,48 @@ export const createVariable = async (req: AuthRequest, res: Response) => {
   } catch (error) {
     console.error("Error creating variable:", error);
     res.status(500).json({ error: "Failed to create variable" });
+  }
+};
+export const setHiddenVariables = async (req: AuthRequest, res: Response) => {
+  try {
+    const valueId = req.params.valueId as string;
+    const { variable_ids } = req.body;
+
+    if (!Array.isArray(variable_ids)) {
+      return res.status(400).json({ error: "variable_ids must be an array" });
+    }
+
+    const value = await prisma.variableValue.findUnique({
+      where: { id: valueId },
+    });
+    if (!value)
+      return res.status(404).json({ error: "Variable value not found" });
+
+    // Replace all hidden variables for this value
+    await prisma.$transaction([
+      prisma.variableValueHiddenVariable.deleteMany({
+        where: { value_id: valueId },
+      }),
+      ...(variable_ids.length > 0
+        ? [
+            prisma.variableValueHiddenVariable.createMany({
+              data: variable_ids.map((variable_id: string) => ({
+                value_id: valueId,
+                variable_id,
+              })),
+            }),
+          ]
+        : []),
+    ]);
+
+    res.json({
+      message: "Hidden variables updated",
+      value_id: valueId,
+      variable_ids,
+    });
+  } catch (error) {
+    console.error("Error setting hidden variables:", error);
+    res.status(500).json({ error: "Failed to set hidden variables" });
   }
 };
 
@@ -750,35 +822,49 @@ export const getLeaderboard = async (req: Request, res: Response) => {
         return res.status(404).json({ error: "Subcategory not found" });
     }
 
-    // Resolve variable value IDs from query params (HP4+)
-    const resolvedVariableValueIds: string[] = [];
-    let isCoop = false;
+// Resolve variable value IDs from query params (HP4+)
+const resolvedVariableValueIds: string[] = [];
+let isCoop = false;
 
-    if (Object.keys(variableFilters).length > 0) {
-      const variables = await prisma.variable.findMany({
-        where: { category_id: category.id },
-        include: { values: true },
-      });
+if (Object.keys(variableFilters).length > 0) {
+  const variables = await prisma.variable.findMany({
+    where: { category_id: category.id },
+    include: {
+      values: {
+        include: {
+          hidden_variables: { select: { variable_id: true } },
+        },
+      },
+    },
+  });
 
-      for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
-        const variable = variables.find((v) => v.slug === varSlug);
-        if (!variable)
-          return res
-            .status(404)
-            .json({ error: `Variable '${varSlug}' not found` });
+  // First pass: resolve all values and collect hidden variable IDs
+  const hiddenVariableIds = new Set<string>();
+  const resolvedValues: { variableId: string; valueId: string; is_coop: boolean }[] = [];
 
-        const value = variable.values.find((v) => v.slug === valSlug);
-        if (!value)
-          return res
-            .status(404)
-            .json({
-              error: `Value '${valSlug}' not found for variable '${varSlug}'`,
-            });
+  for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
+    const variable = variables.find((v) => v.slug === varSlug);
+    if (!variable) return res.status(404).json({ error: `Variable '${varSlug}' not found` });
 
-        resolvedVariableValueIds.push(value.id);
-        if (value.is_coop) isCoop = true;
-      }
+    const value = variable.values.find((v) => v.slug === valSlug);
+    if (!value) return res.status(404).json({ error: `Value '${valSlug}' not found for variable '${varSlug}'` });
+
+    // Collect variables this value hides
+    for (const h of value.hidden_variables) {
+      hiddenVariableIds.add(h.variable_id);
     }
+
+    resolvedValues.push({ variableId: variable.id, valueId: value.id, is_coop: value.is_coop });
+    if (value.is_coop) isCoop = true;
+  }
+
+  // Second pass: only include value IDs for variables that aren't hidden
+  for (const { variableId, valueId } of resolvedValues) {
+    if (!hiddenVariableIds.has(variableId)) {
+      resolvedVariableValueIds.push(valueId);
+    }
+  }
+}
 
     const hasVariableFilter = resolvedVariableValueIds.length > 0;
 
@@ -999,11 +1085,9 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
 
         const value = variable.values.find((v) => v.slug === valSlug);
         if (!value)
-          return res
-            .status(404)
-            .json({
-              error: `Value '${valSlug}' not found for variable '${varSlug}'`,
-            });
+          return res.status(404).json({
+            error: `Value '${valSlug}' not found for variable '${varSlug}'`,
+          });
 
         resolvedVariableValueIds.push(value.id);
         if (value.is_coop) isCoop = true;

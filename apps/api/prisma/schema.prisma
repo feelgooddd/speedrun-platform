@@ -99,6 +99,10 @@ model Variable {
   category       Category?      @relation(fields: [category_id], references: [id])
   level_category LevelCategory? @relation(fields: [level_category_id], references: [id])
   values         VariableValue[]
+  order Int @default(0)
+  hidden_by_values VariableValueHiddenVariable[]
+
+
 }
 
 model VariableValue {
@@ -111,6 +115,16 @@ model VariableValue {
 
   variable Variable         @relation(fields: [variable_id], references: [id])
   runs     RunVariableValue[]
+  hidden_variables VariableValueHiddenVariable[]
+
+}
+
+model VariableValueHiddenVariable {
+  id         String        @id @default(cuid())
+  value_id   String
+  variable_id String
+  value      VariableValue @relation(fields: [value_id], references: [id])
+  variable   Variable      @relation(fields: [variable_id], references: [id])
 }
 
 model Run {

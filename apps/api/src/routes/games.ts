@@ -23,6 +23,7 @@ import {
   createLevel,
   createLevelCategory,
   getPlatformLevels,
+  setHiddenVariables,
 } from "../controllers/games";
 import { getPlatformRuns, getCategoryRuns } from "../controllers/runs";
 import { requireAuth } from "../middleware/auth";
@@ -84,7 +85,7 @@ gamesRouter.delete("/:slug/:platform/:category/:subcategory", requireAuth, isAdm
 // Variables
 // ----------------------------------------------------------------
 gamesRouter.post("/:slug/:platform/:category/variables", requireAuth, isAdmin, createVariable);
-
+gamesRouter.post("/variable-values/:valueId/hidden-variables", requireAuth, isAdmin, setHiddenVariables);
 
 // ----------------------------------------------------------------
 // Runs

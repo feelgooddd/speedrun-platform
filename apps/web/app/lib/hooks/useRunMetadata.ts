@@ -66,7 +66,7 @@ export function useRunMetadata() {
     setSelectedPlatform,
     selectedCategory,
     setSelectedCategory,
-    selectedCategoryData, // Add this
-    selectedPlatformData, // Add this
+    selectedCategoryData, 
+    selectedPlatformData, 
   };
 }

@@ -1,5 +1,6 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 interface User {
   id: string;
@@ -28,12 +29,13 @@ const AuthContext = createContext<AuthContextType>({
   login: () => {},
   logout: () => {},
 });
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+
+  const pathname = usePathname();
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
@@ -45,7 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  useEffect(() => {
+  const refreshPendingCount = () => {
     if (!user || !token) { setPendingCount(0); return; }
     if (user.role !== "admin" && user.role !== "moderator") return;
 
@@ -61,7 +63,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setPendingCount(total);
       })
       .catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshPendingCount();
+    const interval = setInterval(refreshPendingCount, 30000);
+    return () => clearInterval(interval);
   }, [user, token]);
+
+  useEffect(() => {
+    refreshPendingCount();
+  }, [pathname]);
+
 
   const login = (user: User, token: string) => {
     setUser(user);
@@ -85,6 +98,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+
 export function useAuth() {
   return useContext(AuthContext);
 }
+
+

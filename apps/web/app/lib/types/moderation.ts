@@ -7,6 +7,13 @@ export interface User {
   country: string | null;
 }
 
+export interface RunVariable {
+  variable: string;
+  variable_slug: string;
+  value: string;
+  value_slug: string;
+}
+
 export interface PendingRun {
   id: string;
   is_coop: boolean;
@@ -27,4 +34,5 @@ export interface PendingRun {
   submitted_at: string;
   rejected?: boolean;
   reject_reason?: string | null;
+  variable_values: RunVariable[]; // 👈 new
 }

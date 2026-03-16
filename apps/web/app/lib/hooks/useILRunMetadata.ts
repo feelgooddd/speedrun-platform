@@ -74,6 +74,12 @@ export function useILRunMetadata() {
     return cats;
   }, [levels]);
 
+  const activeLevelCategory = useMemo(() => {
+    if (!selectedLevel || !selectedCategory) return undefined;
+    const level = levels.find((l) => l.slug === selectedLevel);
+    return level?.level_categories.find((c) => c.slug === selectedCategory);
+  }, [levels, selectedLevel, selectedCategory]);
+
   const availableLevels = useMemo(
     (): Level[] =>
       levels.filter((l) =>
@@ -100,5 +106,6 @@ export function useILRunMetadata() {
     systems,
     selectedSystem,
     setSelectedSystem,
+    activeLevelCategory,
   };
 }

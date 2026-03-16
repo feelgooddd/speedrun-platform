@@ -19,6 +19,7 @@ import {
   getAllSystems,
   addSystemToPlatform,
   createVariable,
+  createLevelCategoryVariable,
   getILLeaderboard,
   createLevel,
   createLevelCategory,
@@ -86,6 +87,7 @@ gamesRouter.delete("/:slug/:platform/:category/:subcategory", requireAuth, isAdm
 // ----------------------------------------------------------------
 gamesRouter.post("/:slug/:platform/:category/variables", requireAuth, isAdmin, createVariable);
 gamesRouter.post("/variable-values/:valueId/hidden-variables", requireAuth, isAdmin, setHiddenVariables);
+gamesRouter.post("/:slug/:platform/:level/:category/level-category-variables", requireAuth, isAdmin, createLevelCategoryVariable);
 
 // ----------------------------------------------------------------
 // Runs

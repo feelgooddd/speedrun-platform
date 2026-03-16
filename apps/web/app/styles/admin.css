@@ -183,3 +183,56 @@
 .admin-category-slug-field {
   flex: 1;
 }
+
+/* ── IL Form ── */
+.admin-il-level-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-il-level-body {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.admin-il-cat-card {
+  padding: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 4px;
+  margin-bottom: 0.5rem;
+}
+
+.admin-il-var-builder {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.admin-il-var-draft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+  padding: 0.3rem 0.6rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 4px;
+}
+
+.admin-il-val-form {
+  margin-bottom: 0.75rem;
+}
+
+.admin-il-var-form {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.admin-il-add-level {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}

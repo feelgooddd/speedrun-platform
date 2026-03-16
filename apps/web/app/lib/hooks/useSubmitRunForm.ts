@@ -27,12 +27,24 @@ export function useSubmitRunForm({
   levels = [],
 }: UseSubmitRunFormProps) {
   const [selectedSubcategory, setSelectedSubcategory] = useState("");
-  const [selectedVariableValues, setSelectedVariableValues] = useState<Record<string, string>>({});
+  const [selectedVariableValues, setSelectedVariableValues] = useState<
+    Record<string, string>
+  >({});
   const [selectedSystem, setSelectedSystem] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
   const [comment, setComment] = useState("");
-  const [rtaParts, setRtaParts] = useState<TimeParts>({ h: "", m: "", s: "", ms: "" });
-  const [igtParts, setIgtParts] = useState<TimeParts>({ h: "", m: "", s: "", ms: "" });
+  const [rtaParts, setRtaParts] = useState<TimeParts>({
+    h: "",
+    m: "",
+    s: "",
+    ms: "",
+  });
+  const [igtParts, setIgtParts] = useState<TimeParts>({
+    h: "",
+    m: "",
+    s: "",
+    ms: "",
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
@@ -44,29 +56,29 @@ export function useSubmitRunForm({
   );
 
   // Compute hidden variable IDs based on current selections
-const hiddenVariableIds = useMemo(() => {
-  const hidden = new Set<string>();
-  for (const variable of allVariables) {
-    const selectedValueId = selectedVariableValues[variable.id];
+  const hiddenVariableIds = useMemo(() => {
+    const hidden = new Set<string>();
+    for (const variable of allVariables) {
+      const selectedValueId = selectedVariableValues[variable.id];
 
-    if (!selectedValueId) {
-      // No selection yet — hide any variables that ANY value of this variable would hide
-      for (const val of variable.values) {
-        for (const h of val.hidden_variables ?? []) {
-          hidden.add(h.variable_id);
+      if (!selectedValueId) {
+        // No selection yet — hide any variables that ANY value of this variable would hide
+        for (const val of variable.values) {
+          for (const h of val.hidden_variables ?? []) {
+            hidden.add(h.variable_id);
+          }
         }
+        continue;
       }
-      continue;
-    }
 
-    const activeValue = variable.values.find((v) => v.id === selectedValueId);
-    if (!activeValue?.hidden_variables) continue;
-    for (const h of activeValue.hidden_variables) {
-      hidden.add(h.variable_id);
+      const activeValue = variable.values.find((v) => v.id === selectedValueId);
+      if (!activeValue?.hidden_variables) continue;
+      for (const h of activeValue.hidden_variables) {
+        hidden.add(h.variable_id);
+      }
     }
-  }
-  return hidden;
-}, [allVariables, selectedVariableValues]);
+    return hidden;
+  }, [allVariables, selectedVariableValues]);
 
   // Only show/submit variables that aren't hidden
   const subcategoryVariables = useMemo(
@@ -124,9 +136,19 @@ const hiddenVariableIds = useMemo(() => {
     const igt = calculateMs(igtParts);
     const runnersToSubmit = runnersOverride || runners;
 
-    if (rta <= 0) { setError("Please enter a valid RTA time"); return false; }
-    if (!videoUrl) { setError("Video URL is required"); return false; }
-    if (isCoop && requiredPlayers && runnersToSubmit.length !== requiredPlayers) {
+    if (rta <= 0) {
+      setError("Please enter a valid RTA time");
+      return false;
+    }
+    if (!videoUrl) {
+      setError("Video URL is required");
+      return false;
+    }
+    if (
+      isCoop &&
+      requiredPlayers &&
+      runnersToSubmit.length !== requiredPlayers
+    ) {
       setError(`This category requires exactly ${requiredPlayers} runners`);
       return false;
     }
@@ -134,8 +156,13 @@ const hiddenVariableIds = useMemo(() => {
     let levelCategoryId: string | undefined;
     if (isIL && selectedLevel) {
       const level = levels.find((l) => l.slug === selectedLevel);
-      levelCategoryId = level?.level_categories.find((c) => c.slug === selectedCategory)?.id;
-      if (!levelCategoryId) { setError("Could not resolve level category"); return false; }
+      levelCategoryId = level?.level_categories.find(
+        (c) => c.slug === selectedCategory,
+      )?.id;
+      if (!levelCategoryId) {
+        setError("Could not resolve level category");
+        return false;
+      }
     }
 
     const finalIgt = isGametime && igt <= 0 ? rta : igt;
@@ -150,11 +177,22 @@ const hiddenVariableIds = useMemo(() => {
         video_url: videoUrl,
         comment: comment || "",
         system_id: selectedSystem || undefined,
-        ...(runnersToSubmit.length > 0 && { runner_ids: runnersToSubmit.map((r) => r.id) }),
+        ...(runnersToSubmit.length > 0 && {
+          runner_ids: runnersToSubmit.map((r) => r.id),
+        }),
       };
 
       if (isIL) {
         payload.level_category_id = levelCategoryId;
+        payload.variable_values = subcategoryVariables
+          .filter((v) => selectedVariableValues[v.id])
+          .map((v) => ({
+            variable_slug: v.slug,
+            value_slug: v.values.find(
+              (val) => val.id === selectedVariableValues[v.id],
+            )?.slug,
+          }))
+          .filter((v) => v.value_slug);
       } else {
         payload.category_slug = selectedCategory;
         payload.subcategory_slug = selectedSubcategory || undefined;
@@ -163,14 +201,19 @@ const hiddenVariableIds = useMemo(() => {
           .filter((v) => selectedVariableValues[v.id])
           .map((v) => ({
             variable_slug: v.slug,
-            value_slug: v.values.find((val) => val.id === selectedVariableValues[v.id])?.slug,
+            value_slug: v.values.find(
+              (val) => val.id === selectedVariableValues[v.id],
+            )?.slug,
           }))
           .filter((v) => v.value_slug);
       }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/runs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -190,14 +233,23 @@ const hiddenVariableIds = useMemo(() => {
 
   return {
     states: {
-      selectedSubcategory, setSelectedSubcategory,
-      selectedVariableValues, setSelectedVariableValues,
-      selectedSystem, setSelectedSystem,
-      videoUrl, setVideoUrl,
-      comment, setComment,
-      rtaParts, setRtaParts,
-      igtParts, setIgtParts,
-      submitting, error, success,
+      selectedSubcategory,
+      setSelectedSubcategory,
+      selectedVariableValues,
+      setSelectedVariableValues,
+      selectedSystem,
+      setSelectedSystem,
+      videoUrl,
+      setVideoUrl,
+      comment,
+      setComment,
+      rtaParts,
+      setRtaParts,
+      igtParts,
+      setIgtParts,
+      submitting,
+      error,
+      success,
     },
     helpers: { isCoop, requiredPlayers, subcategoryVariables },
     handleSubmit,

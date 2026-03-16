@@ -29,10 +29,29 @@ interface Run {
   }[];
 }
 
+interface VariableValue {
+  id: string;
+  name: string;
+  slug: string;
+  is_coop: boolean;
+  required_players: number;
+  hidden_variables?: { variable_id: string }[];
+}
+
+interface Variable {
+  id: string;
+  name: string;
+  slug: string;
+  is_subcategory: boolean;
+  order: number;
+  values: VariableValue[];
+}
+
 interface LevelCategory {
   id: string;
   name: string;
   slug: string;
+  variables?: Variable[];
 }
 
 interface Level {
@@ -48,15 +67,47 @@ interface ILLeaderboardProps {
   platformSlug: string;
 }
 
+function serializeFilters(filters: Record<string, string>): string {
+  return Object.entries(filters)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${k}:${v}`)
+    .join("|");
+}
+
+function buildDefaultFilters(variables: Variable[]): Record<string, string> {
+  const filters: Record<string, string> = {};
+  for (const v of variables) {
+    if (v.values[0]) filters[v.slug] = v.values[0].slug;
+  }
+  return filters;
+}
+
+function computeHiddenVariableIds(
+  variables: Variable[],
+  currentFilters: Record<string, string>,
+): Set<string> {
+  const hidden = new Set<string>();
+  for (const variable of variables) {
+    const activeSlug = currentFilters[variable.slug];
+    if (!activeSlug) continue;
+    const activeValue = variable.values.find((v) => v.slug === activeSlug);
+    if (!activeValue?.hidden_variables) continue;
+    for (const h of activeValue.hidden_variables) {
+      hidden.add(h.variable_id);
+    }
+  }
+  return hidden;
+}
+
 export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardProps) {
   const [levels, setLevels] = useState<Level[]>([]);
   const [loadingLevels, setLoadingLevels] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeLevel, setActiveLevel] = useState<string | null>(null);
-  const [runs, setRuns] = useState<Run[]>([]);
-  const [total, setTotal] = useState(0);
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [runsCache, setRunsCache] = useState<Record<string, { runs: Run[]; total: number; timingMethod: string }>>({});
+  const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [timingMethod, setTimingMethod] = useState<string>("realtime");
-  const [loadingRuns, setLoadingRuns] = useState(false);
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
   const { user: authUser } = useAuth();
@@ -72,14 +123,12 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
         const fetchedLevels: Level[] = data.levels ?? [];
         setLevels(fetchedLevels);
 
-        // Default to first level category and first level
         if (fetchedLevels.length > 0) {
-          const firstLevel = fetchedLevels[0];
           const allCategories = getUniqueCategories(fetchedLevels);
           if (allCategories.length > 0) {
             setActiveCategory(allCategories[0].slug);
           }
-          setActiveLevel(firstLevel.slug);
+          setActiveLevel(fetchedLevels[0].slug);
         }
       } catch (e) {
         console.error("Failed to fetch levels:", e);
@@ -90,33 +139,6 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
     fetchLevels();
   }, [gameSlug, platformSlug]);
 
-  // Fetch runs when active category or level changes
-  useEffect(() => {
-    if (!activeCategory || !activeLevel) return;
-    const fetchRuns = async () => {
-      setLoadingRuns(true);
-      setRuns([]);
-      try {
-        const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/games/${gameSlug}/${platformSlug}/levels/${activeCategory}`
-        );
-        const data = await res.json();
-
-        // Find the runs for the selected level only
-        const levelData = data.levels?.find((l: any) => l.level_slug === activeLevel);
-        setRuns(levelData?.runs ?? []);
-        setTotal(levelData?.total ?? 0);
-        setTimingMethod(data.timing_method ?? "realtime");
-      } catch (e) {
-        console.error("Failed to fetch IL runs:", e);
-      } finally {
-        setLoadingRuns(false);
-      }
-    };
-    fetchRuns();
-  }, [activeCategory, activeLevel, gameSlug, platformSlug]);
-
-  // Get unique categories across all levels
   const getUniqueCategories = (lvls: Level[]): LevelCategory[] => {
     const seen = new Set<string>();
     const result: LevelCategory[] = [];
@@ -133,10 +155,90 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
 
   const uniqueCategories = getUniqueCategories(levels);
 
-  // Only show levels that have the active category
   const availableLevels = levels.filter((l) =>
     l.level_categories.some((c) => c.slug === activeCategory)
   );
+
+  // Get the active level category's variables
+  const activeLevelCategory = levels
+    .find((l) => l.slug === activeLevel)
+    ?.level_categories.find((c) => c.slug === activeCategory);
+
+  const variables = activeLevelCategory?.variables ?? [];
+  const subcategoryVar = variables.find((v) => v.is_subcategory);
+  const filterVars = variables.filter((v) => !v.is_subcategory).sort((a, b) => a.order - b.order);
+  const hasVariables = variables.length > 0;
+
+  const currentFilters: Record<string, string> = hasVariables
+    ? { ...buildDefaultFilters(variables), ...activeFilters }
+    : {};
+
+  const hiddenVariableIds = hasVariables
+    ? computeHiddenVariableIds(variables, currentFilters)
+    : new Set<string>();
+
+  const visibleFilterVars = filterVars.filter((v) => !hiddenVariableIds.has(v.id));
+
+  const cacheKey = `${activeLevel}-${activeCategory}-${serializeFilters(currentFilters)}`;
+
+  // Fetch runs when level/category/filters change
+  useEffect(() => {
+    if (!activeCategory || !activeLevel) return;
+    if (runsCache[cacheKey]) {
+      setTimingMethod(runsCache[cacheKey].timingMethod);
+      return;
+    }
+
+    const fetchRuns = async () => {
+      setLoading((prev) => ({ ...prev, [cacheKey]: true }));
+      try {
+        const params = new URLSearchParams({ page: "1", limit: "25" });
+        if (hasVariables) {
+          for (const [k, v] of Object.entries(currentFilters)) params.set(k, v);
+        }
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/games/${gameSlug}/${platformSlug}/levels/${activeCategory}?${params}`
+        );
+        const data = await res.json();
+        const levelData = data.levels?.find((l: any) => l.level_slug === activeLevel);
+        const fetchedRuns = levelData?.runs ?? [];
+        const fetchedTotal = levelData?.total ?? 0;
+        const fetchedTiming = data.timing_method ?? "realtime";
+        setTimingMethod(fetchedTiming);
+        setRunsCache((prev) => ({
+          ...prev,
+          [cacheKey]: { runs: fetchedRuns, total: fetchedTotal, timingMethod: fetchedTiming },
+        }));
+      } catch (e) {
+        console.error("Failed to fetch IL runs:", e);
+      } finally {
+        setLoading((prev) => ({ ...prev, [cacheKey]: false }));
+      }
+    };
+    fetchRuns();
+  }, [activeCategory, activeLevel, cacheKey]);
+
+  const handleFilterClick = (varSlug: string, valueSlug: string) => {
+    setActiveFilters((prev) => ({ ...prev, [varSlug]: valueSlug }));
+  };
+
+  const handleCategoryChange = (catSlug: string) => {
+    setActiveCategory(catSlug);
+    setActiveFilters({});
+    const firstAvailable = levels.find((l) =>
+      l.level_categories.some((c) => c.slug === catSlug)
+    );
+    if (firstAvailable) setActiveLevel(firstAvailable.slug);
+  };
+
+  const handleLevelChange = (levelSlug: string) => {
+    setActiveLevel(levelSlug);
+    setActiveFilters({});
+  };
+
+  const runs = runsCache[cacheKey]?.runs ?? [];
+  const total = runsCache[cacheKey]?.total ?? 0;
+  const isLoading = loading[cacheKey];
 
   const showSeparateTimes = runs.some(
     (run) => run.realtime_ms && run.gametime_ms && run.realtime_ms !== run.gametime_ms
@@ -160,19 +262,49 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
           <button
             key={cat.id}
             className={`leaderboard-tab ${activeCategory === cat.slug ? "active" : ""}`}
-            onClick={() => {
-              setActiveCategory(cat.slug);
-              // Reset to first level that has this category
-              const firstAvailable = levels.find((l) =>
-                l.level_categories.some((c) => c.slug === cat.slug)
-              );
-              if (firstAvailable) setActiveLevel(firstAvailable.slug);
-            }}
+            onClick={() => handleCategoryChange(cat.slug)}
           >
             {cat.name}
           </button>
         ))}
       </div>
+
+      {/* Subcategory variable subtabs */}
+      {subcategoryVar && !hiddenVariableIds.has(subcategoryVar.id) && (
+        <div className="leaderboard-subtabs">
+          {subcategoryVar.values.map((val) => {
+            const isActive = (currentFilters[subcategoryVar.slug] ?? subcategoryVar.values[0]?.slug) === val.slug;
+            return (
+              <button
+                key={val.id}
+                className={`leaderboard-subtab ${isActive ? "active" : ""}`}
+                onClick={() => handleFilterClick(subcategoryVar.slug, val.slug)}
+              >
+                {val.name}
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Filter variable rows */}
+      {visibleFilterVars.map((filterVar) => (
+        <div key={filterVar.id} className="leaderboard-filter-row">
+          <span className="leaderboard-filter-label">{filterVar.name}:</span>
+          {filterVar.values.map((val) => {
+            const isActive = (currentFilters[filterVar.slug] ?? filterVar.values[0]?.slug) === val.slug;
+            return (
+              <button
+                key={val.id}
+                className={`leaderboard-filter-btn ${isActive ? "active" : ""}`}
+                onClick={() => handleFilterClick(filterVar.slug, val.slug)}
+              >
+                {val.name}
+              </button>
+            );
+          })}
+        </div>
+      ))}
 
       {/* Level dropdown */}
       <div style={{ padding: "1rem 0" }}>
@@ -180,7 +312,7 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
           className="auth-input"
           style={{ maxWidth: "300px" }}
           value={activeLevel ?? ""}
-          onChange={(e) => setActiveLevel(e.target.value)}
+          onChange={(e) => handleLevelChange(e.target.value)}
         >
           {availableLevels.map((level) => (
             <option key={level.id} value={level.slug}>
@@ -192,7 +324,7 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
 
       {/* Table */}
       <div className="leaderboard-table-wrap">
-        {loadingRuns ? (
+        {isLoading ? (
           <p className="leaderboard-empty">Loading...</p>
         ) : runs.length === 0 ? (
           <p className="leaderboard-empty">No runs submitted yet.</p>
@@ -276,9 +408,9 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
                         </>
                       ) : (
                         <td className="time-cell">
-{timingMethod === "gametime"
-  ? run.gametime_display || run.realtime_display || "—"
-  : run.realtime_display || run.gametime_display || "—"}
+                          {timingMethod === "gametime"
+                            ? run.gametime_display || run.realtime_display || "—"
+                            : run.realtime_display || run.gametime_display || "—"}
                         </td>
                       )}
                       {hasSystemColumn && (

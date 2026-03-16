@@ -27,18 +27,20 @@ export default function SubmitILRun() {
     selectedPlatformData,
     levels,
     systems,
+    activeLevelCategory,
   } = useILRunMetadata();
 
   const isGametime = selectedPlatformData?.timing_method === "gametime";
 
   // 2. Unified Submission Hook (Flagged as IL)
-  const { states, handleSubmit } = useSubmitRunForm({
+  const { states, handleSubmit, helpers } = useSubmitRunForm({
     token,
     selectedGame,
     selectedPlatform,
     selectedCategory,
+    selectedCategoryData: activeLevelCategory as any,
     isGametime,
-    runners: user ? [{ id: user.id }] : [], // ILs usually default to just you
+    runners: user ? [{ id: user.id }] : [], // ILs usually default to just the submitter
     isIL: true,
     selectedLevel,
     levels,
@@ -145,25 +147,49 @@ export default function SubmitILRun() {
                 </select>
               </div>
             )}
-{/* System Selection */}
-{systems.length > 0 && (
-  <div className="form-group">
-    <label className="form-label">System *</label>
-    <select
-      value={states.selectedSystem}
-      onChange={(e) => states.setSelectedSystem(e.target.value)}
-      required
-      className="auth-input"
-    >
-      <option value="">Select a system</option>
-      {systems.map((s) => (
-        <option key={s.id} value={s.id}>
-          {s.name}
-        </option>
-      ))}
-    </select>
-  </div>
-)}
+            {selectedLevel &&
+              helpers.subcategoryVariables.map((v) => (
+                <div key={v.id} className="form-group">
+                  <label className="form-label">{v.name} *</label>
+                  <select
+                    value={states.selectedVariableValues[v.id] || ""}
+                    onChange={(e) =>
+                      states.setSelectedVariableValues((prev) => ({
+                        ...prev,
+                        [v.id]: e.target.value,
+                      }))
+                    }
+                    required
+                    className="auth-input"
+                  >
+                    <option value="">Select {v.name}</option>
+                    {v.values.map((val) => (
+                      <option key={val.id} value={val.id}>
+                        {val.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            {/* System Selection */}
+            {systems.length > 0 && (
+              <div className="form-group">
+                <label className="form-label">System *</label>
+                <select
+                  value={states.selectedSystem}
+                  onChange={(e) => states.setSelectedSystem(e.target.value)}
+                  required
+                  className="auth-input"
+                >
+                  <option value="">Select a system</option>
+                  {systems.map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             {selectedLevel && (
               <>
                 <TimeInputGroup

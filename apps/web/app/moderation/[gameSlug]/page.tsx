@@ -189,7 +189,6 @@ export default function ModQueuePage({
                             "—"
                           )}
                         </td>
-                        {isIL && <td>{run.level ?? "—"}</td>}
                         <td>{run.platform}</td>
                         <td className="time-cell">
                           {run.realtime_display || "—"}

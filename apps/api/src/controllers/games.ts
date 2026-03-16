@@ -597,6 +597,106 @@ export const setHiddenVariables = async (req: AuthRequest, res: Response) => {
   }
 };
 
+export const createLevelCategoryVariable = async (
+  req: AuthRequest,
+  res: Response,
+) => {
+  try {
+    const slug = req.params.slug as string;
+    const platformSlug = req.params.platform as string;
+    const levelSlug = req.params.level as string;
+    const levelCategorySlug = req.params.category as string;
+    const {
+      variable_name,
+      variable_slug,
+      is_subcategory = false,
+      order,
+      values,
+    } = req.body;
+
+    if (
+      !variable_name ||
+      !variable_slug ||
+      !Array.isArray(values) ||
+      values.length === 0
+    ) {
+      return res.status(400).json({
+        error:
+          "variable_name, variable_slug, and at least one value are required",
+      });
+    }
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const level = await prisma.level.findFirst({
+      where: { slug: levelSlug, platform_id: platform.id },
+    });
+    if (!level) return res.status(404).json({ error: "Level not found" });
+
+    const levelCategory = await prisma.levelCategory.findFirst({
+      where: { slug: levelCategorySlug, level_id: level.id },
+    });
+    if (!levelCategory)
+      return res.status(404).json({ error: "Level category not found" });
+
+    if (is_subcategory) {
+      const existing = await prisma.variable.findFirst({
+        where: { level_category_id: levelCategory.id, is_subcategory: true },
+      });
+      if (existing) {
+        return res.status(400).json({
+          error: `Level category already has a subcategory variable: "${existing.name}". Only one is allowed.`,
+        });
+      }
+    }
+
+    let resolvedOrder = order;
+    if (resolvedOrder === undefined || resolvedOrder === null) {
+      const count = await prisma.variable.count({
+        where: { level_category_id: levelCategory.id },
+      });
+      resolvedOrder = count;
+    }
+
+    const variable = await prisma.variable.create({
+      data: {
+        name: variable_name,
+        slug: variable_slug,
+        is_subcategory,
+        order: resolvedOrder,
+        level_category_id: levelCategory.id,
+        values: {
+          create: values.map(
+            (v: {
+              name: string;
+              slug: string;
+              is_coop?: boolean;
+              required_players?: number;
+            }) => ({
+              name: v.name,
+              slug: v.slug,
+              is_coop: v.is_coop ?? false,
+              required_players: v.required_players ?? null,
+            }),
+          ),
+        },
+      },
+      include: { values: true },
+    });
+
+    res.status(201).json({ variable });
+  } catch (error) {
+    console.error("Error creating level category variable:", error);
+    res.status(500).json({ error: "Failed to create variable" });
+  }
+};
+
 // ----------------------------------------------------------------
 // Levels
 // ----------------------------------------------------------------
@@ -760,6 +860,20 @@ export const getPlatformLevels = async (req: Request, res: Response) => {
         level_categories: {
           where: { deleted_at: null },
           orderBy: { order: "asc" },
+          include: {
+            variables: {
+              orderBy: { order: "asc" },
+              include: {
+                values: {
+                  include: {
+                    hidden_variables: {
+                      select: { variable_id: true },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
       },
     });
@@ -769,7 +883,6 @@ export const getPlatformLevels = async (req: Request, res: Response) => {
     res.status(500).json({ error: "Failed to fetch levels" });
   }
 };
-
 // ----------------------------------------------------------------
 // Leaderboards
 // ----------------------------------------------------------------
@@ -822,49 +935,63 @@ export const getLeaderboard = async (req: Request, res: Response) => {
         return res.status(404).json({ error: "Subcategory not found" });
     }
 
-// Resolve variable value IDs from query params (HP4+)
-const resolvedVariableValueIds: string[] = [];
-let isCoop = false;
+    // Resolve variable value IDs from query params (HP4+)
+    const resolvedVariableValueIds: string[] = [];
+    let isCoop = false;
 
-if (Object.keys(variableFilters).length > 0) {
-  const variables = await prisma.variable.findMany({
-    where: { category_id: category.id },
-    include: {
-      values: {
+    if (Object.keys(variableFilters).length > 0) {
+      const variables = await prisma.variable.findMany({
+        where: { category_id: category.id },
         include: {
-          hidden_variables: { select: { variable_id: true } },
+          values: {
+            include: {
+              hidden_variables: { select: { variable_id: true } },
+            },
+          },
         },
-      },
-    },
-  });
+      });
 
-  // First pass: resolve all values and collect hidden variable IDs
-  const hiddenVariableIds = new Set<string>();
-  const resolvedValues: { variableId: string; valueId: string; is_coop: boolean }[] = [];
+      // First pass: resolve all values and collect hidden variable IDs
+      const hiddenVariableIds = new Set<string>();
+      const resolvedValues: {
+        variableId: string;
+        valueId: string;
+        is_coop: boolean;
+      }[] = [];
 
-  for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
-    const variable = variables.find((v) => v.slug === varSlug);
-    if (!variable) return res.status(404).json({ error: `Variable '${varSlug}' not found` });
+      for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
+        const variable = variables.find((v) => v.slug === varSlug);
+        if (!variable)
+          return res
+            .status(404)
+            .json({ error: `Variable '${varSlug}' not found` });
 
-    const value = variable.values.find((v) => v.slug === valSlug);
-    if (!value) return res.status(404).json({ error: `Value '${valSlug}' not found for variable '${varSlug}'` });
+        const value = variable.values.find((v) => v.slug === valSlug);
+        if (!value)
+          return res.status(404).json({
+            error: `Value '${valSlug}' not found for variable '${varSlug}'`,
+          });
 
-    // Collect variables this value hides
-    for (const h of value.hidden_variables) {
-      hiddenVariableIds.add(h.variable_id);
+        // Collect variables this value hides
+        for (const h of value.hidden_variables) {
+          hiddenVariableIds.add(h.variable_id);
+        }
+
+        resolvedValues.push({
+          variableId: variable.id,
+          valueId: value.id,
+          is_coop: value.is_coop,
+        });
+        if (value.is_coop) isCoop = true;
+      }
+
+      // Second pass: only include value IDs for variables that aren't hidden
+      for (const { variableId, valueId } of resolvedValues) {
+        if (!hiddenVariableIds.has(variableId)) {
+          resolvedVariableValueIds.push(valueId);
+        }
+      }
     }
-
-    resolvedValues.push({ variableId: variable.id, valueId: value.id, is_coop: value.is_coop });
-    if (value.is_coop) isCoop = true;
-  }
-
-  // Second pass: only include value IDs for variables that aren't hidden
-  for (const { variableId, valueId } of resolvedValues) {
-    if (!hiddenVariableIds.has(variableId)) {
-      resolvedVariableValueIds.push(valueId);
-    }
-  }
-}
 
     const hasVariableFilter = resolvedVariableValueIds.length > 0;
 
@@ -1023,6 +1150,8 @@ if (Object.keys(variableFilters).length > 0) {
 };
 
 export const getILLeaderboard = async (req: Request, res: Response) => {
+  console.log("IL params:", req.params);
+  console.log("IL query:", req.query);
   try {
     const slug = req.params.slug as string;
     const platformSlug = req.params.platform as string;
@@ -1054,6 +1183,8 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
         deleted_at: null,
       },
     });
+    console.log("levelCategories found:", levelCategories.length);
+
     if (levelCategories.length === 0)
       return res.status(404).json({ error: "IL category not found" });
 
@@ -1071,10 +1202,10 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
     let isCoop = false;
 
     if (Object.keys(variableFilters).length > 0) {
-      const variables = await prisma.variable.findMany({
-        where: { level_category_id: levelCategory.id },
-        include: { values: true },
-      });
+const variables = await prisma.variable.findMany({
+  where: { level_category_id: { in: levelCategoryIds } },
+  include: { values: true },
+});
 
       for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
         const variable = variables.find((v) => v.slug === varSlug);
@@ -1105,7 +1236,7 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
       },
       orderBy: { order: "asc" },
     });
-
+    console.log("levels found:", levels.length);
     const baseWhere = {
       level_category_id: { in: levelCategoryIds }, // ← all of them
 

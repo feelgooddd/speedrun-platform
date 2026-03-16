@@ -1,11 +1,12 @@
 "use client";
 import { useState } from "react";
-import CreateGameWizard from "./Creategamewizard";
+import CreateGameWizard from "./CreateGamewizard";
 import VariableForm from "./VariableForm";
 import DependencyForm from "./DependencyForm";
 import AdminAddCategoryForm from "./AdminAddCategoryForm";
+import CreateILWizard from "./CreateILWizard";
 
-type GameTab = "create" | "categories" | "variables" | "dependencies";
+type GameTab = "create" | "categories" | "variables" | "dependencies" | "ils";
 
 interface Platform {
   id: string;
@@ -43,6 +44,7 @@ export default function AdminGamesTab({
             { key: "categories", label: "Add Category" },
             { key: "variables", label: "Add Variable" },
             { key: "dependencies", label: "Set Dependencies" },
+            { key: "ils", label: "Add ILs" },
           ] as { key: GameTab; label: string }[]
         ).map(({ key, label }) => (
           <button
@@ -82,6 +84,12 @@ export default function AdminGamesTab({
         <div className="profile-section">
           <h2 className="profile-section-title">🔗 Set Dependencies</h2>
           <DependencyForm games={games} token={token} />
+        </div>
+      )}
+      {activeGameTab === "ils" && (
+        <div className="profile-section">
+          <h2 className="profile-section-title">🎮 Individual Levels</h2>
+          <CreateILWizard games={games} token={token} />
         </div>
       )}
     </div>

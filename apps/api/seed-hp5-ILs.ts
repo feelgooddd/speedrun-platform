@@ -1,15 +1,23 @@
 import prisma from "./src/lib/prisma";
 
-const SRDC_GAME_ID = "kyd49x1e";
-const PLATFORM_ID = "hp4-pc";
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+const SRDC_GAME_ID = "m1mx5k62"; // HP5 game ID
+const PLATFORM_ID = "hp5-pc"; // HP5 PC platform
 
 const SYSTEM_MAP: Record<string, string> = {
-  "n5e17e27": "PlayStation 2",
-  "mx6pwe3g": "PlayStation 3",
-  "n568oevp": "Xbox 360",
+  n5e17e27: "PlayStation 2",
+  mx6pwe3g: "PlayStation 3",
+  n568oevp: "Xbox 360",
   "8gej2n93": "PC",
-  "v06dk3e4": "Wii",
+  v06dk3e4: "Wii",
 };
+
+// ============================================================
+// HELPERS
+// ============================================================
 
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
@@ -36,13 +44,21 @@ async function fetchJson(url: string): Promise<any> {
   return res.json();
 }
 
+// ============================================================
+// SRDC FETCHERS
+// ============================================================
+
 async function fetchLevels() {
-  const data = await fetchJson(`https://www.speedrun.com/api/v1/games/${SRDC_GAME_ID}/levels`);
+  const data = await fetchJson(
+    `https://www.speedrun.com/api/v1/games/${SRDC_GAME_ID}/levels`,
+  );
   return data.data;
 }
 
 async function fetchLevelCategories(levelId: string) {
-  const data = await fetchJson(`https://www.speedrun.com/api/v1/levels/${levelId}/categories`);
+  const data = await fetchJson(
+    `https://www.speedrun.com/api/v1/levels/${levelId}/categories`,
+  );
   return data.data;
 }
 
@@ -73,6 +89,10 @@ async function fetchAllRuns(levelId: string, categoryId: string) {
   return runs;
 }
 
+// ============================================================
+// USER HELPERS
+// ============================================================
+
 async function upsertGuest(name: string): Promise<string> {
   const username = name.toLowerCase();
   const existing = await prisma.user.findUnique({ where: { username } });
@@ -84,10 +104,14 @@ async function upsertGuest(name: string): Promise<string> {
 }
 
 async function upsertUser(srdcId: string): Promise<string> {
-  const existing = await prisma.user.findUnique({ where: { speedrun_com_id: srdcId } });
+  const existing = await prisma.user.findUnique({
+    where: { speedrun_com_id: srdcId },
+  });
   if (existing) return existing.id;
 
-  const data = await fetchJson(`https://www.speedrun.com/api/v1/users/${srdcId}`);
+  const data = await fetchJson(
+    `https://www.speedrun.com/api/v1/users/${srdcId}`,
+  );
   const u = data.data;
   const username = u.names?.international ?? srdcId;
 
@@ -105,10 +129,16 @@ async function upsertUser(srdcId: string): Promise<string> {
   return created.id;
 }
 
-async function main() {
-  console.log("=== HP4 IL SCRAPER START ===");
+// ============================================================
+// MAIN
+// ============================================================
 
-  const platform = await prisma.platform.findUnique({ where: { id: PLATFORM_ID } });
+async function main() {
+  console.log("=== HP5 IL SCRAPER START ===");
+
+  const platform = await prisma.platform.findUnique({
+    where: { id: PLATFORM_ID },
+  });
   if (!platform) throw new Error("Platform not found");
 
   const levels = await fetchLevels();
@@ -129,10 +159,10 @@ async function main() {
     console.log(`\nLevel: ${level.name}`);
 
     const levelRow = await prisma.level.upsert({
-      where: { id: `hp4-il-${level.id}` },
+      where: { id: `hp5-il-${level.id}` },
       update: {},
       create: {
-        id: `hp4-il-${level.id}`,
+        id: `hp5-il-${level.id}`,
         platform_id: platform.id,
         name: level.name,
         slug: level.weblink.split("/").pop(),
@@ -147,10 +177,10 @@ async function main() {
       console.log(`  Category: ${cat.name}`);
 
       const levelCategory = await prisma.levelCategory.upsert({
-        where: { id: `hp4-il-${level.id}-${cat.id}` },
+        where: { id: `hp5-il-${level.id}-${cat.id}` },
         update: {},
         create: {
-          id: `hp4-il-${level.id}-${cat.id}`,
+          id: `hp5-il-${level.id}-${cat.id}`,
           level_id: levelRow.id,
           name: cat.name,
           slug: cat.name.toLowerCase().replace(/\s+/g, "-").replace(/%/g, ""),
@@ -164,15 +194,22 @@ async function main() {
       for (const run of runs) {
         const srdcRunId = run.id;
 
-        const existing = await prisma.run.findUnique({ where: { speedrun_com_id: srdcRunId } });
-        if (existing) continue;
+        const existing = await prisma.run.findUnique({
+          where: { speedrun_com_id: srdcRunId },
+        });
+        if (existing) {
+          console.log(`      Skipping existing run ${srdcRunId}`);
+          continue;
+        }
 
         const realtimeMs = isoToMs(run.times?.realtime ?? null);
         const gametimeMs = isoToMs(run.times?.ingame ?? null);
         const videoUrl = run.videos?.links?.[0]?.uri ?? null;
         const comment = run.comment ?? null;
         const submittedAt = run.date ? new Date(run.date) : new Date();
-        const systemId = run.system?.platform ? (systemIds[run.system.platform] ?? null) : null;
+        const systemId = run.system?.platform
+          ? (systemIds[run.system.platform] ?? null)
+          : null;
 
         const players = run.players?.data ?? run.players ?? [];
         const userIds: string[] = [];
@@ -221,7 +258,7 @@ async function main() {
     }
   }
 
-  console.log("\n✓ HP4 IL import complete");
+  console.log("\n✓ HP5 IL import complete");
 }
 
 main()

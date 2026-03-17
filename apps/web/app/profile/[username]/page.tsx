@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import PBTable from "@/app/components/profile/Pbtable";
 import RunsTable from "@/app/components/profile/Runstable";
 import SettingsLink from "@/app/components/profile/SetingsLink";
 import { countryCodeToFlag } from "@/app/lib/flags";
@@ -16,11 +17,14 @@ interface VariableValue {
 }
 
 interface PersonalBest {
+  id: string;
+  is_il: boolean;
   is_coop: boolean;
   game_id: string;
   game_name: string;
   game_slug: string;
-  category_id: string;
+  level_name?: string | null;
+  category_id: string | null;
   category_name: string;
   category_slug: string;
   subcategory_name?: string | null;
@@ -35,12 +39,14 @@ interface PersonalBest {
   video_url: string | null;
   comment: string | null;
   rank: number;
-  runners: {
-    id: string;
-    username: string;
-    display_name: string | null;
-    country: string | null;
-  }[] | null;
+  runners:
+    | {
+        id: string;
+        username: string;
+        display_name: string | null;
+        country: string | null;
+      }[]
+    | null;
 }
 
 interface Run {
@@ -112,14 +118,23 @@ async function getUserRuns(id: string): Promise<Run[]> {
 // Helpers
 // ----------------------------------------------------------------
 function groupPBsByGame(pbs: PersonalBest[]) {
-  const map = new Map<string, { game_name: string; game_slug: string; pbs: PersonalBest[] }>();
+  const map = new Map<
+    string,
+    { game_name: string; game_slug: string; pbs: PersonalBest[] }
+  >();
   for (const pb of pbs) {
     if (!map.has(pb.game_id)) {
-      map.set(pb.game_id, { game_name: pb.game_name, game_slug: pb.game_slug, pbs: [] });
+      map.set(pb.game_id, {
+        game_name: pb.game_name,
+        game_slug: pb.game_slug,
+        pbs: [],
+      });
     }
     map.get(pb.game_id)!.pbs.push(pb);
   }
-  return Array.from(map.values()).sort((a, b) => a.game_slug.localeCompare(b.game_slug));
+  return Array.from(map.values()).sort((a, b) =>
+    a.game_slug.localeCompare(b.game_slug),
+  );
 }
 
 // ----------------------------------------------------------------
@@ -140,7 +155,11 @@ export default async function UserProfilePage({
 
   if (!profile) notFound();
 
-  const gameGroups = groupPBsByGame(pbsData?.personal_bests ?? []);
+  const allPBs = pbsData?.personal_bests ?? [];
+  const pbRunIds = new Set(allPBs.map((pb) => pb.id));
+  const otherRuns = runs.filter((r) => !pbRunIds.has(r.id));
+  const fullGameGroups = groupPBsByGame(allPBs.filter((pb) => !pb.is_il));
+  const ilGroups = groupPBsByGame(allPBs.filter((pb) => pb.is_il));
   const displayName = profile.display_name || profile.username;
 
   return (
@@ -168,7 +187,9 @@ export default async function UserProfilePage({
                 )}
                 <h1 className="profile-username">{displayName}</h1>
                 {profile.is_placeholder && (
-                  <span className="profile-placeholder-badge">Unregistered</span>
+                  <span className="profile-placeholder-badge">
+                    Unregistered
+                  </span>
                 )}
               </div>
 
@@ -199,7 +220,9 @@ export default async function UserProfilePage({
         {/* Stats */}
         <div className="profile-stats">
           <div className="profile-stat">
-            <span className="profile-stat-number">{profile.stats.verified_runs}</span>
+            <span className="profile-stat-number">
+              {profile.stats.verified_runs}
+            </span>
             <span className="profile-stat-label">Verified Runs</span>
           </div>
           <div className="profile-stat">
@@ -220,7 +243,11 @@ export default async function UserProfilePage({
             <h2 className="profile-section-title">Moderates</h2>
             <div className="profile-mod-list">
               {profile.moderated_games.map((game) => (
-                <Link key={game.id} href={`/games/${game.slug}`} className="profile-mod-pill">
+                <Link
+                  key={game.id}
+                  href={`/games/${game.slug}`}
+                  className="profile-mod-pill"
+                >
                   {game.name}
                   <span className="profile-mod-role">{game.role}</span>
                 </Link>
@@ -230,18 +257,21 @@ export default async function UserProfilePage({
         )}
 
         {/* Personal Bests */}
-        <RunsTable
-          variant="pbs"
-          gameGroups={gameGroups}
-          profileUser={{
-            username: profile.username,
-            display_name: profile.display_name,
-            country: profile.country,
-          }}
-        />
+        <div className="profile-section">
+          <h2 className="profile-section-title">Personal Bests</h2>
+          <PBTable
+            fullGameGroups={fullGameGroups}
+            ilGroups={ilGroups}
+            profileUser={{
+              username: profile.username,
+              display_name: profile.display_name,
+              country: profile.country,
+            }}
+          />
+        </div>
 
         {/* Other Runs */}
-        <RunsTable variant="runs" runs={runs} />
+        <RunsTable variant="runs" runs={otherRuns} />
       </div>
     </div>
   );

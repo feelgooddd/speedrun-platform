@@ -34,5 +34,7 @@ export interface PendingRun {
   submitted_at: string;
   rejected?: boolean;
   reject_reason?: string | null;
-  variable_values: RunVariable[]; // 👈 new
+  variable_values: RunVariable[]; 
+  score_value?: number | null;
+scoring_type?: string | null;
 }

@@ -275,6 +275,7 @@ export const getPlatformCategories = async (req: Request, res: Response) => {
           where: { deleted_at: null },
           orderBy: { order: "asc" },
           include: {
+            
             subcategories: {
               where: { deleted_at: null },
               orderBy: { order: "asc" },
@@ -918,6 +919,9 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     });
     if (!category) return res.status(404).json({ error: "Category not found" });
 
+    const scoringType = category.scoring_type ?? null;
+    const isScored = scoringType !== null;
+
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
     const skip = (pageNum - 1) * limitNum;
@@ -1038,7 +1042,12 @@ export const getLeaderboard = async (req: Request, res: Response) => {
           include: { variable_value: { include: { variable: true } } },
         },
       },
-      orderBy: { [timingField]: "asc" as const },
+      orderBy: isScored
+        ? [
+            { score_value: scoringType === "highscore" ? "desc" : "asc" },
+            { [timingField]: "asc" },
+          ]
+        : { [timingField]: "asc" as const },
     });
 
     // Ensure run has ALL requested variable values (Prisma `some` is OR)
@@ -1072,13 +1081,39 @@ export const getLeaderboard = async (req: Request, res: Response) => {
         );
       });
     } else {
-      const seen = new Set<string>();
+      const seen = new Map<
+        string,
+        { score: number | null; time: number | null }
+      >();
       dedupedRuns = filteredRuns.filter((run) => {
-        if (seen.has(run.user_id)) return false;
-        seen.add(run.user_id);
-        return true;
+        const existing = seen.get(run.user_id);
+        const runScore = run.score_value ?? Infinity;
+        const runTime = (run as any)[timingField] ?? Infinity;
+
+        if (!existing) {
+          seen.set(run.user_id, { score: runScore, time: runTime });
+          return true;
+        }
+
+        if (isScored) {
+          const isBetter =
+            scoringType === "highscore"
+              ? runScore > (existing.score ?? -Infinity)
+              : runScore < (existing.score ?? Infinity);
+          const isTiebreak =
+            runScore === existing.score &&
+            runTime < (existing.time ?? Infinity);
+          if (isBetter || isTiebreak) {
+            seen.set(run.user_id, { score: runScore, time: runTime });
+            return true;
+          }
+          return false;
+        } else {
+          return false; // already seen, normal dedup
+        }
       });
     }
+console.log("dedupedRuns order:", dedupedRuns.map(r => ({ score: r.score_value, time: (r as any)[timingField] })));
 
     // Tie-aware ranking
     const rankedWithTies: ((typeof dedupedRuns)[number] & { _rank: number })[] =
@@ -1089,9 +1124,19 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       if (i === 0) {
         rank = 1;
       } else {
-        const prevTime = (dedupedRuns[i - 1] as any)[timingField];
-        const currTime = (run as any)[timingField];
-        rank = currTime === prevTime ? rankedWithTies[i - 1]._rank : i + 1;
+        const prev = dedupedRuns[i - 1];
+        const curr = run;
+        if (isScored) {
+          // Tie on score_value, then tiebreak on time
+          const sameScore = prev.score_value === curr.score_value;
+          const sameTime =
+            (prev as any)[timingField] === (curr as any)[timingField];
+          rank = sameScore && sameTime ? rankedWithTies[i - 1]._rank : i + 1;
+        } else {
+          const prevTime = (prev as any)[timingField];
+          const currTime = (curr as any)[timingField];
+          rank = currTime === prevTime ? rankedWithTies[i - 1]._rank : i + 1;
+        }
       }
       rankedWithTies.push({ ...run, _rank: rank });
     }
@@ -1117,6 +1162,7 @@ export const getLeaderboard = async (req: Request, res: Response) => {
       timing_method: platform.timing_method,
       video_url: run.video_url,
       submitted_at: run.submitted_at,
+      score_value: run.score_value ?? null,
       variable_values: run.variable_values.map((rv) => ({
         variable: rv.variable_value.variable.name,
         variable_slug: rv.variable_value.variable.slug,
@@ -1202,10 +1248,10 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
     let isCoop = false;
 
     if (Object.keys(variableFilters).length > 0) {
-const variables = await prisma.variable.findMany({
-  where: { level_category_id: { in: levelCategoryIds } },
-  include: { values: true },
-});
+      const variables = await prisma.variable.findMany({
+        where: { level_category_id: { in: levelCategoryIds } },
+        include: { values: true },
+      });
 
       for (const [varSlug, valSlug] of Object.entries(variableFilters)) {
         const variable = variables.find((v) => v.slug === varSlug);

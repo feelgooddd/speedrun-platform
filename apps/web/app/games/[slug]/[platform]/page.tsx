@@ -57,6 +57,7 @@ interface Category {
   variables?: Variable[];
   runs?: Run[];
   total?: number;
+  category_type?: string;
   // variable-filtered runs keyed by "varSlug:valueSlug"
   variableRuns?: Record<string, { runs: Run[]; total: number }>;
 }
@@ -107,7 +108,8 @@ async function getLeaderboard(
     }
   }
 
-const res = await fetch(url, { cache: "no-store" });  if (!res.ok) return { runs: [], total: 0 };
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) return { runs: [], total: 0 };
   const data = await res.json();
   return { runs: data.runs ?? [], total: data.total ?? 0 };
 }
@@ -179,6 +181,12 @@ export default async function PlatformPage({
       return { ...cat, runs, total };
     }),
   );
+  const fullGameCategories = categories.filter(
+    (c) => !c.category_type || c.category_type === "full_game",
+  );
+  const extensionCategories = categories.filter(
+    (c) => c.category_type === "extension",
+  );
 
   return (
     <div className="landing">
@@ -196,7 +204,8 @@ export default async function PlatformPage({
         </div>
 
         <LeaderboardTabs
-          categories={categories}
+          categories={fullGameCategories}
+          extensionCategories={extensionCategories}
           gameSlug={slug}
           platformSlug={platform}
         />

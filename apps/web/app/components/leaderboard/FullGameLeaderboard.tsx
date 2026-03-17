@@ -18,6 +18,7 @@ interface Run {
   timing_method?: string;
   video_url: string;
   submitted_at: string;
+  score_value?: number | null;
   user?: {
     id: string;
     username: string;
@@ -66,6 +67,7 @@ interface Category {
   variables?: Variable[];
   runs?: Run[];
   total?: number;
+  scoring_type?: string | null;
   variableRuns?: Record<string, { runs: Run[]; total: number }>;
 }
 
@@ -116,8 +118,12 @@ export default function FullGameLeaderboard({
   const [activeCategory, setActiveCategory] = useState(
     initialCategories[0]?.slug ?? "",
   );
-  const [activeSubcategory, setActiveSubcategory] = useState<Record<string, string>>({});
-  const [activeFilters, setActiveFilters] = useState<Record<string, Record<string, string>>>({});
+  const [activeSubcategory, setActiveSubcategory] = useState<
+    Record<string, string>
+  >({});
+  const [activeFilters, setActiveFilters] = useState<
+    Record<string, Record<string, string>>
+  >({});
   const [categories, setCategories] = useState(initialCategories);
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
@@ -126,29 +132,38 @@ export default function FullGameLeaderboard({
 
   const category = categories.find((c) => c.slug === activeCategory);
 
+  const scoringType = category?.scoring_type ?? null;
+  const isScored = scoringType !== null;
+
   const hasVariables = !!category?.variables && category.variables.length > 0;
-  const hasSubcategories = !!category?.subcategories && category.subcategories.length > 0;
+  const hasSubcategories =
+    !!category?.subcategories && category.subcategories.length > 0;
   const isVariableCategory = hasVariables && !hasSubcategories;
 
   const subcategoryVar = category?.variables?.find((v) => v.is_subcategory);
-  const filterVars = category?.variables
-    ?.filter((v) => !v.is_subcategory)
-    .sort((a, b) => a.order - b.order) ?? [];
+  const filterVars =
+    category?.variables
+      ?.filter((v) => !v.is_subcategory)
+      .sort((a, b) => a.order - b.order) ?? [];
 
-  const currentFilters: Record<string, string> = isVariableCategory && category?.variables
-    ? {
-        ...(buildDefaultFilters(category.variables)),
-        ...(activeFilters[activeCategory] ?? {}),
-      }
-    : {};
+  const currentFilters: Record<string, string> =
+    isVariableCategory && category?.variables
+      ? {
+          ...buildDefaultFilters(category.variables),
+          ...(activeFilters[activeCategory] ?? {}),
+        }
+      : {};
 
   // Compute which variable IDs are hidden given current selections
-  const hiddenVariableIds = isVariableCategory && category?.variables
-    ? computeHiddenVariableIds(category.variables, currentFilters)
-    : new Set<string>();
+  const hiddenVariableIds =
+    isVariableCategory && category?.variables
+      ? computeHiddenVariableIds(category.variables, currentFilters)
+      : new Set<string>();
 
   // Filter out hidden variables from filter rows
-  const visibleFilterVars = filterVars.filter((v) => !hiddenVariableIds.has(v.id));
+  const visibleFilterVars = filterVars.filter(
+    (v) => !hiddenVariableIds.has(v.id),
+  );
 
   const currentCacheKey = isVariableCategory
     ? serializeFilters(currentFilters)
@@ -167,7 +182,9 @@ export default function FullGameLeaderboard({
     runs = varData?.runs ?? [];
     total = varData?.total ?? 0;
   } else if (currentSubcategorySlug && category?.subcategories) {
-    const sub = category.subcategories.find((s) => s.slug === currentSubcategorySlug);
+    const sub = category.subcategories.find(
+      (s) => s.slug === currentSubcategorySlug,
+    );
     runs = sub?.runs ?? [];
     total = sub?.total ?? runs.length;
   } else {
@@ -177,20 +194,28 @@ export default function FullGameLeaderboard({
 
   const showSeparateTimes =
     runs.some(
-      (run) => run.realtime_ms && run.gametime_ms && run.realtime_ms !== run.gametime_ms,
+      (run) =>
+        run.realtime_ms &&
+        run.gametime_ms &&
+        run.realtime_ms !== run.gametime_ms,
     ) ?? false;
 
   const hasSystemColumn = categories.some((cat) => {
     if (cat.runs?.some((r) => r.system)) return true;
-    if (cat.subcategories?.some((sub) => sub.runs?.some((r) => r.system))) return true;
+    if (cat.subcategories?.some((sub) => sub.runs?.some((r) => r.system)))
+      return true;
     if (cat.variableRuns) {
-      return Object.values(cat.variableRuns).some((vr) => vr.runs.some((r) => r.system));
+      return Object.values(cat.variableRuns).some((vr) =>
+        vr.runs.some((r) => r.system),
+      );
     }
     return false;
   });
 
-  const colCount = (showSeparateTimes ? 6 : 5) + (hasSystemColumn ? 1 : 0);
-
+  const colCount =
+    (showSeparateTimes ? 6 : 5) +
+    (hasSystemColumn ? 1 : 0) +
+    (isScored ? 1 : 0);
   const handleRowClick = (runId: string) => {
     setExpandedRunId((prev) => (prev === runId ? null : runId));
   };
@@ -208,16 +233,22 @@ export default function FullGameLeaderboard({
     return { runs: data.runs ?? [], total: data.total ?? 0 };
   };
 
-  const handleVariableFilterClick = async (varSlug: string, valueSlug: string) => {
+  const handleVariableFilterClick = async (
+    varSlug: string,
+    valueSlug: string,
+  ) => {
     const newFilters = {
-      ...(buildDefaultFilters(category?.variables ?? [])),
+      ...buildDefaultFilters(category?.variables ?? []),
       ...(activeFilters[activeCategory] ?? {}),
       [varSlug]: valueSlug,
     };
 
     setActiveFilters((prev) => ({
       ...prev,
-      [activeCategory]: { ...(prev[activeCategory] ?? {}), [varSlug]: valueSlug },
+      [activeCategory]: {
+        ...(prev[activeCategory] ?? {}),
+        [varSlug]: valueSlug,
+      },
     }));
 
     const cacheKey = serializeFilters(newFilters);
@@ -252,7 +283,11 @@ export default function FullGameLeaderboard({
       const loadKey = `${activeCategory}-${currentCacheKey}`;
       setLoading((prev) => ({ ...prev, [loadKey]: true }));
       try {
-        const result = await fetchVariableRuns(activeCategory, currentFilters, nextPage);
+        const result = await fetchVariableRuns(
+          activeCategory,
+          currentFilters,
+          nextPage,
+        );
         if (result.runs.length > 0) {
           setCategories((prev) =>
             prev.map((cat) => {
@@ -301,11 +336,19 @@ export default function FullGameLeaderboard({
                 ...cat,
                 subcategories: cat.subcategories.map((sub) => {
                   if (sub.slug !== currentSubcategorySlug) return sub;
-                  return { ...sub, runs: [...sub.runs, ...data.runs], total: data.total };
+                  return {
+                    ...sub,
+                    runs: [...sub.runs, ...data.runs],
+                    total: data.total,
+                  };
                 }),
               };
             }
-            return { ...cat, runs: [...(cat.runs || []), ...data.runs], total: data.total };
+            return {
+              ...cat,
+              runs: [...(cat.runs || []), ...data.runs],
+              total: data.total,
+            };
           }),
         );
       }
@@ -340,41 +383,52 @@ export default function FullGameLeaderboard({
       </div>
 
       {/* Subcategory variable subtabs (is_subcategory: true) */}
-      {isVariableCategory && subcategoryVar && !hiddenVariableIds.has(subcategoryVar.id) && (
-        <div className="leaderboard-subtabs">
-          {subcategoryVar.values.map((val) => {
-            const isActive = (currentFilters[subcategoryVar.slug] ?? subcategoryVar.values[0]?.slug) === val.slug;
-            return (
-              <button
-                key={val.id}
-                className={`leaderboard-subtab ${isActive ? "active" : ""}`}
-                onClick={() => handleVariableFilterClick(subcategoryVar.slug, val.slug)}
-              >
-                {val.name}
-              </button>
-            );
-          })}
-        </div>
-      )}
+      {isVariableCategory &&
+        subcategoryVar &&
+        !hiddenVariableIds.has(subcategoryVar.id) && (
+          <div className="leaderboard-subtabs">
+            {subcategoryVar.values.map((val) => {
+              const isActive =
+                (currentFilters[subcategoryVar.slug] ??
+                  subcategoryVar.values[0]?.slug) === val.slug;
+              return (
+                <button
+                  key={val.id}
+                  className={`leaderboard-subtab ${isActive ? "active" : ""}`}
+                  onClick={() =>
+                    handleVariableFilterClick(subcategoryVar.slug, val.slug)
+                  }
+                >
+                  {val.name}
+                </button>
+              );
+            })}
+          </div>
+        )}
 
       {/* Filter variable rows — only visible ones */}
-      {isVariableCategory && visibleFilterVars.map((filterVar) => (
-        <div key={filterVar.id} className="leaderboard-filter-row">
-          <span className="leaderboard-filter-label">{filterVar.name}:</span>
-          {filterVar.values.map((val) => {
-            const isActive = (currentFilters[filterVar.slug] ?? filterVar.values[0]?.slug) === val.slug;
-            return (
-              <button
-                key={val.id}
-                className={`leaderboard-filter-btn ${isActive ? "active" : ""}`}
-                onClick={() => handleVariableFilterClick(filterVar.slug, val.slug)}
-              >
-                {val.name}
-              </button>
-            );
-          })}
-        </div>
-      ))}
+      {isVariableCategory &&
+        visibleFilterVars.map((filterVar) => (
+          <div key={filterVar.id} className="leaderboard-filter-row">
+            <span className="leaderboard-filter-label">{filterVar.name}:</span>
+            {filterVar.values.map((val) => {
+              const isActive =
+                (currentFilters[filterVar.slug] ??
+                  filterVar.values[0]?.slug) === val.slug;
+              return (
+                <button
+                  key={val.id}
+                  className={`leaderboard-filter-btn ${isActive ? "active" : ""}`}
+                  onClick={() =>
+                    handleVariableFilterClick(filterVar.slug, val.slug)
+                  }
+                >
+                  {val.name}
+                </button>
+              );
+            })}
+          </div>
+        ))}
 
       {/* Legacy subcategory subtabs */}
       {!isVariableCategory && hasSubcategories && (
@@ -384,7 +438,10 @@ export default function FullGameLeaderboard({
               key={sub.id}
               className={`leaderboard-subtab ${currentSubcategorySlug === sub.slug ? "active" : ""}`}
               onClick={() =>
-                setActiveSubcategory((prev) => ({ ...prev, [activeCategory]: sub.slug }))
+                setActiveSubcategory((prev) => ({
+                  ...prev,
+                  [activeCategory]: sub.slug,
+                }))
               }
             >
               {sub.name}
@@ -406,6 +463,9 @@ export default function FullGameLeaderboard({
                 <tr>
                   <th>#</th>
                   <th>Runner</th>
+                  {isScored && (
+                    <th>{scoringType === "lowcast" ? "Casts" : "Score"}</th>
+                  )}
                   {showSeparateTimes ? (
                     <>
                       <th>Time (IGT)</th>
@@ -427,7 +487,13 @@ export default function FullGameLeaderboard({
                       <tr
                         key={run.id}
                         className={
-                          run.rank === 1 ? "rank-1" : run.rank === 2 ? "rank-2" : run.rank === 3 ? "rank-3" : ""
+                          run.rank === 1
+                            ? "rank-1"
+                            : run.rank === 2
+                              ? "rank-2"
+                              : run.rank === 3
+                                ? "rank-3"
+                                : ""
                         }
                         onClick={() => handleRowClick(run.id)}
                         style={{ cursor: "pointer" }}
@@ -453,7 +519,10 @@ export default function FullGameLeaderboard({
                                     {runner.display_name}
                                   </Link>
                                   {i < run.runners!.length - 1 && (
-                                    <span className="runner-separator"> & </span>
+                                    <span className="runner-separator">
+                                      {" "}
+                                      &{" "}
+                                    </span>
                                   )}
                                 </span>
                               ))}
@@ -473,10 +542,22 @@ export default function FullGameLeaderboard({
                             </Link>
                           ) : null}
                         </td>
+                        {isScored && (
+  <td className="time-cell">
+    {run.score_value ?? "—"}
+    {run.realtime_display && (
+      <span className="time-secondary"> ({run.realtime_display})</span>
+    )}
+  </td>
+)}
                         {showSeparateTimes ? (
                           <>
-                            <td className="time-cell">{run.gametime_display || "—"}</td>
-                            <td className="time-cell secondary">{run.realtime_display || "—"}</td>
+                            <td className="time-cell">
+                              {run.gametime_display || "—"}
+                            </td>
+                            <td className="time-cell secondary">
+                              {run.realtime_display || "—"}
+                            </td>
                           </>
                         ) : (
                           <td className="time-cell">
@@ -486,19 +567,27 @@ export default function FullGameLeaderboard({
                             {run.timing_method === "realtime" &&
                               run.gametime_display &&
                               run.gametime_ms !== run.realtime_ms && (
-                                <span className="time-secondary"> ({run.gametime_display} IGT)</span>
+                                <span className="time-secondary">
+                                  {" "}
+                                  ({run.gametime_display} IGT)
+                                </span>
                               )}
                             {run.timing_method === "gametime" &&
                               run.realtime_display &&
                               run.gametime_ms !== run.realtime_ms && (
-                                <span className="time-secondary"> ({run.realtime_display} RTA)</span>
+                                <span className="time-secondary">
+                                  {" "}
+                                  ({run.realtime_display} RTA)
+                                </span>
                               )}
                           </td>
                         )}
                         {hasSystemColumn && (
                           <td className="system-cell">
                             {run.system ? (
-                              <span className="run-system-badge">{run.system}</span>
+                              <span className="run-system-badge">
+                                {run.system}
+                              </span>
                             ) : (
                               "—"
                             )}
@@ -525,7 +614,11 @@ export default function FullGameLeaderboard({
                             <Link
                               href={`/admin/runs/${run.id}`}
                               className="video-link"
-                              style={{ marginLeft: "0.75rem", opacity: 0.6, fontSize: "0.8rem" }}
+                              style={{
+                                marginLeft: "0.75rem",
+                                opacity: 0.6,
+                                fontSize: "0.8rem",
+                              }}
                               onClick={(e) => e.stopPropagation()}
                             >
                               Edit
@@ -535,11 +628,20 @@ export default function FullGameLeaderboard({
                       </tr>
 
                       {isExpanded && (
-                        <tr key={`${run.id}-comment`} className="run-accordion-row">
+                        <tr
+                          key={`${run.id}-comment`}
+                          className="run-accordion-row"
+                        >
                           <td colSpan={colCount} className="run-accordion-cell">
                             <div className="run-accordion-content">
-                              <span className="run-accordion-label">Runner's comment:</span>{" "}
-                              {run.comment ? run.comment : <em>No comment provided.</em>}
+                              <span className="run-accordion-label">
+                                Runner's comment:
+                              </span>{" "}
+                              {run.comment ? (
+                                run.comment
+                              ) : (
+                                <em>No comment provided.</em>
+                              )}
                             </div>
                           </td>
                         </tr>

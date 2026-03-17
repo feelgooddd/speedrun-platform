@@ -24,11 +24,14 @@ interface VariableValue {
 }
 
 interface PersonalBest {
+  id: string;
+  is_il: boolean;
   is_coop: boolean;
   game_id: string;
   game_name: string;
   game_slug: string;
-  category_id: string;
+  level_name?: string | null;
+  category_id: string | null;
   category_name: string;
   category_slug: string;
   subcategory_name?: string | null;
@@ -40,6 +43,8 @@ interface PersonalBest {
   realtime_display: string | null;
   gametime_ms: number | null;
   gametime_display: string | null;
+  score_value?: number | null;
+  scoring_type?: string | null;
   video_url: string | null;
   comment: string | null;
   rank: number;
@@ -60,233 +65,304 @@ function getRankDisplay(rank: number) {
 }
 
 export default function PBTable({
-  gameGroups,
+  fullGameGroups,
+  ilGroups,
   profileUser,
 }: {
-  gameGroups: GameGroup[];
+  fullGameGroups: GameGroup[];
+  ilGroups: GameGroup[];
   profileUser: ProfileUser;
 }) {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-  const [expandedGames, setExpandedGames] = useState<Set<string>>(
-    () => new Set(gameGroups.map((g) => g.game_slug))
-  );
+  const allSlugs = [
+    ...fullGameGroups.map((g) => g.game_slug),
+    ...ilGroups.map((g) => `il-${g.game_slug}`),
+  ];
+const [expandedGames, setExpandedGames] = useState<Set<string>>(() => new Set());
 
-  const toggleGame = (slug: string) => {
+  const toggleGame = (key: string) => {
     setExpandedGames((prev) => {
       const next = new Set(prev);
-      next.has(slug) ? next.delete(slug) : next.add(slug);
+      next.has(key) ? next.delete(key) : next.add(key);
       return next;
     });
   };
 
-  if (gameGroups.length === 0) {
+  const renderGroup = (
+    group: GameGroup,
+    expandKey: string,
+    showLevel: boolean,
+  ) => {
+    const isGameExpanded = expandedGames.has(expandKey);
+    const colCount = showLevel ? 7 : 6;
+
+    return (
+      <div key={expandKey} className="profile-pb-game">
+        <div
+          className="profile-pb-game-header"
+          onClick={() => toggleGame(expandKey)}
+          style={{
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+          }}
+        >
+          <span className="profile-pb-game-chevron">
+            {isGameExpanded ? "▾" : "▸"}
+          </span>
+          <Link
+            href={`/games/${group.game_slug}`}
+            className="profile-pb-game-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {group.game_name}
+          </Link>
+          <span className="profile-pb-game-count">
+            {group.pbs.length}{" "}
+            {group.pbs.length === 1 ? "category" : "categories"}
+          </span>
+        </div>
+
+        {isGameExpanded && (
+          <div className="leaderboard-table-wrap">
+            <table className="leaderboard-table">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th>Category</th>
+                  {showLevel && <th>Level</th>}
+                  <th>Runner</th>
+                  <th>Platform</th>
+                  <th>Time</th>
+                  <th>Video</th>
+                </tr>
+              </thead>
+              <tbody>
+                {group.pbs.map((pb) => {
+                  const { label, className } = getRankDisplay(pb.rank);
+                  const primaryTime =
+                    pb.timing_method === "gametime"
+                      ? pb.gametime_display
+                      : pb.realtime_display;
+                  const secondaryTime =
+                    pb.timing_method === "gametime"
+                      ? pb.realtime_display
+                      : pb.gametime_display;
+                  const secondaryLabel =
+                    pb.timing_method === "gametime" ? "RTA" : "IGT";
+
+                  const varKey = pb.variable_values?.length
+                    ? pb.variable_values
+                        .map((v) => `${v.variable_slug}:${v.value_slug}`)
+                        .join("-")
+                    : (pb.subcategory_name ?? "");
+                  const rowKey = `${pb.category_id}-${varKey}`;
+                  const isExpanded = expandedRowId === rowKey;
+
+                  const subcategoryBadge = pb.subcategory_name ?? null;
+                  const variableBadges =
+                    pb.variable_values?.filter(() => !pb.subcategory_name) ??
+                    [];
+
+                  return (
+                    <>
+                      <tr
+                        key={rowKey}
+                        className={className}
+                        onClick={() =>
+                          setExpandedRowId((prev) =>
+                            prev === rowKey ? null : rowKey,
+                          )
+                        }
+                        style={{ cursor: "pointer" }}
+                      >
+                        <td className="rank-cell">{label}</td>
+                        <td>
+                          <Link
+                            href={`/games/${pb.game_slug}/${pb.platform_slug}`}
+                            className="runner-link"
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              display: "inline-flex",
+                              gap: "0.4rem",
+                              alignItems: "center",
+                              flexWrap: "wrap",
+                            }}
+                          >
+                            {pb.category_name}
+                            {subcategoryBadge && (
+                              <span className="profile-subcategory-badge">
+                                {subcategoryBadge}
+                              </span>
+                            )}
+                            {variableBadges.map((v) => (
+                              <span
+                                key={v.variable_slug}
+                                className="profile-subcategory-badge"
+                              >
+                                {v.value}
+                              </span>
+                            ))}
+                            {pb.is_coop && (
+                              <span className="profile-coop-badge">Co-op</span>
+                            )}
+                          </Link>
+                        </td>
+                        {showLevel && <td>{pb.level_name ?? "—"}</td>}
+                        <td className="runner-cell">
+                          {pb.is_coop && pb.runners ? (
+                            <div
+                              style={{
+                                display: "flex",
+                                flexDirection: "column",
+                                gap: "0.25rem",
+                              }}
+                            >
+                              {pb.runners.map((r) => (
+                                <Link
+                                  key={r.id}
+                                  href={`/profile/${r.username}`}
+                                  className="runner-link"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  {r.country ? (
+                                    <span className="runner-country">
+                                      {countryCodeToFlag(r.country)}
+                                    </span>
+                                  ) : (
+                                    <span className="runner-country">🏁</span>
+                                  )}
+                                  {r.display_name || r.username}
+                                </Link>
+                              ))}
+                            </div>
+                          ) : (
+                            <Link
+                              href={`/profile/${profileUser.username}`}
+                              className="runner-link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {profileUser.country && (
+                                <span className="runner-country">
+                                  {countryCodeToFlag(profileUser.country)}
+                                </span>
+                              )}
+                              {profileUser.display_name || profileUser.username}
+                            </Link>
+                          )}
+                        </td>
+                        <td className="date-cell">{pb.platform}</td>
+                        <td className="time-cell">
+                          {pb.score_value != null
+                            ? `${pb.score_value} ${pb.scoring_type === "lowcast" ? "casts" : "pts"}`
+                            : primaryTime || "—"}
+                          {pb.score_value != null && primaryTime && (
+                            <span className="time-secondary">
+                              {" "}
+                              ({primaryTime})
+                            </span>
+                          )}
+                          {pb.score_value == null &&
+                            secondaryTime &&
+                            pb.realtime_ms !== pb.gametime_ms && (
+                              <span className="time-secondary">
+                                {" "}
+                                ({secondaryTime} {secondaryLabel})
+                              </span>
+                            )}
+                        </td>
+                        <td className="video-cell">
+                          {pb.video_url ? (
+                            <a
+                              href={pb.video_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="video-link"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              ▶ Watch
+                            </a>
+                          ) : (
+                            <span className="no-video">—</span>
+                          )}
+                        </td>
+                      </tr>
+
+                      {isExpanded && (
+                        <tr
+                          key={`${rowKey}-comment`}
+                          className="run-accordion-row"
+                        >
+                          <td colSpan={colCount} className="run-accordion-cell">
+                            <div className="run-accordion-content">
+                              {pb.is_coop && pb.runners && (
+                                <div style={{ marginBottom: "0.5rem" }}>
+                                  <span className="run-accordion-label">
+                                    Runners:{" "}
+                                  </span>
+                                  {pb.runners.map((r, i) => (
+                                    <span key={r.id}>
+                                      <Link
+                                        href={`/profile/${r.username}`}
+                                        className="runner-link"
+                                        style={{ display: "inline" }}
+                                      >
+                                        {r.display_name || r.username}
+                                      </Link>
+                                      {i < pb.runners!.length - 1 && ", "}
+                                    </span>
+                                  ))}
+                                </div>
+                              )}
+                              <span className="run-accordion-label">
+                                Runner's comment:
+                              </span>{" "}
+                              {pb.comment ? (
+                                pb.comment
+                              ) : (
+                                <em>No comment provided.</em>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const hasFullGame = fullGameGroups.length > 0;
+  const hasIL = ilGroups.length > 0;
+
+  if (!hasFullGame && !hasIL) {
     return <p className="leaderboard-empty">No verified runs yet.</p>;
   }
 
   return (
     <div className="profile-pb-games">
-      {gameGroups.map((group) => {
-        const isGameExpanded = expandedGames.has(group.game_slug);
-        const colCount = 6;
-
-        return (
-          <div key={group.game_slug} className="profile-pb-game">
-            <div
-              className="profile-pb-game-header"
-              onClick={() => toggleGame(group.game_slug)}
-              style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}
-            >
-              <span className="profile-pb-game-chevron">
-                {isGameExpanded ? "▾" : "▸"}
-              </span>
-              <Link
-                href={`/games/${group.game_slug}`}
-                className="profile-pb-game-title"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {group.game_name}
-              </Link>
-              <span className="profile-pb-game-count">
-                {group.pbs.length} {group.pbs.length === 1 ? "category" : "categories"}
-              </span>
-            </div>
-
-            {isGameExpanded && (
-              <div className="leaderboard-table-wrap">
-                <table className="leaderboard-table">
-                  <thead>
-                    <tr>
-                      <th>Rank</th>
-                      <th>Category</th>
-                      <th>Runner</th>
-                      <th>Platform</th>
-                      <th>Time</th>
-                      <th>Video</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {group.pbs.map((pb) => {
-                      const { label, className } = getRankDisplay(pb.rank);
-                      const primaryTime =
-                        pb.timing_method === "gametime"
-                          ? pb.gametime_display
-                          : pb.realtime_display;
-                      const secondaryTime =
-                        pb.timing_method === "gametime"
-                          ? pb.realtime_display
-                          : pb.gametime_display;
-                      const secondaryLabel =
-                        pb.timing_method === "gametime" ? "RTA" : "IGT";
-
-                      const varKey = pb.variable_values?.length
-                        ? pb.variable_values.map((v) => `${v.variable_slug}:${v.value_slug}`).join("-")
-                        : pb.subcategory_name ?? "";
-                      const rowKey = `${pb.category_id}-${varKey}`;
-                      const isExpanded = expandedRowId === rowKey;
-
-                      const subcategoryBadge = pb.subcategory_name ?? null;
-                      const variableBadges = pb.variable_values?.filter(
-                        () => !pb.subcategory_name
-                      ) ?? [];
-
-                      return (
-                        <>
-                          <tr
-                            key={rowKey}
-                            className={className}
-                            onClick={() =>
-                              setExpandedRowId((prev) =>
-                                prev === rowKey ? null : rowKey
-                              )
-                            }
-                            style={{ cursor: "pointer" }}
-                          >
-                            <td className="rank-cell">{label}</td>
-                            <td>
-                              <Link
-                                href={`/games/${pb.game_slug}/${pb.platform_slug}`}
-                                className="runner-link"
-                                onClick={(e) => e.stopPropagation()}
-                                style={{
-                                  display: "inline-flex",
-                                  gap: "0.4rem",
-                                  alignItems: "center",
-                                  flexWrap: "wrap",
-                                }}
-                              >
-                                {pb.category_name}
-                                {subcategoryBadge && (
-                                  <span className="profile-subcategory-badge">
-                                    {subcategoryBadge}
-                                  </span>
-                                )}
-                                {variableBadges.map((v) => (
-                                  <span key={v.variable_slug} className="profile-subcategory-badge">
-                                    {v.value}
-                                  </span>
-                                ))}
-                                {pb.is_coop && (
-                                  <span className="profile-coop-badge">Co-op</span>
-                                )}
-                              </Link>
-                            </td>
-                            <td className="runner-cell">
-                              {pb.is_coop && pb.runners ? (
-                                <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-                                  {pb.runners.map((r) => (
-                                    <Link
-                                      key={r.id}
-                                      href={`/profile/${r.username}`}
-                                      className="runner-link"
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      {r.country ? (
-                                        <span className="runner-country">{countryCodeToFlag(r.country)}</span>
-                                      ) : (
-                                        <span className="runner-country">🏁</span>
-                                      )}
-                                      {r.display_name || r.username}
-                                    </Link>
-                                  ))}
-                                </div>
-                              ) : (
-                                <Link
-                                  href={`/profile/${profileUser.username}`}
-                                  className="runner-link"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  {profileUser.country && (
-                                    <span className="runner-country">
-                                      {countryCodeToFlag(profileUser.country)}
-                                    </span>
-                                  )}
-                                  {profileUser.display_name || profileUser.username}
-                                </Link>
-                              )}
-                            </td>
-                            <td className="date-cell">{pb.platform}</td>
-                            <td className="time-cell">
-                              {primaryTime || "—"}
-                              {secondaryTime && pb.realtime_ms !== pb.gametime_ms && (
-                                <span className="time-secondary">
-                                  {" "}({secondaryTime} {secondaryLabel})
-                                </span>
-                              )}
-                            </td>
-                            <td className="video-cell">
-                              {pb.video_url ? (
-                                <a
-                                  href={pb.video_url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="video-link"
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  ▶ Watch
-                                </a>
-                              ) : (
-                                <span className="no-video">—</span>
-                              )}
-                            </td>
-                          </tr>
-
-                          {isExpanded && (
-                            <tr key={`${rowKey}-comment`} className="run-accordion-row">
-                              <td colSpan={colCount} className="run-accordion-cell">
-                                <div className="run-accordion-content">
-                                  {pb.is_coop && pb.runners && (
-                                    <div style={{ marginBottom: "0.5rem" }}>
-                                      <span className="run-accordion-label">Runners: </span>
-                                      {pb.runners.map((r, i) => (
-                                        <span key={r.id}>
-                                          <Link
-                                            href={`/profile/${r.username}`}
-                                            className="runner-link"
-                                            style={{ display: "inline" }}
-                                          >
-                                            {r.display_name || r.username}
-                                          </Link>
-                                          {i < pb.runners!.length - 1 && ", "}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-                                  <span className="run-accordion-label">Runner's comment:</span>{" "}
-                                  {pb.comment ? pb.comment : <em>No comment provided.</em>}
-                                </div>
-                              </td>
-                            </tr>
-                          )}
-                        </>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        );
-      })}
+      {hasFullGame && (
+        <>
+          <h3 className="profile-section-subtitle">Full Game</h3>
+          {fullGameGroups.map((group) =>
+            renderGroup(group, group.game_slug, false),
+          )}
+        </>
+      )}
+      {hasIL && (
+        <>
+          <h3 className="profile-section-subtitle">Individual Levels</h3>
+          {ilGroups.map((group) =>
+            renderGroup(group, `il-${group.game_slug}`, true),
+          )}
+        </>
+      )}
     </div>
   );
 }

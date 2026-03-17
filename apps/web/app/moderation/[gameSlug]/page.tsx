@@ -65,7 +65,7 @@ export default function ModQueuePage({
     isPending: boolean,
     isIL: boolean = false,
   ) => {
-    const colCount = isIL ? 9 : 8;
+    const colCount = isIL ? 10 : 9;
     return (
       <>
         <h2
@@ -100,6 +100,7 @@ export default function ModQueuePage({
                   <th>Platform</th>
                   <th>RTA</th>
                   <th>IGT</th>
+                  <th>Score</th>
                   <th>Video</th>
                   <th>System</th>
                   {!isPending && <th>Reason</th>}
@@ -195,6 +196,12 @@ export default function ModQueuePage({
                         </td>
                         <td className="time-cell">
                           {run.gametime_display || run.realtime_display || "—"}
+                        </td>
+
+                        <td className="time-cell">
+                          {run.score_value != null
+                            ? `${run.score_value} ${run.scoring_type === "lowcast" ? "casts" : "pts"}`
+                            : "—"}
                         </td>
                         <td className="video-cell">
                           {run.video_url ? (

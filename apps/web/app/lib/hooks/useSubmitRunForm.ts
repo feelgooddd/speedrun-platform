@@ -48,6 +48,7 @@ export function useSubmitRunForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
+  const [scoreValue, setScoreValue] = useState<string>("");
 
   // All variables for this category
   const allVariables = useMemo(
@@ -122,6 +123,7 @@ export function useSubmitRunForm({
     setSelectedVariableValues({});
     setSelectedSubcategory("");
     setSelectedSystem("");
+    setScoreValue("");
   };
 
   const handleSubmit = async (
@@ -177,6 +179,8 @@ export function useSubmitRunForm({
         video_url: videoUrl,
         comment: comment || "",
         system_id: selectedSystem || undefined,
+        score_value: scoreValue ? parseInt(scoreValue) : null,
+
         ...(runnersToSubmit.length > 0 && {
           runner_ids: runnersToSubmit.map((r) => r.id),
         }),
@@ -250,6 +254,8 @@ export function useSubmitRunForm({
       submitting,
       error,
       success,
+      scoreValue,
+      setScoreValue,
     },
     helpers: { isCoop, requiredPlayers, subcategoryVariables },
     handleSubmit,

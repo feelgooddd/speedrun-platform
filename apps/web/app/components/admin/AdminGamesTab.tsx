@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import CreateGameWizard from "./CreateGamewizard";
+import CreateGameWizard from "./CreateGameWizard";
 import VariableForm from "./VariableForm";
 import DependencyForm from "./DependencyForm";
 import AdminAddCategoryForm from "./AdminAddCategoryForm";

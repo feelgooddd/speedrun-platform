@@ -36,6 +36,7 @@ export interface Category {
   slug: string;
   name: string;
   variables: Variable[];
+  scoring_type?: string | null;
   subcategories: { 
     id: string; 
     name: string; 

@@ -30,6 +30,7 @@ interface ProfileUser {
 // PB variant types
 // ----------------------------------------------------------------
 interface PersonalBest {
+  id: string;
   is_coop: boolean;
   game_id: string;
   game_name: string;
@@ -46,6 +47,8 @@ interface PersonalBest {
   realtime_display: string | null;
   gametime_ms: number | null;
   gametime_display: string | null;
+  score_value?: number | null;
+  scoring_type?: string | null;
   video_url: string | null;
   comment: string | null;
   rank: number;
@@ -72,6 +75,8 @@ interface Run {
   realtime_display: string | null;
   gametime_ms: number | null;
   gametime_display: string | null;
+  score_value?: number | null;
+  scoring_type?: string | null;
   video_url: string | null;
   comment?: string | null;
   submitted_at: string;
@@ -104,6 +109,7 @@ function getRankDisplay(rank: number) {
 function groupRunsByGame(runs: Run[]) {
   const map = new Map<string, Run[]>();
   for (const run of runs) {
+    if (!run.game) continue; // skip runs with no game
     if (!map.has(run.game)) map.set(run.game, []);
     map.get(run.game)!.push(run);
   }
@@ -115,12 +121,8 @@ function groupRunsByGame(runs: Run[]) {
 // ----------------------------------------------------------------
 export default function RunsTable(props: RunsTableProps) {
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
-  if (props.variant === "pbs") {
-    return new Set(props.gameGroups.slice(0, 1).map((g) => g.game_slug));
-  }
-  return new Set();
-});
+const [expandedGames, setExpandedGames] = useState<Set<string>>(() => new Set());
+
 
   const toggleGame = (slug: string) => {
     setExpandedGames((prev) => {
@@ -153,7 +155,12 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                 <div
                   className="profile-pb-game-header"
                   onClick={() => toggleGame(group.game_slug)}
-                  style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}
+                  style={{
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                  }}
                 >
                   <span className="profile-pb-game-chevron">
                     {isGameExpanded ? "▾" : "▸"}
@@ -166,7 +173,8 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                     {group.game_name}
                   </Link>
                   <span className="profile-pb-game-count">
-                    {group.pbs.length} {group.pbs.length === 1 ? "category" : "categories"}
+                    {group.pbs.length}{" "}
+                    {group.pbs.length === 1 ? "category" : "categories"}
                   </span>
                 </div>
 
@@ -198,13 +206,20 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                             pb.timing_method === "gametime" ? "RTA" : "IGT";
 
                           const varKey = pb.variable_values?.length
-                            ? pb.variable_values.map((v) => `${v.variable_slug}:${v.value_slug}`).join("-")
-                            : pb.subcategory_name ?? "";
+                            ? pb.variable_values
+                                .map(
+                                  (v) => `${v.variable_slug}:${v.value_slug}`,
+                                )
+                                .join("-")
+                            : (pb.subcategory_name ?? "");
                           const rowKey = `${pb.category_id}-${varKey}`;
                           const isExpanded = expandedRowId === rowKey;
 
                           const subcategoryBadge = pb.subcategory_name ?? null;
-                          const variableBadges = pb.variable_values?.filter(() => !pb.subcategory_name) ?? [];
+                          const variableBadges =
+                            pb.variable_values?.filter(
+                              () => !pb.subcategory_name,
+                            ) ?? [];
 
                           return (
                             <>
@@ -212,7 +227,9 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                                 key={rowKey}
                                 className={className}
                                 onClick={() =>
-                                  setExpandedRowId((prev) => prev === rowKey ? null : rowKey)
+                                  setExpandedRowId((prev) =>
+                                    prev === rowKey ? null : rowKey,
+                                  )
                                 }
                                 style={{ cursor: "pointer" }}
                               >
@@ -222,25 +239,43 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                                     href={`/games/${pb.game_slug}/${pb.platform_slug}`}
                                     className="runner-link"
                                     onClick={(e) => e.stopPropagation()}
-                                    style={{ display: "inline-flex", gap: "0.4rem", alignItems: "center", flexWrap: "wrap" }}
+                                    style={{
+                                      display: "inline-flex",
+                                      gap: "0.4rem",
+                                      alignItems: "center",
+                                      flexWrap: "wrap",
+                                    }}
                                   >
                                     {pb.category_name}
                                     {subcategoryBadge && (
-                                      <span className="profile-subcategory-badge">{subcategoryBadge}</span>
+                                      <span className="profile-subcategory-badge">
+                                        {subcategoryBadge}
+                                      </span>
                                     )}
                                     {variableBadges.map((v) => (
-                                      <span key={v.variable_slug} className="profile-subcategory-badge">
+                                      <span
+                                        key={v.variable_slug}
+                                        className="profile-subcategory-badge"
+                                      >
                                         {v.value}
                                       </span>
                                     ))}
                                     {pb.is_coop && (
-                                      <span className="profile-coop-badge">Co-op</span>
+                                      <span className="profile-coop-badge">
+                                        Co-op
+                                      </span>
                                     )}
                                   </Link>
                                 </td>
                                 <td className="runner-cell">
                                   {pb.is_coop && pb.runners ? (
-                                    <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                                    <div
+                                      style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: "0.25rem",
+                                      }}
+                                    >
                                       {pb.runners.map((r) => (
                                         <Link
                                           key={r.id}
@@ -249,9 +284,13 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                                           onClick={(e) => e.stopPropagation()}
                                         >
                                           {r.country ? (
-                                            <span className="runner-country">{countryCodeToFlag(r.country)}</span>
+                                            <span className="runner-country">
+                                              {countryCodeToFlag(r.country)}
+                                            </span>
                                           ) : (
-                                            <span className="runner-country">🏁</span>
+                                            <span className="runner-country">
+                                              🏁
+                                            </span>
                                           )}
                                           {r.display_name || r.username}
                                         </Link>
@@ -265,21 +304,35 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                                     >
                                       {profileUser.country && (
                                         <span className="runner-country">
-                                          {countryCodeToFlag(profileUser.country)}
+                                          {countryCodeToFlag(
+                                            profileUser.country,
+                                          )}
                                         </span>
                                       )}
-                                      {profileUser.display_name || profileUser.username}
+                                      {profileUser.display_name ||
+                                        profileUser.username}
                                     </Link>
                                   )}
                                 </td>
                                 <td className="date-cell">{pb.platform}</td>
                                 <td className="time-cell">
-                                  {primaryTime || "—"}
-                                  {secondaryTime && pb.realtime_ms !== pb.gametime_ms && (
+                                  {pb.score_value != null
+                                    ? `${pb.score_value} ${pb.scoring_type === "lowcast" ? "casts" : "pts"}`
+                                    : primaryTime || "—"}
+                                  {pb.score_value != null && primaryTime && (
                                     <span className="time-secondary">
-                                      {" "}({secondaryTime} {secondaryLabel})
+                                      {" "}
+                                      ({primaryTime})
                                     </span>
                                   )}
+                                  {pb.score_value == null &&
+                                    secondaryTime &&
+                                    pb.realtime_ms !== pb.gametime_ms && (
+                                      <span className="time-secondary">
+                                        {" "}
+                                        ({secondaryTime} {secondaryLabel})
+                                      </span>
+                                    )}
                                 </td>
                                 <td className="video-cell">
                                   {pb.video_url ? (
@@ -299,12 +352,20 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                               </tr>
 
                               {isExpanded && (
-                                <tr key={`${rowKey}-comment`} className="run-accordion-row">
-                                  <td colSpan={colCount} className="run-accordion-cell">
+                                <tr
+                                  key={`${rowKey}-comment`}
+                                  className="run-accordion-row"
+                                >
+                                  <td
+                                    colSpan={colCount}
+                                    className="run-accordion-cell"
+                                  >
                                     <div className="run-accordion-content">
                                       {pb.is_coop && pb.runners && (
                                         <div style={{ marginBottom: "0.5rem" }}>
-                                          <span className="run-accordion-label">Runners: </span>
+                                          <span className="run-accordion-label">
+                                            Runners:{" "}
+                                          </span>
                                           {pb.runners.map((r, i) => (
                                             <span key={r.id}>
                                               <Link
@@ -314,13 +375,20 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                                               >
                                                 {r.display_name || r.username}
                                               </Link>
-                                              {i < pb.runners!.length - 1 && ", "}
+                                              {i < pb.runners!.length - 1 &&
+                                                ", "}
                                             </span>
                                           ))}
                                         </div>
                                       )}
-                                      <span className="run-accordion-label">Runner's comment:</span>{" "}
-                                      {pb.comment ? pb.comment : <em>No comment provided.</em>}
+                                      <span className="run-accordion-label">
+                                        Runner's comment:
+                                      </span>{" "}
+                                      {pb.comment ? (
+                                        pb.comment
+                                      ) : (
+                                        <em>No comment provided.</em>
+                                      )}
                                     </div>
                                   </td>
                                 </tr>
@@ -356,7 +424,12 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
             <div
               className="profile-pb-game-header"
               onClick={() => toggleGame(group.game)}
-              style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}
+              style={{
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+              }}
             >
               <span className="profile-pb-game-chevron">
                 {expandedGames.has(group.game) ? "▾" : "▸"}
@@ -398,19 +471,32 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                           <tr
                             key={rowKey}
                             onClick={() =>
-                              setExpandedRowId((prev) => prev === rowKey ? null : rowKey)
+                              setExpandedRowId((prev) =>
+                                prev === rowKey ? null : rowKey,
+                              )
                             }
                             style={{ cursor: "pointer" }}
                           >
                             <td>{run.category}</td>
                             <td className="date-cell">{run.platform}</td>
                             <td className="time-cell">
-                              {primaryTime || "—"}
-                              {secondaryTime && run.realtime_ms !== run.gametime_ms && (
+                              {run.score_value != null
+                                ? `${run.score_value} ${run.scoring_type === "lowcast" ? "casts" : "pts"}`
+                                : primaryTime || "—"}
+                              {run.score_value != null && primaryTime && (
                                 <span className="time-secondary">
-                                  {" "}({secondaryTime} {secondaryLabel})
+                                  {" "}
+                                  ({primaryTime})
                                 </span>
                               )}
+                              {run.score_value == null &&
+                                secondaryTime &&
+                                run.realtime_ms !== run.gametime_ms && (
+                                  <span className="time-secondary">
+                                    {" "}
+                                    ({secondaryTime} {secondaryLabel})
+                                  </span>
+                                )}
                             </td>
                             <td className="video-cell">
                               {run.video_url ? (
@@ -430,17 +516,26 @@ const [expandedGames, setExpandedGames] = useState<Set<string>>(() => {
                           </tr>
 
                           {isExpanded && (
-                            <tr key={`${rowKey}-comment`} className="run-accordion-row">
+                            <tr
+                              key={`${rowKey}-comment`}
+                              className="run-accordion-row"
+                            >
                               <td colSpan={4} className="run-accordion-cell">
                                 <div className="run-accordion-content">
                                   {run.comment && (
                                     <div style={{ marginBottom: "0.5rem" }}>
-                                      <span className="run-accordion-label">Comment:</span>{" "}
+                                      <span className="run-accordion-label">
+                                        Comment:
+                                      </span>{" "}
                                       {run.comment}
                                     </div>
                                   )}
-                                  <span className="run-accordion-label">Date:</span>{" "}
-                                  {new Date(run.submitted_at).toLocaleDateString()}
+                                  <span className="run-accordion-label">
+                                    Date:
+                                  </span>{" "}
+                                  {new Date(
+                                    run.submitted_at,
+                                  ).toLocaleDateString()}
                                 </div>
                               </td>
                             </tr>

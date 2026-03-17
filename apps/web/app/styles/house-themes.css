@@ -1,7 +1,8 @@
-/* ── House Themes ── */
 [data-house="gryffindor"] {
   --primary: #740001;
   --accent: #d3a625;
+  --accent-secondary: #a89880;
+  --title: #e8d5b0;
   --bg: #0d0000;
   --bg-gradient: radial-gradient(ellipse at top, #2a0a0a 0%, #0d0000 60%);
   --card-bg: rgba(116, 0, 1, 0.08);
@@ -12,6 +13,8 @@
 [data-house="slytherin"] {
   --primary: #1a472a;
   --accent: #7cfc90;
+  --accent-secondary: #7a9982;
+  --title: #c8ddd0;
   --bg: #050d07;
   --bg-gradient: radial-gradient(ellipse at top, #0a1f10 0%, #050d07 60%);
   --card-bg: rgba(26, 71, 42, 0.12);
@@ -22,6 +25,8 @@
 [data-house="ravenclaw"] {
   --primary: #0e1a40;
   --accent: #7eb8f7;
+  --accent-secondary: #8090a8;
+  --title: #c8d8f0;
   --bg: #030710;
   --bg-gradient: radial-gradient(ellipse at top, #0a1228 0%, #030710 60%);
   --card-bg: rgba(14, 26, 64, 0.2);
@@ -32,6 +37,8 @@
 [data-house="hufflepuff"] {
   --primary: #372e29;
   --accent: #f0c75e;
+  --accent-secondary: #a89e7a;
+  --title: #e8dfc8;
   --bg: #0f0c08;
   --bg-gradient: radial-gradient(ellipse at top, #1f1a0e 0%, #0f0c08 60%);
   --card-bg: rgba(240, 199, 94, 0.06);

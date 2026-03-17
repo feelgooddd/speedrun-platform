@@ -24,8 +24,26 @@ export const getModQueue = async (req: Request, res: Response) => {
         platform_id: { in: platformIds },
       },
       include: {
-        user: { select: { id: true, username: true, country: true, display_name: true } },
-        runners: { include: { user: { select: { id: true, username: true, country: true, display_name: true } } } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            country: true,
+            display_name: true,
+          },
+        },
+        runners: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                country: true,
+                display_name: true,
+              },
+            },
+          },
+        },
         category: true,
         level_category: { include: { level: true } },
         platform: true,
@@ -59,6 +77,8 @@ export const getModQueue = async (req: Request, res: Response) => {
       realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
       gametime_ms: run.gametime_ms,
       gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+      score_value: run.score_value ?? null,
+      scoring_type: run.category?.scoring_type ?? null,
       video_url: run.video_url,
       submitted_at: run.submitted_at,
       rejected: run.rejected,
@@ -77,10 +97,32 @@ export const getGlobalModQueue = async (req: Request, res: Response) => {
     const runs = await prisma.run.findMany({
       where: { verified: false, rejected: false },
       include: {
-        user: { select: { id: true, username: true, country: true, display_name: true } },
-        runners: { include: { user: { select: { id: true, username: true, country: true, display_name: true } } } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            country: true,
+            display_name: true,
+          },
+        },
+        runners: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                country: true,
+                display_name: true,
+              },
+            },
+          },
+        },
         category: { include: { platform: { include: { game: true } } } },
-        level_category: { include: { level: { include: { platform: { include: { game: true } } } } } },
+        level_category: {
+          include: {
+            level: { include: { platform: { include: { game: true } } } },
+          },
+        },
         platform: true,
         subcategory: true,
         variable_values: {
@@ -118,9 +160,15 @@ export const getGlobalModQueue = async (req: Request, res: Response) => {
           platform: run.platform.name,
           timing_method: run.platform.timing_method,
           realtime_ms: run.realtime_ms,
-          realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+          realtime_display: run.realtime_ms
+            ? formatTime(run.realtime_ms)
+            : null,
           gametime_ms: run.gametime_ms,
-          gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+          gametime_display: run.gametime_ms
+            ? formatTime(run.gametime_ms)
+            : null,
+          score_value: run.score_value ?? null,
+          scoring_type: run.category?.scoring_type ?? null,
           video_url: run.video_url,
           submitted_at: run.submitted_at,
           comment: run.comment,
@@ -183,4 +231,3 @@ export const verifyRun = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Failed to verify run" });
   }
 };
-

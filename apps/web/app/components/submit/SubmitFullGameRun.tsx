@@ -142,7 +142,30 @@ export default function SubmitFullGameRun() {
               </div>
             )}
 
-            {/* Dynamic HP4+ Variables */}
+            {selectedCategoryData?.scoring_type && (
+              <div className="form-group">
+                <label className="form-label">
+                  {selectedCategoryData.scoring_type === "lowcast"
+                    ? "Cast Count *"
+                    : "Score *"}
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={states.scoreValue}
+                  onChange={(e) => states.setScoreValue(e.target.value)}
+                  required
+                  className="auth-input"
+                  placeholder={
+                    selectedCategoryData.scoring_type === "lowcast"
+                      ? "e.g. 65"
+                      : "e.g. 10000"
+                  }
+                />
+              </div>
+            )}
+
+            {/* Dynamic Variables */}
             {helpers.subcategoryVariables.map((v) => (
               <div key={v.id} className="form-group">
                 <label className="form-label">{v.name} *</label>

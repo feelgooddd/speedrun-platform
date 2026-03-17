@@ -65,11 +65,14 @@ model Category {
 
   order       Int       @default(0)
 
+  scoring_type String?
 
   platform      Platform      @relation(fields: [platform_id], references: [id])
   runs          Run[]
   subcategories Subcategory[]
   variables     Variable[]
+  category_type String @default("full_game")
+
 }
 
 // Kept for simple single-dimension games (e.g. Console/Emu, ACE/No ACE)
@@ -147,7 +150,8 @@ model Run {
   speedrun_com_id   String?   @unique
   system_id         String?
   submitted_by_id   String?
-
+  score_value Int?
+  
   user            User               @relation(fields: [user_id], references: [id])
   submitted_by    User?              @relation("RunSubmitter", fields: [submitted_by_id], references: [id])
   category        Category?          @relation(fields: [category_id], references: [id])
@@ -157,6 +161,8 @@ model Run {
   system          System?            @relation(fields: [system_id], references: [id])
   variable_values RunVariableValue[]
   runners         RunRunner[]
+
+
 }
 
 // Join table: which variable values apply to this run
@@ -229,7 +235,7 @@ model LevelCategory {
   slug        String
   order       Int       @default(0)
   deleted_at  DateTime?
-
+  scoring_type String?
   level     Level      @relation(fields: [level_id], references: [id])
   runs      Run[]
   variables Variable[]

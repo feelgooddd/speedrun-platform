@@ -22,6 +22,7 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
       video_url,
       comment,
       system_id,
+      score_value,
     } = req.body;
 
     if (!game_slug || !platform_slug) {
@@ -95,6 +96,7 @@ if (level_category_id) {
       system_id: system_id ?? null,
       submitted_by_id: req.userId,
       verified: false,
+      score_value: score_value ? parseInt(score_value) : null,
       ...(resolvedVariableValueIds.length > 0 && {
         variable_values: {
           create: resolvedVariableValueIds.map((id) => ({ variable_value_id: id })),
@@ -208,6 +210,7 @@ if (level_category_id) {
         system_id: system_id ?? null,
         submitted_by_id: req.userId,
         verified: false,
+        score_value: score_value ? parseInt(score_value) : null,
         ...(resolvedVariableValueIds.length > 0 && {
           variable_values: {
             create: resolvedVariableValueIds.map((id) => ({ variable_value_id: id })),

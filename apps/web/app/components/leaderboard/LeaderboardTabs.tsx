@@ -7,6 +7,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  category_type?: string;
   subcategories?: any[];
   variables?: any[];
   runs?: any[];
@@ -16,20 +17,22 @@ interface Category {
 
 interface LeaderboardTabsProps {
   categories: Category[];
+  extensionCategories: Category[];
   gameSlug: string;
   platformSlug: string;
 }
 
 export default function LeaderboardTabs({
   categories,
+  extensionCategories,
   gameSlug,
   platformSlug,
 }: LeaderboardTabsProps) {
-  const [activeTab, setActiveTab] = useState<"fullgame" | "il">("fullgame");
+  const [activeTab, setActiveTab] = useState<"fullgame" | "il" | "extension">("fullgame");
+  const hasExtensions = extensionCategories.length > 0;
 
   return (
     <div>
-      {/* Full Game / ILs toggle */}
       <div className="leaderboard-tabs" style={{ marginBottom: "0" }}>
         <button
           className={`leaderboard-tab ${activeTab === "fullgame" ? "active" : ""}`}
@@ -43,6 +46,14 @@ export default function LeaderboardTabs({
         >
           Individual Levels
         </button>
+        {hasExtensions && (
+          <button
+            className={`leaderboard-tab ${activeTab === "extension" ? "active" : ""}`}
+            onClick={() => setActiveTab("extension")}
+          >
+            Category Extensions
+          </button>
+        )}
       </div>
 
       {activeTab === "fullgame" && (
@@ -55,6 +66,14 @@ export default function LeaderboardTabs({
 
       {activeTab === "il" && (
         <ILLeaderboard
+          gameSlug={gameSlug}
+          platformSlug={platformSlug}
+        />
+      )}
+
+      {activeTab === "extension" && (
+        <FullGameLeaderboard
+          categories={extensionCategories}
           gameSlug={gameSlug}
           platformSlug={platformSlug}
         />

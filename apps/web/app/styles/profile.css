@@ -7,8 +7,7 @@
   align-items: center;
   margin-top: 2rem;
   justify-content: space-around;
-    gap: 2rem;
-
+  gap: 2rem;
 }
 
 .profile-avatar {
@@ -38,7 +37,6 @@
 }
 
 .profile-identity {
-
 }
 
 .profile-username-row {
@@ -142,14 +140,22 @@
 
 .profile-section-title {
   font-family: "Cinzel", serif;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 600;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: #555;
+  color: var(--title);
   margin-bottom: 1.5rem;
   padding-bottom: 0.75rem;
   border-bottom: 1px solid var(--card-border);
+}
+
+.profile-section-subtitle {
+  font-size: 1rem;
+  font-family: "Cinzel", serif;
+  font-weight: 400;
+  color: var(--accent);
+  border-bottom: 1px solid var(--glow);
 }
 
 /* Moderated Games */
@@ -167,7 +173,7 @@
   font-size: 0.7rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-secondary);
   text-decoration: none;
   border: 1px solid var(--card-border);
   padding: 0.4rem 1rem;
@@ -177,7 +183,7 @@
 
 .profile-mod-pill:hover {
   background: var(--card-bg);
-  border-color: var(--accent);
+  border-color: var(--accent-secondary);
 }
 
 .profile-mod-role {
@@ -199,7 +205,7 @@
   font-weight: 600;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--accent-secondary);
   text-decoration: none;
   opacity: 0.8;
   transition: opacity 0.2s ease;

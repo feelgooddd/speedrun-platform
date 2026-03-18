@@ -29,7 +29,7 @@ interface Stats {
 async function getGames(): Promise<Game[]> {
   try {
     const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/games`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 0 },
     });
     return res.json();
   } catch {

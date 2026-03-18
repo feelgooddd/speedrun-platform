@@ -36,6 +36,17 @@
 /* This import happens after root styles so that root does not override house-them styles */
 @import "./styles/house-themes.css";
 
+/* Remove number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
 /* ── Base ── */
 .landing {
   min-height: 100vh;
@@ -143,9 +154,16 @@
 }
 
 .game-card-icon {
-  font-size: 2rem;
+  height: 80px;
+  display: flex;
+  align-items: center;
   margin-bottom: 1rem;
-  opacity: 0.6;
+}
+
+.game-card-icon img {
+  width: 80px;
+  height: 80px;
+  object-fit: contain;
 }
 
 .game-card-title {

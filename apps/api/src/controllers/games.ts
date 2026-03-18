@@ -9,11 +9,14 @@ import { AuthRequest } from "../middleware/auth";
 
 export const getAllGames = async (req: Request, res: Response) => {
   try {
-    const games = await prisma.game.findMany({
-      include: {
-        platforms: true,
-      },
-    });
+const games = await prisma.game.findMany({
+  include: {
+    platforms: true,
+  },
+  orderBy: {
+    created_at: 'asc',
+  },
+});
     res.json(games);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch games" });

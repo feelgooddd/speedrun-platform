@@ -1,5 +1,5 @@
-// @/app/components/submit/TimeInputGroup.tsx
 import { TimeParts } from "@/app/lib/types/submission";
+import React from "react";
 
 interface TimeInputGroupProps {
   label: string;
@@ -8,22 +8,69 @@ interface TimeInputGroupProps {
   disabled?: boolean;
 }
 
-export default function TimeInputGroup({ label, parts, setParts, disabled = false }: TimeInputGroupProps) {
+const timeFieldConfig: Record<
+  keyof TimeParts,
+  { placeholder: string; max: number }
+> = {
+  h: { placeholder: "HH", max: 9999 },
+  m: { placeholder: "MM", max: 59 },
+  s: { placeholder: "SS", max: 59 },
+  ms: { placeholder: "MS", max: 999 },
+};
+
+export default function TimeInputGroup({
+  label,
+  parts,
+  setParts,
+  disabled = false,
+}: TimeInputGroupProps) {
   const handleChange = (key: keyof TimeParts, value: string) => {
-    setParts((prev) => ({ ...prev, [key]: value }));
+    const num = Number(value);
+    const max = timeFieldConfig[key].max;
+    if (value !== "" && num > max) {
+      setParts((prev) => ({ ...prev, [key]: String(max) }));
+    } else {
+      setParts((prev) => ({ ...prev, [key]: value }));
+    }
+  };
+  const handleBlur = (key: keyof TimeParts, value: string) => {
+    const num = Number(value);
+    const max = timeFieldConfig[key].max;
+    if (value === "") return;
+    const clamped = Math.min(Math.max(num, 0), max);
+    setParts((prev) => ({ ...prev, [key]: String(clamped) }));
   };
 
   return (
-    <div className="form-group" style={{ opacity: disabled ? 0.4 : 1, pointerEvents: disabled ? "none" : "auto" }}>
+    <div
+      className="form-group"
+      style={{
+        opacity: disabled ? 0.4 : 1,
+        pointerEvents: disabled ? "none" : "auto",
+      }}
+    >
       <label className="form-label">{label}</label>
       <div className="time-input-group">
-        <input type="number" placeholder="HH" value={parts.h} onChange={(e) => handleChange('h', e.target.value)} className="auth-input" />
-        <span className="time-separator">:</span>
-        <input type="number" placeholder="MM" value={parts.m} onChange={(e) => handleChange('m', e.target.value)} className="auth-input" />
-        <span className="time-separator">:</span>
-        <input type="number" placeholder="SS" value={parts.s} onChange={(e) => handleChange('s', e.target.value)} className="auth-input" />
-        <span className="time-separator">.</span>
-        <input type="number" placeholder="MS" value={parts.ms} onChange={(e) => handleChange('ms', e.target.value)} className="auth-input" />
+        {(Object.keys(timeFieldConfig) as (keyof TimeParts)[]).map(
+          (key, i, arr) => (
+            <React.Fragment key={key}>
+              <input
+                type="number"
+                placeholder={timeFieldConfig[key].placeholder}
+                value={parts[key]}
+                min={0}
+                max={timeFieldConfig[key].max}
+                onChange={(e) => handleChange(key, e.target.value)}
+                onWheel={(e) => e.currentTarget.blur()}
+                onBlur={(e) => handleBlur(key, e.target.value)}
+                className="auth-input"
+              />
+              {i < arr.length - 1 && (
+                <span className="time-separator">{i === 2 ? "." : ":"}</span>
+              )}
+            </React.Fragment>
+          ),
+        )}
       </div>
     </div>
   );

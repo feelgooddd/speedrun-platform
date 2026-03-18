@@ -5,6 +5,7 @@ interface Platform {
   id: string;
   name: string;
   slug: string;
+  img_url: string;
   categories: Category[];
 }
 
@@ -31,11 +32,6 @@ async function getGame(slug: string): Promise<Game | null> {
   return data.game ?? data;
 }
 
-async function getPlatformCategories(gameSlug: string, platformSlug: string): Promise<Category[]> {
-  // You'll need to create a new API endpoint for this
-  // For now, return empty array
-  return [];
-}
 
 export default async function GamePage({
   params,
@@ -66,7 +62,12 @@ export default async function GamePage({
               className="game-card"
               style={{ animationDelay: `${i * 0.1}s`, textDecoration: "none" }}
             >
-              <div className="game-card-icon">🎮</div>
+<div className="game-card-icon">
+  {platform.img_url 
+    ? <img src={platform.img_url} alt={platform.name} />
+    : "🎮"
+  }
+</div>
               <h2 className="game-card-title">{platform.name}</h2>
             </Link>
           ))}

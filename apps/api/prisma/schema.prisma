@@ -31,6 +31,7 @@ model Game {
   id                  String    @id @default(cuid())
   slug                String    @unique
   name                String
+  img_url             String?
   created_at          DateTime  @default(now())
   default_platform_id String?
   deleted_at          DateTime?
@@ -43,6 +44,7 @@ model Platform {
   id            String    @id @default(cuid())
   game_id       String
   name          String
+  img_url       String?
   slug          String
   timing_method String    @default("realtime")
   deleted_at    DateTime?

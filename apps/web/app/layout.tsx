@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AuthProvider } from "./components/auth/AuthContext";
 import Nav from "./components/ui/Nav";
+import { GlobalEffects } from "./components/GlobalEffects";
 export default function RootLayout({
   children,
 }: {
@@ -22,6 +23,7 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>
+          <GlobalEffects/>
           <Nav />
           {children}
         </AuthProvider>

@@ -14,6 +14,7 @@ interface Platform {
 interface Game {
   id: string;
   name: string;
+  img_url: string;
   slug: string;
   platforms: Platform[];
 }
@@ -135,7 +136,12 @@ export default async function Page() {
                   textDecoration: "none",
                 }}
               >
-                <div className="game-card-icon">⚡</div>
+              <div className="game-card-icon">
+                {game.img_url ? (
+                  <img src={game.img_url} alt={game.name} />
+                ) : (
+                  "⚡"
+                )}</div>
                 <h3 className="game-card-title">{game.name}</h3>
 
                 <div className="game-card-platforms">

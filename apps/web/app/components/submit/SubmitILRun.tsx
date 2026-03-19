@@ -190,35 +190,32 @@ export default function SubmitILRun() {
 
             {selectedLevel && (
               <>
-                {activeLevelCategory?.scoring_type ? (
-                  <div className="form-group">
-                    <label className="form-label">
-                      {activeLevelCategory.scoring_type === "highscore" ? "Score *" : "Casts *"}
-                    </label>
-                    <input
-                      type="number"
-                      value={states.scoreValue}
-                      onChange={(e) => states.setScoreValue(e.target.value)}
-                      required
-                      className="auth-input"
-                      placeholder={activeLevelCategory.scoring_type === "highscore" ? "Enter score..." : "Enter cast count..."}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    <TimeInputGroup
-                      label="Real Time Attack (RTA) *"
-                      parts={states.rtaParts}
-                      setParts={states.setRtaParts}
-                    />
-                    <TimeInputGroup
-                      label="In-Game Time (IGT)"
-                      parts={states.igtParts}
-                      setParts={states.setIgtParts}
-                      disabled={!isGametime}
-                    />
-                  </>
-                )}
+{activeLevelCategory?.scoring_type && (
+  <div className="form-group">
+    <label className="form-label">
+      {activeLevelCategory.scoring_type === "highscore" ? "Score *" : "Casts *"}
+    </label>
+    <input
+      type="number"
+      value={states.scoreValue}
+      onChange={(e) => states.setScoreValue(e.target.value)}
+      required
+      className="auth-input"
+      placeholder={activeLevelCategory.scoring_type === "highscore" ? "Enter score..." : "Enter cast count..."}
+    />
+  </div>
+)}
+<TimeInputGroup
+  label="Real Time Attack (RTA) *"
+  parts={states.rtaParts}
+  setParts={states.setRtaParts}
+/>
+<TimeInputGroup
+  label="In-Game Time (IGT)"
+  parts={states.igtParts}
+  setParts={states.setIgtParts}
+  disabled={!isGametime}
+/>
 
                 <div className="form-group">
                   <label className="form-label">Video URL *</label>
@@ -257,3 +254,4 @@ export default function SubmitILRun() {
     </div>
   );
 }
+

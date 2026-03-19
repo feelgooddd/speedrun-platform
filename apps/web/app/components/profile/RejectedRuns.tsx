@@ -97,13 +97,14 @@ export default function RejectedRuns({ username }: { username: string }) {
     setSuccesses((p) => ({ ...p, [run.id]: "" }));
 
     const isScored = !!run.scoring_type;
-    const realtime_ms = isScored ? null : componentsToMs(form.h, form.m, form.s, form.ms);
+const realtime_ms = componentsToMs(form.h, form.m, form.s, form.ms);
 
-    if (!isScored && (!realtime_ms || realtime_ms <= 0)) {
-      setErrors((p) => ({ ...p, [run.id]: "Please enter a valid time" }));
-      setSubmitting((p) => ({ ...p, [run.id]: false }));
-      return;
-    }
+if (!realtime_ms || realtime_ms <= 0) {
+  setErrors((p) => ({ ...p, [run.id]: "Please enter a valid time" }));
+  setSubmitting((p) => ({ ...p, [run.id]: false }));
+  return;
+}
+
     if (!form.videoUrl) {
       setErrors((p) => ({ ...p, [run.id]: "Video URL is required" }));
       setSubmitting((p) => ({ ...p, [run.id]: false }));
@@ -176,33 +177,33 @@ export default function RejectedRuns({ username }: { username: string }) {
               {/* Edit form */}
               {isExpanded && form && (
                 <div className="cgw-card-body">
-                  {isScored ? (
-                    <div className="form-group">
-                      <label className="form-label">
-                        {run.scoring_type === "highscore" ? "Score" : "Casts"}
-                      </label>
-                      <input
-                        type="number"
-                        className="auth-input"
-                        value={form.scoreValue}
-                        onChange={(e) => updateForm(run.id, { scoreValue: e.target.value })}
-                        placeholder="Enter score..."
-                      />
-                    </div>
-                  ) : (
-                    <div className="form-group">
-                      <label className="form-label">Time (RTA)</label>
-                      <div className="time-input-group">
-                        <input type="number" placeholder="HH" className="auth-input" value={form.h} onChange={(e) => updateForm(run.id, { h: e.target.value })} />
-                        <span className="time-separator">:</span>
-                        <input type="number" placeholder="MM" className="auth-input" value={form.m} onChange={(e) => updateForm(run.id, { m: e.target.value })} />
-                        <span className="time-separator">:</span>
-                        <input type="number" placeholder="SS" className="auth-input" value={form.s} onChange={(e) => updateForm(run.id, { s: e.target.value })} />
-                        <span className="time-separator">.</span>
-                        <input type="number" placeholder="MS" className="auth-input" value={form.ms} onChange={(e) => updateForm(run.id, { ms: e.target.value })} />
-                      </div>
-                    </div>
-                  )}
+{isScored && (
+  <div className="form-group">
+    <label className="form-label">
+      {run.scoring_type === "highscore" ? "Score" : "Casts"}
+    </label>
+    <input
+      type="number"
+      className="auth-input"
+      value={form.scoreValue}
+      onChange={(e) => updateForm(run.id, { scoreValue: e.target.value })}
+      placeholder="Enter score..."
+    />
+  </div>
+)}
+
+<div className="form-group">
+  <label className="form-label">Time (RTA)</label>
+  <div className="time-input-group">
+    <input type="number" placeholder="HH" className="auth-input" value={form.h} onChange={(e) => updateForm(run.id, { h: e.target.value })} />
+    <span className="time-separator">:</span>
+    <input type="number" placeholder="MM" className="auth-input" value={form.m} onChange={(e) => updateForm(run.id, { m: e.target.value })} />
+    <span className="time-separator">:</span>
+    <input type="number" placeholder="SS" className="auth-input" value={form.s} onChange={(e) => updateForm(run.id, { s: e.target.value })} />
+    <span className="time-separator">.</span>
+    <input type="number" placeholder="MS" className="auth-input" value={form.ms} onChange={(e) => updateForm(run.id, { ms: e.target.value })} />
+  </div>
+</div>
 
                   <div className="form-group">
                     <label className="form-label">Video URL</label>

@@ -20,7 +20,6 @@ export const getModQueue = async (req: Request, res: Response) => {
     const runs = await prisma.run.findMany({
       where: {
         verified: false,
-        rejected: false,
         platform_id: { in: platformIds },
       },
       include: {
@@ -78,8 +77,7 @@ export const getModQueue = async (req: Request, res: Response) => {
       gametime_ms: run.gametime_ms,
       gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
       score_value: run.score_value ?? null,
-      scoring_type: run.category?.scoring_type ?? null,
-      video_url: run.video_url,
+scoring_type: run.category?.scoring_type ?? run.level_category?.scoring_type ?? null,      video_url: run.video_url,
       submitted_at: run.submitted_at,
       rejected: run.rejected,
       reject_reason: run.reject_reason,
@@ -95,7 +93,7 @@ export const getModQueue = async (req: Request, res: Response) => {
 export const getGlobalModQueue = async (req: Request, res: Response) => {
   try {
     const runs = await prisma.run.findMany({
-      where: { verified: false, rejected: false },
+      where: { verified: false },
       include: {
         user: {
           select: {
@@ -168,7 +166,7 @@ export const getGlobalModQueue = async (req: Request, res: Response) => {
             ? formatTime(run.gametime_ms)
             : null,
           score_value: run.score_value ?? null,
-          scoring_type: run.category?.scoring_type ?? null,
+scoring_type: run.category?.scoring_type ?? run.level_category?.scoring_type ?? null,
           video_url: run.video_url,
           submitted_at: run.submitted_at,
           comment: run.comment,

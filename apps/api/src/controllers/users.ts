@@ -237,21 +237,35 @@ export const getUserPBs = async (req: Request, res: Response) => {
     // ----------------------------------------------------------------
     const soloPBMap = new Map<string, (typeof soloRuns)[0]>();
     for (const run of soloRuns) {
-      const timingMethod = run.platform.timing_method;
-      const time =
-        timingMethod === "gametime"
-          ? (run.gametime_ms ?? run.realtime_ms)
-          : run.realtime_ms;
-      if (!time) continue;
       const key = getPbKey(run);
       const existing = soloPBMap.get(key);
+      const scoringType = run.category?.scoring_type ?? null;
+
       if (!existing) {
         soloPBMap.set(key, run);
+        continue;
+      }
+
+      if (scoringType !== null) {
+        const runScore = run.score_value ?? null;
+        const existingScore = existing.score_value ?? null;
+        if (runScore === null || existingScore === null) continue;
+        const isBetter =
+          scoringType === "highscore"
+            ? runScore > existingScore
+            : runScore < existingScore; // lowcast: fewer = better
+        if (isBetter) soloPBMap.set(key, run);
       } else {
+        const timingMethod = run.platform.timing_method;
+        const time =
+          timingMethod === "gametime"
+            ? (run.gametime_ms ?? run.realtime_ms)
+            : run.realtime_ms;
         const existingTime =
           timingMethod === "gametime"
-            ? existing.gametime_ms
+            ? (existing.gametime_ms ?? existing.realtime_ms)
             : existing.realtime_ms;
+        if (!time) continue;
         if (existingTime && time < existingTime) soloPBMap.set(key, run);
       }
     }
@@ -264,6 +278,8 @@ export const getUserPBs = async (req: Request, res: Response) => {
         const varValueIds = run.variable_values.map(
           (rv) => rv.variable_value_id,
         );
+        const scoringType = run.category?.scoring_type ?? null;
+        const isScored = scoringType !== null;
 
         const categoryRuns = await prisma.run.findMany({
           where: {
@@ -284,9 +300,15 @@ export const getUserPBs = async (req: Request, res: Response) => {
             user_id: true,
             realtime_ms: true,
             gametime_ms: true,
+            score_value: true,
             variable_values: { select: { variable_value_id: true } },
           },
-          orderBy: { [timeField]: "asc" as const },
+          orderBy: isScored
+            ? [
+                { score_value: scoringType === "highscore" ? "desc" : "asc" },
+                { [timeField]: "asc" as const },
+              ]
+            : { [timeField]: "asc" as const },
         });
 
         const exactRuns =
@@ -298,12 +320,36 @@ export const getUserPBs = async (req: Request, res: Response) => {
               )
             : categoryRuns;
 
-        const seen = new Set<string>();
-        const dedupedRuns = exactRuns.filter((r) => {
-          if (seen.has(r.user_id)) return false;
-          seen.add(r.user_id);
-          return true;
-        });
+        // Dedup one per user, keeping their best run for the scoring mode
+        const seenUsers = new Map<string, (typeof exactRuns)[0]>();
+        for (const r of exactRuns) {
+          const prev = seenUsers.get(r.user_id);
+          if (!prev) {
+            seenUsers.set(r.user_id, r);
+            continue;
+          }
+          if (isScored) {
+            const rScore = r.score_value ?? null;
+            const pScore = prev.score_value ?? null;
+            if (rScore !== null && pScore !== null) {
+              const isBetter =
+                scoringType === "highscore" ? rScore > pScore : rScore < pScore;
+              if (isBetter) seenUsers.set(r.user_id, r);
+            }
+          }
+          // time-based: already ordered asc, first-seen is best
+        }
+
+        const dedupedRuns = Array.from(seenUsers.values());
+
+        // Re-sort after dedup so findIndex lands in the right position
+        if (isScored) {
+          dedupedRuns.sort((a, b) => {
+            const aScore = a.score_value ?? Infinity;
+            const bScore = b.score_value ?? Infinity;
+            return scoringType === "highscore" ? bScore - aScore : aScore - bScore;
+          });
+        }
 
         const rank = dedupedRuns.findIndex((r) => r.user_id === id) + 1;
 

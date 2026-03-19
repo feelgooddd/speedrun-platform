@@ -35,6 +35,8 @@ interface Run {
   verified_at: string | null;
   is_il: boolean;
   level: string | null;
+  score_value: number | null;
+  scoring_type: string | null;
 }
 
 function msToComponents(ms: number | null) {
@@ -95,6 +97,8 @@ export default function RunEditPage({
   const [igtMinutes, setIgtMinutes] = useState("");
   const [igtSeconds, setIgtSeconds] = useState("");
   const [igtMs, setIgtMs] = useState("");
+  //Scoring field
+  const [scoreValue, setScoreValue] = useState<string>("");
 
   const [videoUrl, setVideoUrl] = useState("");
   const [comment, setComment] = useState("");
@@ -117,6 +121,7 @@ export default function RunEditPage({
           setError(data.error);
           return;
         }
+        setScoreValue(data.score_value != null ? String(data.score_value) : "");
         setRun(data);
 
         const rta = msToComponents(data.realtime_ms);
@@ -161,6 +166,11 @@ export default function RunEditPage({
             gametime_ms: gametime_ms > 0 ? gametime_ms : null,
             video_url: videoUrl || null,
             comment: comment || null,
+            score_value: run?.scoring_type
+              ? scoreValue !== ""
+                ? parseInt(scoreValue)
+                : null
+              : undefined,
           }),
         },
       );
@@ -238,81 +248,99 @@ export default function RunEditPage({
             <>
               <div className="profile-section">
                 <form onSubmit={handleSave}>
-                  <div className="form-group">
-                    <label className="form-label">Real Time Attack (RTA)</label>
-                    <div className="time-input-group">
+                  {run.scoring_type ? (
+                    <div className="form-group">
+                      <label className="form-label">
+                        {run.scoring_type === "highscore" ? "Score" : "Casts"}
+                      </label>
                       <input
                         type="number"
-                        placeholder="HH"
-                        value={rtaHours}
-                        onChange={(e) => setRtaHours(e.target.value)}
                         className="auth-input"
-                      />
-                      <span className="time-separator">:</span>
-                      <input
-                        type="number"
-                        placeholder="MM"
-                        value={rtaMinutes}
-                        onChange={(e) => setRtaMinutes(e.target.value)}
-                        className="auth-input"
-                      />
-                      <span className="time-separator">:</span>
-                      <input
-                        type="number"
-                        placeholder="SS"
-                        value={rtaSeconds}
-                        onChange={(e) => setRtaSeconds(e.target.value)}
-                        className="auth-input"
-                      />
-                      <span className="time-separator">.</span>
-                      <input
-                        type="number"
-                        placeholder="MS"
-                        value={rtaMs}
-                        onChange={(e) => setRtaMs(e.target.value)}
-                        className="auth-input"
+                        value={scoreValue}
+                        onChange={(e) => setScoreValue(e.target.value)}
+                        placeholder="Enter score..."
                       />
                     </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label className="form-label">
-                      In-Game Time (IGT) — Optional
-                    </label>
-                    <div className="time-input-group">
-                      <input
-                        type="number"
-                        placeholder="HH"
-                        value={igtHours}
-                        onChange={(e) => setIgtHours(e.target.value)}
-                        className="auth-input"
-                      />
-                      <span className="time-separator">:</span>
-                      <input
-                        type="number"
-                        placeholder="MM"
-                        value={igtMinutes}
-                        onChange={(e) => setIgtMinutes(e.target.value)}
-                        className="auth-input"
-                      />
-                      <span className="time-separator">:</span>
-                      <input
-                        type="number"
-                        placeholder="SS"
-                        value={igtSeconds}
-                        onChange={(e) => setIgtSeconds(e.target.value)}
-                        className="auth-input"
-                      />
-                      <span className="time-separator">.</span>
-                      <input
-                        type="number"
-                        placeholder="MS"
-                        value={igtMs}
-                        onChange={(e) => setIgtMs(e.target.value)}
-                        className="auth-input"
-                      />
-                    </div>
-                  </div>
+                  ) : (
+                    <>
+                      <div className="form-group">
+                        <label className="form-label">
+                          Real Time Attack (RTA)
+                        </label>
+                        <div className="time-input-group">
+                          <input
+                            type="number"
+                            placeholder="HH"
+                            value={rtaHours}
+                            onChange={(e) => setRtaHours(e.target.value)}
+                            className="auth-input"
+                          />
+                          <span className="time-separator">:</span>
+                          <input
+                            type="number"
+                            placeholder="MM"
+                            value={rtaMinutes}
+                            onChange={(e) => setRtaMinutes(e.target.value)}
+                            className="auth-input"
+                          />
+                          <span className="time-separator">:</span>
+                          <input
+                            type="number"
+                            placeholder="SS"
+                            value={rtaSeconds}
+                            onChange={(e) => setRtaSeconds(e.target.value)}
+                            className="auth-input"
+                          />
+                          <span className="time-separator">.</span>
+                          <input
+                            type="number"
+                            placeholder="MS"
+                            value={rtaMs}
+                            onChange={(e) => setRtaMs(e.target.value)}
+                            className="auth-input"
+                          />
+                        </div>
+                      </div>
+                      <div className="form-group">
+                        <label className="form-label">
+                          In-Game Time (IGT) — Optional
+                        </label>
+                        <div className="time-input-group">
+                          <input
+                            type="number"
+                            placeholder="HH"
+                            value={igtHours}
+                            onChange={(e) => setIgtHours(e.target.value)}
+                            className="auth-input"
+                          />
+                          <span className="time-separator">:</span>
+                          <input
+                            type="number"
+                            placeholder="MM"
+                            value={igtMinutes}
+                            onChange={(e) => setIgtMinutes(e.target.value)}
+                            className="auth-input"
+                          />
+                          <span className="time-separator">:</span>
+                          <input
+                            type="number"
+                            placeholder="SS"
+                            value={igtSeconds}
+                            onChange={(e) => setIgtSeconds(e.target.value)}
+                            className="auth-input"
+                          />
+                          <span className="time-separator">.</span>
+                          <input
+                            type="number"
+                            placeholder="MS"
+                            value={igtMs}
+                            onChange={(e) => setIgtMs(e.target.value)}
+                            className="auth-input"
+                          />
+                        </div>
+                      </div>
+                    </>
+                  )}
 
                   <div className="form-group">
                     <label className="form-label">Video URL</label>

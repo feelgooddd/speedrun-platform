@@ -36,6 +36,8 @@ export default function AdminAddCategoryForm({
     platform_slug: "",
     name: "",
     category_slug: "",
+    category_type: "full_game",
+    scoring_type: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -61,13 +63,22 @@ export default function AdminAddCategoryForm({
           body: JSON.stringify({
             name: form.name,
             category_slug: form.category_slug,
+            category_type: form.category_type,
+            scoring_type: form.scoring_type || null,
           }),
         },
       );
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to create category");
       setSuccess(`"${data.category.name}" created successfully.`);
-      setForm({ game_slug: "", platform_slug: "", name: "", category_slug: "" });
+      setForm({
+        game_slug: "",
+        platform_slug: "",
+        name: "",
+        category_slug: "",
+        category_type: "full_game",
+        scoring_type: "",
+      });
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -142,6 +153,31 @@ export default function AdminAddCategoryForm({
             required
           />
         </div>
+      </div>
+      <div className="form-group">
+        <label className="form-label">Category Type</label>
+        <select
+          className="auth-input"
+          value={form.category_type}
+          onChange={(e) => setForm({ ...form, category_type: e.target.value })}
+        >
+          <option value="full_game">Full Game</option>
+          <option value="il">Individual Level</option>
+          <option value="extension">Other (CE)</option>
+        </select>
+      </div>
+
+      <div className="form-group">
+        <label className="form-label">Scoring Type</label>
+        <select
+          className="auth-input"
+          value={form.scoring_type}
+          onChange={(e) => setForm({ ...form, scoring_type: e.target.value })}
+        >
+          <option value="">Time (default)</option>
+          <option value="lowcast">Lowcast</option>
+          <option value="highscore">High Score</option>
+        </select>
       </div>
       {error && <p className="auth-error">{error}</p>}
       {success && <p className="auth-success">{success}</p>}

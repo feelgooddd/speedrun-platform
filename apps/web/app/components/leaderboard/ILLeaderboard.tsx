@@ -13,6 +13,8 @@ interface Run {
   gametime_ms: number | null;
   realtime_display: string | null;
   gametime_display: string | null;
+  score_value: number | null;
+  scoring_type: string | null;
   video_url: string;
   submitted_at: string;
   user?: {
@@ -105,14 +107,14 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeLevel, setActiveLevel] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
-  const [runsCache, setRunsCache] = useState<Record<string, { runs: Run[]; total: number; timingMethod: string }>>({});
+  const [runsCache, setRunsCache] = useState<Record<string, { runs: Run[]; total: number; timingMethod: string; scoringType: string | null }>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [timingMethod, setTimingMethod] = useState<string>("realtime");
+  const [scoringType, setScoringType] = useState<string | null>(null);
   const [expandedRunId, setExpandedRunId] = useState<string | null>(null);
 
   const { user: authUser } = useAuth();
 
-  // Fetch levels on mount
   useEffect(() => {
     const fetchLevels = async () => {
       try {
@@ -159,7 +161,6 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
     l.level_categories.some((c) => c.slug === activeCategory)
   );
 
-  // Get the active level category's variables
   const activeLevelCategory = levels
     .find((l) => l.slug === activeLevel)
     ?.level_categories.find((c) => c.slug === activeCategory);
@@ -181,11 +182,11 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
 
   const cacheKey = `${activeLevel}-${activeCategory}-${serializeFilters(currentFilters)}`;
 
-  // Fetch runs when level/category/filters change
   useEffect(() => {
     if (!activeCategory || !activeLevel) return;
     if (runsCache[cacheKey]) {
       setTimingMethod(runsCache[cacheKey].timingMethod);
+      setScoringType(runsCache[cacheKey].scoringType);
       return;
     }
 
@@ -204,10 +205,17 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
         const fetchedRuns = levelData?.runs ?? [];
         const fetchedTotal = levelData?.total ?? 0;
         const fetchedTiming = data.timing_method ?? "realtime";
+        const fetchedScoringType = data.scoring_type ?? null;
         setTimingMethod(fetchedTiming);
+        setScoringType(fetchedScoringType);
         setRunsCache((prev) => ({
           ...prev,
-          [cacheKey]: { runs: fetchedRuns, total: fetchedTotal, timingMethod: fetchedTiming },
+          [cacheKey]: {
+            runs: fetchedRuns,
+            total: fetchedTotal,
+            timingMethod: fetchedTiming,
+            scoringType: fetchedScoringType,
+          },
         }));
       } catch (e) {
         console.error("Failed to fetch IL runs:", e);
@@ -240,11 +248,18 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
   const total = runsCache[cacheKey]?.total ?? 0;
   const isLoading = loading[cacheKey];
 
-  const showSeparateTimes = runs.some(
+  const isScored = scoringType === "highscore" || scoringType === "lowcast";
+  const showSeparateTimes = !isScored && runs.some(
     (run) => run.realtime_ms && run.gametime_ms && run.realtime_ms !== run.gametime_ms
   );
   const hasSystemColumn = runs.some((r) => r.system);
-  const colCount = (showSeparateTimes ? 6 : 5) + (hasSystemColumn ? 1 : 0);
+
+  const scoreLabel = scoringType === "highscore" ? "Score" : scoringType === "lowcast" ? "Casts" : "Score";
+
+  let colCount = 5; // #, Runner, Time/Score, Date, Video
+  if (showSeparateTimes) colCount += 1;
+  if (isScored) colCount += 1; // extra col for time when score-based
+  if (hasSystemColumn) colCount += 1;
 
   if (loadingLevels) {
     return <p className="leaderboard-empty">Loading...</p>;
@@ -334,7 +349,12 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
               <tr>
                 <th>#</th>
                 <th>Runner</th>
-                {showSeparateTimes ? (
+                {isScored ? (
+                  <>
+                    <th>{scoreLabel}</th>
+                    <th>Time</th>
+                  </>
+                ) : showSeparateTimes ? (
                   <>
                     <th>Time (IGT)</th>
                     <th>RTA</th>
@@ -350,6 +370,9 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
             <tbody>
               {runs.map((run) => {
                 const isExpanded = expandedRunId === run.id;
+                const primaryTime = timingMethod === "gametime"
+                  ? run.gametime_display || run.realtime_display
+                  : run.realtime_display || run.gametime_display;
                 return (
                   <>
                     <tr
@@ -401,17 +424,22 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
                           </Link>
                         ) : null}
                       </td>
-                      {showSeparateTimes ? (
+                      {isScored ? (
+                        <>
+                          <td className="time-cell">
+                            {run.score_value ?? "—"}
+                          </td>
+                          <td className="time-cell secondary">
+                            {primaryTime || "—"}
+                          </td>
+                        </>
+                      ) : showSeparateTimes ? (
                         <>
                           <td className="time-cell">{run.gametime_display || "—"}</td>
                           <td className="time-cell secondary">{run.realtime_display || "—"}</td>
                         </>
                       ) : (
-                        <td className="time-cell">
-                          {timingMethod === "gametime"
-                            ? run.gametime_display || run.realtime_display || "—"
-                            : run.realtime_display || run.gametime_display || "—"}
-                        </td>
+                        <td className="time-cell">{primaryTime || "—"}</td>
                       )}
                       {hasSystemColumn && (
                         <td className="system-cell">

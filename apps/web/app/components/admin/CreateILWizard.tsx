@@ -33,6 +33,7 @@ interface VariableDraft {
 interface LevelCategoryDraft {
   name: string;
   slug: string;
+  scoring_type: string;
   variables: VariableDraft[];
 }
 
@@ -67,29 +68,22 @@ export default function CreateILWizard({
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
-  // Level form
   const [levelForm, setLevelForm] = useState({ name: "", slug: "", order: 0 });
 
-  // Category form keyed by levelIdx
-  const [catForms, setCatForms] = useState<Record<number, { name: string; slug: string }>>({});
+  const [catForms, setCatForms] = useState<Record<number, { name: string; slug: string; scoring_type: string }>>({});
 
-  // Expanded state
   const [expandedLevels, setExpandedLevels] = useState<Record<number, boolean>>({});
   const [expandedCats, setExpandedCats] = useState<Record<string, boolean>>({});
   const [expandedVars, setExpandedVars] = useState<Record<string, boolean>>({});
 
-  // Per-category guided decisions keyed by "levelIdx-catIdx"
   const [catDecisions, setCatDecisions] = useState<Record<string, CatDecision>>({});
 
-  // Variable forms keyed by "levelIdx-catIdx"
   const [varForms, setVarForms] = useState<Record<string, { name: string; slug: string }>>({});
 
-  // Value forms keyed by "levelIdx-catIdx-varIdx"
   const [valForms, setValForms] = useState<Record<string, { name: string; slug: string; is_coop: boolean; required_players: number }>>({});
 
   const selectedPlatforms = games.find((g) => g.slug === gameSlug)?.platforms || [];
 
-  // Fetch existing levels
   useEffect(() => {
     if (!gameSlug || !platformSlug) { setLevels([]); return; }
     setLoadingLevels(true);
@@ -103,6 +97,7 @@ export default function CreateILWizard({
           level_categories: (l.level_categories || []).map((c: any) => ({
             name: c.name,
             slug: c.slug,
+            scoring_type: c.scoring_type ?? "",
             variables: [],
           })),
         }));
@@ -121,7 +116,6 @@ export default function CreateILWizard({
     }));
   };
 
-  // ── Levels ──
   const addLevel = () => {
     if (!levelForm.name.trim() || !levelForm.slug.trim()) return;
     const newLevel: LevelDraft = { ...levelForm, level_categories: [] };
@@ -134,17 +128,21 @@ export default function CreateILWizard({
     setLevels((prev) => prev.filter((_, i) => i !== li));
   };
 
-  // ── Level Categories ──
   const addCategory = (li: number) => {
     const form = catForms[li];
     if (!form?.name.trim() || !form?.slug.trim()) return;
-    const newCat: LevelCategoryDraft = { name: form.name, slug: form.slug, variables: [] };
+    const newCat: LevelCategoryDraft = {
+      name: form.name,
+      slug: form.slug,
+      scoring_type: form.scoring_type ?? "",
+      variables: [],
+    };
     setLevels((prev) => prev.map((l, i) =>
       i !== li ? l : { ...l, level_categories: [...l.level_categories, newCat] }
     ));
     const catIdx = levels[li].level_categories.length;
     setExpandedCats((prev) => ({ ...prev, [`${li}-${catIdx}`]: true }));
-    setCatForms((prev) => ({ ...prev, [li]: { name: "", slug: "" } }));
+    setCatForms((prev) => ({ ...prev, [li]: { name: "", slug: "", scoring_type: "" } }));
   };
 
   const removeCategory = (li: number, ci: number) => {
@@ -153,7 +151,6 @@ export default function CreateILWizard({
     ));
   };
 
-  // ── Variables ──
   const addVariable = (li: number, ci: number, isSubcategory: boolean) => {
     const key = isSubcategory ? `${li}-${ci}-sub` : `${li}-${ci}-filter`;
     const form = varForms[key];
@@ -195,7 +192,6 @@ export default function CreateILWizard({
     ));
   };
 
-  // ── Values ──
   const addValue = (li: number, ci: number, vi: number) => {
     const key = `${li}-${ci}-${vi}`;
     const form = valForms[key];
@@ -232,7 +228,6 @@ export default function CreateILWizard({
     ));
   };
 
-  // ── Submit ──
   const handleSubmit = async () => {
     if (!gameSlug || !platformSlug) { setError("Select a game and platform"); return; }
     if (levels.length === 0) { setError("Add at least one level"); return; }
@@ -241,7 +236,6 @@ export default function CreateILWizard({
     setSuccess("");
     try {
       for (const level of levels) {
-        // Create level
         const levelRes = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/games/${gameSlug}/${platformSlug}/levels`,
           {
@@ -254,13 +248,16 @@ export default function CreateILWizard({
         if (!levelRes.ok) throw new Error(levelData.error || `Failed to create level ${level.name}`);
 
         for (const cat of level.level_categories) {
-          // Create level category
           const catRes = await fetch(
             `${process.env.NEXT_PUBLIC_API_URL}/games/${gameSlug}/${platformSlug}/levels/${level.slug}/categories`,
             {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-              body: JSON.stringify({ name: cat.name, category_slug: cat.slug }),
+              body: JSON.stringify({
+                name: cat.name,
+                category_slug: cat.slug,
+                scoring_type: cat.scoring_type || null,
+              }),
             }
           );
           const catData = await catRes.json();
@@ -303,7 +300,6 @@ export default function CreateILWizard({
 
   return (
     <div className="cgw">
-      {/* ── Game + Platform ── */}
       <section className="cgw-section">
         <h3 className="cgw-section-title">Game & Platform</h3>
         <div className="cgw-inline-form">
@@ -333,7 +329,6 @@ export default function CreateILWizard({
             <p style={{ opacity: 0.6 }}>Loading existing levels...</p>
           ) : (
             <>
-              {/* ── Levels ── */}
               <section className="cgw-section">
                 <h3 className="cgw-section-title">Levels</h3>
 
@@ -355,7 +350,6 @@ export default function CreateILWizard({
 
                       {isExpanded && (
                         <div className="cgw-card-body">
-                          {/* Level Categories */}
                           {level.level_categories.map((cat, ci) => {
                             const catKey = `${li}-${ci}`;
                             const isCatExpanded = expandedCats[catKey];
@@ -369,6 +363,9 @@ export default function CreateILWizard({
                                   <button className="cgw-card-toggle" onClick={() => setExpandedCats((prev) => ({ ...prev, [catKey]: !prev[catKey] }))}>
                                     <span className="cgw-card-name">{cat.name}</span>
                                     <span className="cgw-card-slug">/{cat.slug}</span>
+                                    {cat.scoring_type && (
+                                      <span className="cgw-card-meta">{cat.scoring_type}</span>
+                                    )}
                                     {cat.variables.length > 0 && (
                                       <span className="cgw-card-meta">{cat.variables.length} variable{cat.variables.length !== 1 ? "s" : ""}</span>
                                     )}
@@ -379,7 +376,6 @@ export default function CreateILWizard({
 
                                 {isCatExpanded && (
                                   <div className="cgw-card-body">
-                                    {/* Q1: Subcategories? */}
                                     <div className="cgw-question">
                                       <span className="cgw-question-label">Does this level category have subcategories?</span>
                                       <div className="cgw-yn">
@@ -400,7 +396,6 @@ export default function CreateILWizard({
                                       </div>
                                     </div>
 
-                                    {/* Subcategory variable builder */}
                                     {decision.hasSubcategories === true && (
                                       <div className="cgw-guided-section">
                                         {subcatVar ? (
@@ -485,7 +480,6 @@ export default function CreateILWizard({
                                       </div>
                                     )}
 
-                                    {/* Q2: Additional variables? */}
                                     {decision.hasSubcategories !== null && (
                                       <div className="cgw-question cgw-question--indented">
                                         <span className="cgw-question-label">Does this level category have additional variables? <span className="cgw-question-meta">(e.g. Players, Version)</span></span>
@@ -508,7 +502,6 @@ export default function CreateILWizard({
                                       </div>
                                     )}
 
-                                    {/* Filter variable builder */}
                                     {decision.hasVariables === true && (
                                       <div className="cgw-guided-section">
                                         {filterVars.map((variable, fvi) => {
@@ -558,7 +551,6 @@ export default function CreateILWizard({
                                           );
                                         })}
 
-                                        {/* Add filter variable */}
                                         <div className="cgw-add-var">
                                           <div className="cgw-inline-form">
                                             <input
@@ -596,7 +588,7 @@ export default function CreateILWizard({
                               className="auth-input"
                               placeholder="Category name (e.g. Any%)"
                               value={catForms[li]?.name ?? ""}
-                              onChange={(e) => setCatForms((prev) => ({ ...prev, [li]: { name: e.target.value, slug: slugify(e.target.value) } }))}
+                              onChange={(e) => setCatForms((prev) => ({ ...prev, [li]: { name: e.target.value, slug: slugify(e.target.value), scoring_type: prev[li]?.scoring_type ?? "" } }))}
                             />
                             <input
                               className="auth-input cgw-slug-input"
@@ -604,6 +596,15 @@ export default function CreateILWizard({
                               value={catForms[li]?.slug ?? ""}
                               onChange={(e) => setCatForms((prev) => ({ ...prev, [li]: { ...catForms[li], slug: e.target.value } }))}
                             />
+                            <select
+                              className="auth-input"
+                              value={catForms[li]?.scoring_type ?? ""}
+                              onChange={(e) => setCatForms((prev) => ({ ...prev, [li]: { ...catForms[li], scoring_type: e.target.value } }))}
+                            >
+                              <option value="">Time (default)</option>
+                              <option value="lowcast">Lowcast</option>
+                              <option value="highscore">High Score</option>
+                            </select>
                             <button
                               className="btn btn-primary cgw-add-btn"
                               onClick={() => addCategory(li)}
@@ -618,7 +619,6 @@ export default function CreateILWizard({
                   );
                 })}
 
-                {/* Add level */}
                 <div className="cgw-inline-form" style={{ marginTop: "1rem" }}>
                   <input
                     className="auth-input"
@@ -642,7 +642,6 @@ export default function CreateILWizard({
                 </div>
               </section>
 
-              {/* ── Submit ── */}
               <section className="cgw-section cgw-submit-section">
                 {error && <p className="auth-error">{error}</p>}
                 {success && <p className="auth-success">{success}</p>}

@@ -9,14 +9,14 @@ import { AuthRequest } from "../middleware/auth";
 
 export const getAllGames = async (req: Request, res: Response) => {
   try {
-const games = await prisma.game.findMany({
-  include: {
-    platforms: true,
-  },
-  orderBy: {
-    created_at: 'asc',
-  },
-});
+    const games = await prisma.game.findMany({
+      include: {
+        platforms: true,
+      },
+      orderBy: {
+        created_at: "asc",
+      },
+    });
     res.json(games);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch games" });
@@ -278,7 +278,6 @@ export const getPlatformCategories = async (req: Request, res: Response) => {
           where: { deleted_at: null },
           orderBy: { order: "asc" },
           include: {
-            
             subcategories: {
               where: { deleted_at: null },
               orderBy: { order: "asc" },
@@ -311,7 +310,7 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
   try {
     const slug = req.params.slug as string;
     const platform = req.params.platform as string;
-    const { name, category_slug } = req.body;
+    const { name, category_slug, category_type, scoring_type } = req.body;
 
     if (!name || !category_slug) {
       return res.status(400).json({ error: "Name and slug are required" });
@@ -331,6 +330,8 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
         name,
         slug: category_slug,
         platform_id: platformRecord.id,
+        ...(category_type && { category_type }),
+        ...(scoring_type && { scoring_type }),
       },
     });
 
@@ -743,7 +744,7 @@ export const createLevelCategory = async (req: AuthRequest, res: Response) => {
     const slug = req.params.slug as string;
     const platformSlug = req.params.platform as string;
     const levelSlug = req.params.level as string;
-    const { name, category_slug, order = 0 } = req.body;
+    const { name, category_slug, order = 0, scoring_type } = req.body;
 
     if (!name || !category_slug) {
       return res.status(400).json({ error: "Name and slug are required" });
@@ -768,6 +769,7 @@ export const createLevelCategory = async (req: AuthRequest, res: Response) => {
         slug: category_slug,
         order,
         level_id: level.id,
+        ...(scoring_type && { scoring_type }),
       },
     });
 
@@ -1116,7 +1118,13 @@ export const getLeaderboard = async (req: Request, res: Response) => {
         }
       });
     }
-console.log("dedupedRuns order:", dedupedRuns.map(r => ({ score: r.score_value, time: (r as any)[timingField] })));
+    console.log(
+      "dedupedRuns order:",
+      dedupedRuns.map((r) => ({
+        score: r.score_value,
+        time: (r as any)[timingField],
+      })),
+    );
 
     // Tie-aware ranking
     const rankedWithTies: ((typeof dedupedRuns)[number] & { _rank: number })[] =
@@ -1207,7 +1215,6 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
     const categorySlug = req.params.category as string;
     const { page = "1", limit = "25" } = req.query;
 
-    // Variable filters: e.g. ?players=1p
     const variableFilters: Record<string, string> = {};
     for (const [key, value] of Object.entries(req.query)) {
       if (key === "page" || key === "limit") continue;
@@ -1238,7 +1245,7 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
       return res.status(404).json({ error: "IL category not found" });
 
     const levelCategoryIds = levelCategories.map((lc) => lc.id);
-    const levelCategory = levelCategories[0]; // for name/metadata only
+    const levelCategory = levelCategories[0];
 
     const pageNum = parseInt(page as string);
     const limitNum = parseInt(limit as string);
@@ -1246,7 +1253,6 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
     const timingField =
       platform.timing_method === "gametime" ? "gametime_ms" : "realtime_ms";
 
-    // Resolve variable value IDs from query params
     const resolvedVariableValueIds: string[] = [];
     let isCoop = false;
 
@@ -1276,7 +1282,6 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
 
     const hasVariableFilter = resolvedVariableValueIds.length > 0;
 
-    // Fetch all levels for this platform that have this category slug
     const levels = await prisma.level.findMany({
       where: {
         platform_id: platform.id,
@@ -1286,9 +1291,9 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
       orderBy: { order: "asc" },
     });
     console.log("levels found:", levels.length);
-    const baseWhere = {
-      level_category_id: { in: levelCategoryIds }, // ← all of them
 
+    const baseWhere = {
+      level_category_id: { in: levelCategoryIds },
       platform_id: platform.id,
       verified: true,
       ...(hasVariableFilter ? { is_coop: isCoop } : {}),
@@ -1330,10 +1335,14 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
           include: { variable_value: { include: { variable: true } } },
         },
       },
-      orderBy: { [timingField]: "asc" as const },
+      orderBy:
+        levelCategory.scoring_type === "highscore"
+          ? { score_value: "desc" as const }
+          : levelCategory.scoring_type === "lowcast"
+            ? { score_value: "asc" as const }
+            : { [timingField]: "asc" as const },
     });
 
-    // Ensure run has ALL requested variable values
     const filteredRuns = hasVariableFilter
       ? allRuns.filter((run) => {
           const runValueIds = run.variable_values.map(
@@ -1345,7 +1354,6 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
         })
       : allRuns;
 
-    // Group runs by level
     const levelMap = new Map<string, typeof filteredRuns>();
     for (const level of levels) levelMap.set(level.id, []);
     for (const run of filteredRuns) {
@@ -1375,12 +1383,35 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
           );
         });
       } else {
-        const seen = new Set<string>();
-        dedupedRuns = runs.filter((run) => {
-          if (seen.has(run.user_id)) return false;
-          seen.add(run.user_id);
-          return true;
-        });
+        const bestPerUser = new Map<string, (typeof runs)[0]>();
+        for (const run of runs) {
+          const existing = bestPerUser.get(run.user_id);
+          if (!existing) {
+            bestPerUser.set(run.user_id, run);
+          } else if (levelCategory.scoring_type === "highscore") {
+            const runScore = run.score_value ?? -Infinity;
+            const existingScore = existing.score_value ?? -Infinity;
+            if (
+              runScore > existingScore ||
+              (runScore === existingScore &&
+                (run as any)[timingField] < (existing as any)[timingField])
+            )
+              bestPerUser.set(run.user_id, run);
+          } else if (levelCategory.scoring_type === "lowcast") {
+            const runScore = run.score_value ?? Infinity;
+            const existingScore = existing.score_value ?? Infinity;
+            if (
+              runScore < existingScore ||
+              (runScore === existingScore &&
+                (run as any)[timingField] < (existing as any)[timingField])
+            )
+              bestPerUser.set(run.user_id, run);
+          } else {
+            if ((run as any)[timingField] < (existing as any)[timingField])
+              bestPerUser.set(run.user_id, run);
+          }
+        }
+        dedupedRuns = [...bestPerUser.values()];
       }
 
       const ranked = dedupedRuns.map((run, i) => {
@@ -1388,9 +1419,13 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
         if (i === 0) {
           rank = 1;
         } else {
-          const prevTime = (dedupedRuns[i - 1] as any)[timingField];
-          const currTime = (run as any)[timingField];
-          rank = currTime === prevTime ? i : i + 1;
+          const prev = dedupedRuns[i - 1];
+          const isTie =
+            levelCategory.scoring_type === "highscore" ||
+            levelCategory.scoring_type === "lowcast"
+              ? run.score_value === prev.score_value
+              : (run as any)[timingField] === (prev as any)[timingField];
+          rank = isTie ? i : i + 1;
         }
         return {
           rank,
@@ -1410,6 +1445,8 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
           gametime_display: run.gametime_ms
             ? formatTime(run.gametime_ms)
             : null,
+          score_value: run.score_value ?? null,
+          scoring_type: levelCategory.scoring_type ?? null,
           video_url: run.video_url,
           submitted_at: run.submitted_at,
           variable_values: run.variable_values.map((rv) => ({
@@ -1436,6 +1473,7 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
       timing_method: platform.timing_method,
       category: levelCategory.name,
       category_slug: categorySlug,
+      scoring_type: levelCategory.scoring_type ?? null,
       variable_filters: hasVariableFilter
         ? Object.entries(variableFilters).map(([varSlug, valSlug]) => ({
             variable: varSlug,

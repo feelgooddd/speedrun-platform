@@ -10,7 +10,6 @@ import LoginRequiredView from "./LoginRequiredView";
 export default function SubmitILRun() {
   const { user, loading, token } = useAuth();
 
-  // 1. IL-Specific Metadata Hook
   const {
     games,
     platforms,
@@ -32,7 +31,6 @@ export default function SubmitILRun() {
 
   const isGametime = selectedPlatformData?.timing_method === "gametime";
 
-  // 2. Unified Submission Hook (Flagged as IL)
   const { states, handleSubmit, helpers } = useSubmitRunForm({
     token,
     selectedGame,
@@ -40,7 +38,7 @@ export default function SubmitILRun() {
     selectedCategory,
     selectedCategoryData: activeLevelCategory as any,
     isGametime,
-    runners: user ? [{ id: user.id }] : [], // ILs usually default to just the submitter
+    runners: user ? [{ id: user.id }] : [],
     isIL: true,
     selectedLevel,
     levels,
@@ -73,7 +71,6 @@ export default function SubmitILRun() {
           <StatusMessages success={states.success} error={states.error} />
 
           <form onSubmit={finalHandleSubmit}>
-            {/* Selections */}
             <div className="form-group">
               <label className="form-label">Game *</label>
               <select
@@ -147,32 +144,32 @@ export default function SubmitILRun() {
                 </select>
               </div>
             )}
-            {selectedLevel &&
-              helpers.subcategoryVariables.map((v) => (
-                <div key={v.id} className="form-group">
-                  <label className="form-label">{v.name} *</label>
-                  <select
-                    value={states.selectedVariableValues[v.id] || ""}
-                    onChange={(e) =>
-                      states.setSelectedVariableValues((prev) => ({
-                        ...prev,
-                        [v.id]: e.target.value,
-                      }))
-                    }
-                    required
-                    className="auth-input"
-                  >
-                    <option value="">Select {v.name}</option>
-                    {v.values.map((val) => (
-                      <option key={val.id} value={val.id}>
-                        {val.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            {/* System Selection */}
-            {systems.length > 0 && (
+
+            {selectedLevel && helpers.subcategoryVariables.map((v) => (
+              <div key={v.id} className="form-group">
+                <label className="form-label">{v.name} *</label>
+                <select
+                  value={states.selectedVariableValues[v.id] || ""}
+                  onChange={(e) =>
+                    states.setSelectedVariableValues((prev) => ({
+                      ...prev,
+                      [v.id]: e.target.value,
+                    }))
+                  }
+                  required
+                  className="auth-input"
+                >
+                  <option value="">Select {v.name}</option>
+                  {v.values.map((val) => (
+                    <option key={val.id} value={val.id}>
+                      {val.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ))}
+
+            {selectedLevel && systems.length > 0 && (
               <div className="form-group">
                 <label className="form-label">System *</label>
                 <select
@@ -190,19 +187,38 @@ export default function SubmitILRun() {
                 </select>
               </div>
             )}
+
             {selectedLevel && (
               <>
-                <TimeInputGroup
-                  label="Real Time Attack (RTA) *"
-                  parts={states.rtaParts}
-                  setParts={states.setRtaParts}
-                />
-                <TimeInputGroup
-                  label="In-Game Time (IGT)"
-                  parts={states.igtParts}
-                  setParts={states.setIgtParts}
-                  disabled={!isGametime}
-                />
+                {activeLevelCategory?.scoring_type ? (
+                  <div className="form-group">
+                    <label className="form-label">
+                      {activeLevelCategory.scoring_type === "highscore" ? "Score *" : "Casts *"}
+                    </label>
+                    <input
+                      type="number"
+                      value={states.scoreValue}
+                      onChange={(e) => states.setScoreValue(e.target.value)}
+                      required
+                      className="auth-input"
+                      placeholder={activeLevelCategory.scoring_type === "highscore" ? "Enter score..." : "Enter cast count..."}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    <TimeInputGroup
+                      label="Real Time Attack (RTA) *"
+                      parts={states.rtaParts}
+                      setParts={states.setRtaParts}
+                    />
+                    <TimeInputGroup
+                      label="In-Game Time (IGT)"
+                      parts={states.igtParts}
+                      setParts={states.setIgtParts}
+                      disabled={!isGametime}
+                    />
+                  </>
+                )}
 
                 <div className="form-group">
                   <label className="form-label">Video URL *</label>

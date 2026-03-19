@@ -37,10 +37,10 @@ export interface Category {
   name: string;
   variables: Variable[];
   scoring_type?: string | null;
-  subcategories: { 
-    id: string; 
-    name: string; 
-    slug: string 
+  subcategories: {
+    id: string;
+    name: string;
+    slug: string;
   }[];
 }
 
@@ -62,6 +62,7 @@ export interface LevelCategory {
   id: string;
   slug: string;
   name: string;
+  scoring_type: string | null;
 }
 
 export interface Level {

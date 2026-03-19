@@ -138,7 +138,8 @@ export function useSubmitRunForm({
     const igt = calculateMs(igtParts);
     const runnersToSubmit = runnersOverride || runners;
 
-    if (rta <= 0) {
+    const isScored = !!scoreValue;
+    if (rta <= 0 && !isScored) {
       setError("Please enter a valid RTA time");
       return false;
     }
@@ -174,8 +175,8 @@ export function useSubmitRunForm({
       const payload: any = {
         game_slug: selectedGame,
         platform_slug: selectedPlatform,
-        realtime_ms: rta,
-        gametime_ms: finalIgt > 0 ? finalIgt : null,
+        realtime_ms: isScored ? null : rta,
+        gametime_ms: isScored ? null : finalIgt > 0 ? finalIgt : null,
         video_url: videoUrl,
         comment: comment || "",
         system_id: selectedSystem || undefined,

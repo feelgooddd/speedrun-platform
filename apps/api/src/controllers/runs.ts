@@ -26,12 +26,16 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
     } = req.body;
 
     if (!game_slug || !platform_slug) {
-      return res.status(400).json({ error: "game_slug and platform_slug are required" });
+      return res
+        .status(400)
+        .json({ error: "game_slug and platform_slug are required" });
     }
 
     // Must have either category_slug (full game) or level_category_id (IL)
     if (!category_slug && !level_category_id) {
-      return res.status(400).json({ error: "category_slug or level_category_id is required" });
+      return res
+        .status(400)
+        .json({ error: "category_slug or level_category_id is required" });
     }
 
     // ----------------------------------------------------------------
@@ -48,85 +52,108 @@ export const submitRun = async (req: AuthRequest, res: Response) => {
     // ----------------------------------------------------------------
     // IL run path
     // ----------------------------------------------------------------
-if (level_category_id) {
-  const levelCategory = await prisma.levelCategory.findFirst({
-    where: { id: level_category_id, level: { platform_id: platform.id } },
-  });
-  if (!levelCategory) return res.status(404).json({ error: "Level category not found" });
+    if (level_category_id) {
+      const levelCategory = await prisma.levelCategory.findFirst({
+        where: { id: level_category_id, level: { platform_id: platform.id } },
+      });
+      if (!levelCategory)
+        return res.status(404).json({ error: "Level category not found" });
 
-  // Resolve variable values
-  let resolvedVariableValueIds: string[] = [];
-  let isCoop = false;
-  let requiredPlayers: number | null = null;
+      // Resolve variable values
+      let resolvedVariableValueIds: string[] = [];
+      let isCoop = false;
+      let requiredPlayers: number | null = null;
 
-  if (variable_values && Array.isArray(variable_values) && variable_values.length > 0) {
-    const variables = await prisma.variable.findMany({
-      where: { level_category_id: levelCategory.id },
-      include: { values: true },
-    });
+      if (
+        variable_values &&
+        Array.isArray(variable_values) &&
+        variable_values.length > 0
+      ) {
+        const variables = await prisma.variable.findMany({
+          where: { level_category_id: levelCategory.id },
+          include: { values: true },
+        });
 
-    for (const { variable_slug, value_slug } of variable_values) {
-      if (!variable_slug || !value_slug) {
-        return res.status(400).json({ error: "Each variable_value entry must have variable_slug and value_slug" });
+        for (const { variable_slug, value_slug } of variable_values) {
+          if (!variable_slug || !value_slug) {
+            return res.status(400).json({
+              error:
+                "Each variable_value entry must have variable_slug and value_slug",
+            });
+          }
+          const variable = variables.find((v) => v.slug === variable_slug);
+          if (!variable)
+            return res
+              .status(404)
+              .json({ error: `Variable '${variable_slug}' not found` });
+
+          const value = variable.values.find((v) => v.slug === value_slug);
+          if (!value)
+            return res.status(404).json({
+              error: `Value '${value_slug}' not found for variable '${variable_slug}'`,
+            });
+
+          resolvedVariableValueIds.push(value.id);
+          if (value.is_coop) {
+            isCoop = true;
+            requiredPlayers = value.required_players ?? null;
+          }
+        }
       }
-      const variable = variables.find((v) => v.slug === variable_slug);
-      if (!variable) return res.status(404).json({ error: `Variable '${variable_slug}' not found` });
 
-      const value = variable.values.find((v) => v.slug === value_slug);
-      if (!value) return res.status(404).json({ error: `Value '${value_slug}' not found for variable '${variable_slug}'` });
-
-      resolvedVariableValueIds.push(value.id);
-      if (value.is_coop) {
-        isCoop = true;
-        requiredPlayers = value.required_players ?? null;
-      }
-    }
-  }
-
-  const run = await prisma.run.create({
-    data: {
-      user_id: req.userId,
-      platform_id: platform.id,
-      level_category_id: levelCategory.id,
-      is_coop: isCoop,
-      realtime_ms: realtime_ms ? parseInt(realtime_ms) : null,
-      gametime_ms: gametime_ms ? parseInt(gametime_ms) : null,
-      video_url: video_url ?? null,
-      comment: comment ?? null,
-      system_id: system_id ?? null,
-      submitted_by_id: req.userId,
-      verified: false,
-      score_value: score_value ? parseInt(score_value) : null,
-      ...(resolvedVariableValueIds.length > 0 && {
-        variable_values: {
-          create: resolvedVariableValueIds.map((id) => ({ variable_value_id: id })),
+      const run = await prisma.run.create({
+        data: {
+          user_id: req.userId,
+          platform_id: platform.id,
+          level_category_id: levelCategory.id,
+          is_coop: isCoop,
+          realtime_ms: realtime_ms ? parseInt(realtime_ms) : null,
+          gametime_ms: gametime_ms ? parseInt(gametime_ms) : null,
+          video_url: video_url ?? null,
+          comment: comment ?? null,
+          system_id: system_id ?? null,
+          submitted_by_id: req.userId,
+          verified: false,
+          score_value: score_value ? parseInt(score_value) : null,
+          ...(resolvedVariableValueIds.length > 0 && {
+            variable_values: {
+              create: resolvedVariableValueIds.map((id) => ({
+                variable_value_id: id,
+              })),
+            },
+          }),
         },
-      }),
-    },
-    include: {
-      user: { select: { id: true, username: true, display_name: true, country: true } },
-      level_category: { include: { level: true } },
-      platform: true,
-      system: true,
-      variable_values: {
-        include: { variable_value: { include: { variable: true } } },
-      },
-    },
-  });
+        include: {
+          user: {
+            select: {
+              id: true,
+              username: true,
+              display_name: true,
+              country: true,
+            },
+          },
+          level_category: { include: { level: true } },
+          platform: true,
+          system: true,
+          variable_values: {
+            include: { variable_value: { include: { variable: true } } },
+          },
+        },
+      });
 
-  return res.status(201).json({
-    run: {
-      ...run,
-      variable_values: run.variable_values.map((rv) => ({
-        variable: rv.variable_value.variable.name,
-        variable_slug: rv.variable_value.variable.slug,
-        value: rv.variable_value.name,
-        value_slug: rv.variable_value.slug,
-      })),
-    },
-    message: "Run submitted successfully. Awaiting verification.",
-  });
-}
+      return res.status(201).json({
+        run: {
+          ...run,
+          variable_values: run.variable_values.map((rv) => ({
+            variable: rv.variable_value.variable.name,
+            variable_slug: rv.variable_value.variable.slug,
+            value: rv.variable_value.name,
+            value_slug: rv.variable_value.slug,
+          })),
+        },
+        message: "Run submitted successfully. Awaiting verification.",
+      });
+    }
 
     // ----------------------------------------------------------------
     // Full game run path
@@ -142,7 +169,8 @@ if (level_category_id) {
       const subcategory = await prisma.subcategory.findFirst({
         where: { slug: subcategory_slug, category_id: category.id },
       });
-      if (!subcategory) return res.status(404).json({ error: "Subcategory not found" });
+      if (!subcategory)
+        return res.status(404).json({ error: "Subcategory not found" });
       subcategory_id = subcategory.id;
     }
 
@@ -151,7 +179,11 @@ if (level_category_id) {
     let isCoop = false;
     let requiredPlayers: number | null = null;
 
-    if (variable_values && Array.isArray(variable_values) && variable_values.length > 0) {
+    if (
+      variable_values &&
+      Array.isArray(variable_values) &&
+      variable_values.length > 0
+    ) {
       const variables = await prisma.variable.findMany({
         where: { category_id: category.id },
         include: { values: true },
@@ -159,14 +191,23 @@ if (level_category_id) {
 
       for (const { variable_slug, value_slug } of variable_values) {
         if (!variable_slug || !value_slug) {
-          return res.status(400).json({ error: "Each variable_value entry must have variable_slug and value_slug" });
+          return res.status(400).json({
+            error:
+              "Each variable_value entry must have variable_slug and value_slug",
+          });
         }
 
         const variable = variables.find((v) => v.slug === variable_slug);
-        if (!variable) return res.status(404).json({ error: `Variable '${variable_slug}' not found` });
+        if (!variable)
+          return res
+            .status(404)
+            .json({ error: `Variable '${variable_slug}' not found` });
 
         const value = variable.values.find((v) => v.slug === value_slug);
-        if (!value) return res.status(404).json({ error: `Value '${value_slug}' not found for variable '${variable_slug}'` });
+        if (!value)
+          return res.status(404).json({
+            error: `Value '${value_slug}' not found for variable '${variable_slug}'`,
+          });
 
         resolvedVariableValueIds.push(value.id);
         if (value.is_coop) {
@@ -179,13 +220,19 @@ if (level_category_id) {
     // Coop validation
     if (isCoop) {
       if (!runner_ids || !Array.isArray(runner_ids) || runner_ids.length < 2) {
-        return res.status(400).json({ error: "Co-op runs require at least 2 runners" });
+        return res
+          .status(400)
+          .json({ error: "Co-op runs require at least 2 runners" });
       }
       if (!runner_ids.includes(req.userId)) {
-        return res.status(400).json({ error: "Submitter must be one of the runners" });
+        return res
+          .status(400)
+          .json({ error: "Submitter must be one of the runners" });
       }
       if (requiredPlayers && runner_ids.length !== requiredPlayers) {
-        return res.status(400).json({ error: `This category requires exactly ${requiredPlayers} runners` });
+        return res.status(400).json({
+          error: `This category requires exactly ${requiredPlayers} runners`,
+        });
       }
       const users = await prisma.user.findMany({
         where: { id: { in: runner_ids } },
@@ -213,7 +260,9 @@ if (level_category_id) {
         score_value: score_value ? parseInt(score_value) : null,
         ...(resolvedVariableValueIds.length > 0 && {
           variable_values: {
-            create: resolvedVariableValueIds.map((id) => ({ variable_value_id: id })),
+            create: resolvedVariableValueIds.map((id) => ({
+              variable_value_id: id,
+            })),
           },
         }),
         ...(isCoop && {
@@ -223,8 +272,26 @@ if (level_category_id) {
         }),
       },
       include: {
-        user: { select: { id: true, username: true, display_name: true, country: true } },
-        runners: { include: { user: { select: { id: true, username: true, display_name: true, country: true } } } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            display_name: true,
+            country: true,
+          },
+        },
+        runners: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                username: true,
+                display_name: true,
+                country: true,
+              },
+            },
+          },
+        },
         category: true,
         platform: true,
         subcategory: true,
@@ -261,14 +328,32 @@ export const getRun = async (req: AuthRequest, res: Response) => {
     const run = await prisma.run.findUnique({
       where: { id },
       include: {
-        user: { select: { id: true, username: true, display_name: true, country: true } },
+        user: {
+          select: {
+            id: true,
+            username: true,
+            display_name: true,
+            country: true,
+          },
+        },
         runners: {
           include: {
-            user: { select: { id: true, username: true, display_name: true, country: true } },
+            user: {
+              select: {
+                id: true,
+                username: true,
+                display_name: true,
+                country: true,
+              },
+            },
           },
         },
         category: { include: { platform: { include: { game: true } } } },
-        level_category: { include: { level: { include: { platform: { include: { game: true } } } } } },
+        level_category: {
+          include: {
+            level: { include: { platform: { include: { game: true } } } },
+          },
+        },
         platform: true,
         subcategory: true,
         system: true,
@@ -316,6 +401,9 @@ export const getRun = async (req: AuthRequest, res: Response) => {
       comment: run.comment,
       submitted_at: run.submitted_at,
       verified_at: run.verified_at,
+      score_value: run.score_value ?? null,
+      scoring_type:
+        run.level_category?.scoring_type ?? run.category?.scoring_type ?? null,
     });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch run" });
@@ -325,7 +413,8 @@ export const getRun = async (req: AuthRequest, res: Response) => {
 export const updateRun = async (req: AuthRequest, res: Response) => {
   try {
     const id = req.params.id as string;
-    const { realtime_ms, gametime_ms, video_url, comment } = req.body;
+    const { realtime_ms, gametime_ms, video_url, comment, score_value } =
+      req.body;
 
     const run = await prisma.run.findUnique({ where: { id } });
     if (!run) return res.status(404).json({ error: "Run not found" });
@@ -338,6 +427,9 @@ export const updateRun = async (req: AuthRequest, res: Response) => {
         }),
         ...(gametime_ms !== undefined && {
           gametime_ms: gametime_ms ? parseInt(gametime_ms) : null,
+        }),
+        ...(score_value !== undefined && {
+          score_value: score_value !== null ? parseInt(score_value) : null,
         }),
         ...(video_url !== undefined && { video_url }),
         ...(comment !== undefined && { comment }),

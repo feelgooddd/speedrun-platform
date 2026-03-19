@@ -669,3 +669,113 @@ export const getCategoryRuns = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Failed to fetch category runs" });
   }
 };
+
+export const getMyRejectedRuns = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const runs = await prisma.run.findMany({
+      where: {
+        user_id: req.userId,
+        rejected: true,
+      },
+      include: {
+        category: { include: { platform: { include: { game: true } } } },
+        level_category: {
+          include: {
+            level: { include: { platform: { include: { game: true } } } },
+          },
+        },
+        platform: true,
+        subcategory: true,
+        system: true,
+        variable_values: {
+          include: { variable_value: { include: { variable: true } } },
+        },
+      },
+      orderBy: { submitted_at: "desc" },
+    });
+
+    const formatted = runs.map((run) => {
+      const isIL = run.level_category_id !== null;
+      const game = isIL
+        ? run.level_category?.level?.platform?.game
+        : run.category?.platform?.game;
+
+      return {
+        id: run.id,
+        is_il: isIL,
+        is_coop: run.is_coop,
+        game: game?.name ?? null,
+        game_slug: game?.slug ?? null,
+        category: run.category?.name ?? run.level_category?.name ?? null,
+        level: run.level_category?.level?.name ?? null,
+        platform: run.platform.name,
+        system: run.system?.name ?? null,
+        realtime_ms: run.realtime_ms,
+        gametime_ms: run.gametime_ms,
+        realtime_display: run.realtime_ms ? formatTime(run.realtime_ms) : null,
+        gametime_display: run.gametime_ms ? formatTime(run.gametime_ms) : null,
+        score_value: run.score_value ?? null,
+        scoring_type:
+          run.level_category?.scoring_type ??
+          run.category?.scoring_type ??
+          null,
+        video_url: run.video_url,
+        comment: run.comment,
+        reject_reason: run.reject_reason,
+        submitted_at: run.submitted_at,
+        variable_values: run.variable_values.map((rv) => ({
+          variable: rv.variable_value.variable.name,
+          variable_slug: rv.variable_value.variable.slug,
+          value: rv.variable_value.name,
+          value_slug: rv.variable_value.slug,
+        })),
+      };
+    });
+
+    res.json({ runs: formatted });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch rejected runs" });
+  }
+};
+
+export const resubmitRun = async (req: AuthRequest, res: Response) => {
+  try {
+    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+
+    const id = req.params.id as string;
+    const { realtime_ms, gametime_ms, score_value, video_url, comment } = req.body;
+
+    const run = await prisma.run.findUnique({ where: { id } });
+    if (!run) return res.status(404).json({ error: "Run not found" });
+    if (run.user_id !== req.userId)
+      return res.status(403).json({ error: "You can only resubmit your own runs" });
+    if (!run.rejected)
+      return res.status(400).json({ error: "Run is not rejected" });
+
+    const updated = await prisma.run.update({
+      where: { id },
+      data: {
+        rejected: false,
+        verified: false,
+        reject_reason: null,
+        ...(realtime_ms !== undefined && {
+          realtime_ms: realtime_ms ? parseInt(realtime_ms) : null,
+        }),
+        ...(gametime_ms !== undefined && {
+          gametime_ms: gametime_ms ? parseInt(gametime_ms) : null,
+        }),
+        ...(score_value !== undefined && {
+          score_value: score_value !== null ? parseInt(score_value) : null,
+        }),
+        ...(video_url !== undefined && { video_url }),
+        ...(comment !== undefined && { comment }),
+      },
+    });
+
+    res.json({ run: updated, message: "Run resubmitted successfully. Awaiting verification." });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to resubmit run" });
+  }
+};

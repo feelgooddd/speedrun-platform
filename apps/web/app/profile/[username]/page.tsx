@@ -2,7 +2,9 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import PBTable from "@/app/components/profile/Pbtable";
 import RunsTable from "@/app/components/profile/Runstable";
+import RejectedRuns from "@/app/components/profile/RejectedRuns";
 import SettingsLink from "@/app/components/profile/SetingsLink";
+import ProfileTabs from "@/app/components/profile/ProfileTabs";
 import { countryCodeToFlag } from "@/app/lib/flags";
 import { apiFetch } from "@/app/lib/api";
 
@@ -257,21 +259,17 @@ export default async function UserProfilePage({
         )}
 
         {/* Personal Bests */}
-        <div className="profile-section">
-          <h2 className="profile-section-title">Personal Bests</h2>
-          <PBTable
-            fullGameGroups={fullGameGroups}
-            ilGroups={ilGroups}
-            profileUser={{
-              username: profile.username,
-              display_name: profile.display_name,
-              country: profile.country,
-            }}
-          />
-        </div>
+<ProfileTabs
+  fullGameGroups={fullGameGroups}
+  ilGroups={ilGroups}
+  otherRuns={otherRuns}
+  profileUser={{
+    username: profile.username,
+    display_name: profile.display_name,
+    country: profile.country,
+  }}
+/>
 
-        {/* Other Runs */}
-        <RunsTable variant="runs" runs={otherRuns} />
       </div>
     </div>
   );

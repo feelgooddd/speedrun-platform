@@ -58,7 +58,6 @@ interface Category {
   runs?: Run[];
   total?: number;
   category_type?: string;
-  // variable-filtered runs keyed by "varSlug:valueSlug"
   variableRuns?: Record<string, { runs: Run[]; total: number }>;
 }
 
@@ -116,10 +115,14 @@ async function getLeaderboard(
 
 export default async function PlatformPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string; platform: string }>;
+  searchParams: Promise<Record<string, string>>;
 }) {
   const { slug, platform } = await params;
+  const sp = await searchParams;
+
   const game = await getGame(slug);
   if (!game) notFound();
 
@@ -130,7 +133,6 @@ export default async function PlatformPage({
 
   const categories: Category[] = await Promise.all(
     platformCategories.map(async (cat) => {
-      // Has subcategories (legacy HP1-3)
       if (cat.subcategories && cat.subcategories.length > 0) {
         const subcategoriesWithRuns: Subcategory[] = await Promise.all(
           cat.subcategories.map(async (sub) => {
@@ -146,18 +148,15 @@ export default async function PlatformPage({
         return { ...cat, subcategories: subcategoriesWithRuns };
       }
 
-      // Has variables (HP4+)
       if (cat.variables && cat.variables.length > 0) {
         const variableRuns: Record<string, { runs: Run[]; total: number }> = {};
 
-        // Build default filters for ALL variables (first value of each)
         const defaultFilters: Record<string, string> = {};
         for (const v of cat.variables) {
           if (v.values[0]) defaultFilters[v.slug] = v.values[0].slug;
         }
 
         if (Object.keys(defaultFilters).length > 0) {
-          // Serialize using same logic as client
           const key = Object.entries(defaultFilters)
             .sort(([a], [b]) => a.localeCompare(b))
             .map(([k, v]) => `${k}:${v}`)
@@ -176,17 +175,30 @@ export default async function PlatformPage({
         return { ...cat, variableRuns };
       }
 
-      // No subcategories or variables - fetch runs directly
       const { runs, total } = await getLeaderboard(slug, platform, cat.slug);
       return { ...cat, runs, total };
     }),
   );
+
   const fullGameCategories = categories.filter(
     (c) => !c.category_type || c.category_type === "full_game",
   );
   const extensionCategories = categories.filter(
     (c) => c.category_type === "extension",
   );
+
+  // Parse initial state from searchParams
+  const initialTab = (sp.type as "fullgame" | "il" | "extension") || "fullgame";
+  const initialCategory = sp.category || null;
+  const initialSubcategory = sp.subcategory || null;
+  const initialLevel = sp.level || null;
+
+  // Everything else in searchParams that isn't a reserved key = variable filters
+  const reservedKeys = new Set(["type", "category", "subcategory", "level"]);
+  const initialVariables: Record<string, string> = {};
+  for (const [k, v] of Object.entries(sp)) {
+    if (!reservedKeys.has(k)) initialVariables[k] = v;
+  }
 
   return (
     <div className="landing">
@@ -208,6 +220,11 @@ export default async function PlatformPage({
           extensionCategories={extensionCategories}
           gameSlug={slug}
           platformSlug={platform}
+          initialTab={initialTab}
+          initialCategory={initialCategory}
+          initialSubcategory={initialSubcategory}
+          initialLevel={initialLevel}
+          initialVariables={initialVariables}
         />
       </div>
     </div>

@@ -67,6 +67,10 @@ interface Level {
 interface ILLeaderboardProps {
   gameSlug: string;
   platformSlug: string;
+  initialLevel: string | null;
+  initialCategory: string | null;
+  initialVariables: Record<string, string>;
+  onUrlChange: (params: Record<string, string | null>) => void;
 }
 
 function serializeFilters(filters: Record<string, string>): string {
@@ -101,12 +105,21 @@ function computeHiddenVariableIds(
   return hidden;
 }
 
-export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardProps) {
+export default function ILLeaderboard({
+  gameSlug,
+  platformSlug,
+  initialLevel,
+  initialCategory,
+initialVariables = {},
+  onUrlChange,
+}: ILLeaderboardProps) {
   const [levels, setLevels] = useState<Level[]>([]);
   const [loadingLevels, setLoadingLevels] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeLevel, setActiveLevel] = useState<string | null>(null);
-  const [activeFilters, setActiveFilters] = useState<Record<string, string>>({});
+  const [activeFilters, setActiveFilters] = useState<Record<string, string>>(
+Object.keys(initialVariables ?? {}).length > 0 ? initialVariables : {}
+  );
   const [runsCache, setRunsCache] = useState<Record<string, { runs: Run[]; total: number; timingMethod: string; scoringType: string | null }>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
   const [timingMethod, setTimingMethod] = useState<string>("realtime");
@@ -127,10 +140,23 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
 
         if (fetchedLevels.length > 0) {
           const allCategories = getUniqueCategories(fetchedLevels);
-          if (allCategories.length > 0) {
-            setActiveCategory(allCategories[0].slug);
-          }
-          setActiveLevel(fetchedLevels[0].slug);
+
+          // Seed category from URL if valid, else first
+          const seedCat = initialCategory &&
+            allCategories.find((c) => c.slug === initialCategory)
+            ? initialCategory
+            : allCategories[0]?.slug ?? null;
+          setActiveCategory(seedCat);
+
+          // Seed level from URL if valid for that category, else first available
+          const availableForCat = fetchedLevels.filter((l) =>
+            l.level_categories.some((c) => c.slug === seedCat)
+          );
+          const seedLevel = initialLevel &&
+            availableForCat.find((l) => l.slug === initialLevel)
+            ? initialLevel
+            : availableForCat[0]?.slug ?? null;
+          setActiveLevel(seedLevel);
         }
       } catch (e) {
         console.error("Failed to fetch levels:", e);
@@ -156,7 +182,6 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
   };
 
   const uniqueCategories = getUniqueCategories(levels);
-
   const availableLevels = levels.filter((l) =>
     l.level_categories.some((c) => c.slug === activeCategory)
   );
@@ -179,7 +204,6 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
     : new Set<string>();
 
   const visibleFilterVars = filterVars.filter((v) => !hiddenVariableIds.has(v.id));
-
   const cacheKey = `${activeLevel}-${activeCategory}-${serializeFilters(currentFilters)}`;
 
   useEffect(() => {
@@ -227,7 +251,14 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
   }, [activeCategory, activeLevel, cacheKey]);
 
   const handleFilterClick = (varSlug: string, valueSlug: string) => {
-    setActiveFilters((prev) => ({ ...prev, [varSlug]: valueSlug }));
+    const newFilters = { ...activeFilters, [varSlug]: valueSlug };
+    setActiveFilters(newFilters);
+    onUrlChange({
+      type: "il",
+      category: activeCategory,
+      level: activeLevel,
+      ...newFilters,
+    });
   };
 
   const handleCategoryChange = (catSlug: string) => {
@@ -236,12 +267,15 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
     const firstAvailable = levels.find((l) =>
       l.level_categories.some((c) => c.slug === catSlug)
     );
-    if (firstAvailable) setActiveLevel(firstAvailable.slug);
+    const levelSlug = firstAvailable?.slug ?? null;
+    setActiveLevel(levelSlug);
+    onUrlChange({ type: "il", category: catSlug, level: levelSlug });
   };
 
   const handleLevelChange = (levelSlug: string) => {
     setActiveLevel(levelSlug);
     setActiveFilters({});
+    onUrlChange({ type: "il", category: activeCategory, level: levelSlug });
   };
 
   const runs = runsCache[cacheKey]?.runs ?? [];
@@ -253,21 +287,15 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
     (run) => run.realtime_ms && run.gametime_ms && run.realtime_ms !== run.gametime_ms
   );
   const hasSystemColumn = runs.some((r) => r.system);
-
   const scoreLabel = scoringType === "highscore" ? "Score" : scoringType === "lowcast" ? "Casts" : "Score";
 
-  let colCount = 5; // #, Runner, Time/Score, Date, Video
+  let colCount = 5;
   if (showSeparateTimes) colCount += 1;
-  if (isScored) colCount += 1; // extra col for time when score-based
+  if (isScored) colCount += 1;
   if (hasSystemColumn) colCount += 1;
 
-  if (loadingLevels) {
-    return <p className="leaderboard-empty">Loading...</p>;
-  }
-
-  if (levels.length === 0) {
-    return <p className="leaderboard-empty">No individual levels available.</p>;
-  }
+  if (loadingLevels) return <p className="leaderboard-empty">Loading...</p>;
+  if (levels.length === 0) return <p className="leaderboard-empty">No individual levels available.</p>;
 
   return (
     <div className="leaderboard">
@@ -426,12 +454,8 @@ export default function ILLeaderboard({ gameSlug, platformSlug }: ILLeaderboardP
                       </td>
                       {isScored ? (
                         <>
-                          <td className="time-cell">
-                            {run.score_value ?? "—"}
-                          </td>
-                          <td className="time-cell secondary">
-                            {primaryTime || "—"}
-                          </td>
+                          <td className="time-cell">{run.score_value ?? "—"}</td>
+                          <td className="time-cell secondary">{primaryTime || "—"}</td>
                         </>
                       ) : showSeparateTimes ? (
                         <>

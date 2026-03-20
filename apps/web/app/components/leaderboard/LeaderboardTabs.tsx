@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import FullGameLeaderboard from "./FullGameLeaderboard";
 import ILLeaderboard from "./ILLeaderboard";
 
@@ -20,6 +21,11 @@ interface LeaderboardTabsProps {
   extensionCategories: Category[];
   gameSlug: string;
   platformSlug: string;
+  initialTab: "fullgame" | "il" | "extension";
+  initialCategory: string | null;
+  initialSubcategory: string | null;
+  initialLevel: string | null;
+  initialVariables: Record<string, string>;
 }
 
 export default function LeaderboardTabs({
@@ -27,29 +33,54 @@ export default function LeaderboardTabs({
   extensionCategories,
   gameSlug,
   platformSlug,
+  initialTab,
+  initialCategory,
+  initialSubcategory,
+  initialLevel,
+  initialVariables = {},
 }: LeaderboardTabsProps) {
-  const [activeTab, setActiveTab] = useState<"fullgame" | "il" | "extension">("fullgame");
+  const router = useRouter();
+  const pathname = usePathname();
+  const [activeTab, setActiveTab] = useState<"fullgame" | "il" | "extension">(
+    initialTab,
+  );
   const hasExtensions = extensionCategories.length > 0;
+
+  const updateUrl = useCallback(
+    (params: Record<string, string | null>) => {
+      const sp = new URLSearchParams();
+      for (const [k, v] of Object.entries(params)) {
+        if (v) sp.set(k, v);
+      }
+      router.replace(`${pathname}?${sp.toString()}`, { scroll: false });
+    },
+    [router, pathname],
+  );
+
+  const handleTabChange = (tab: "fullgame" | "il" | "extension") => {
+    setActiveTab(tab);
+    updateUrl({ type: tab });
+  };
 
   return (
     <div>
       <div className="leaderboard-tabs" style={{ marginBottom: "0" }}>
         <button
           className={`leaderboard-tab ${activeTab === "fullgame" ? "active" : ""}`}
-          onClick={() => setActiveTab("fullgame")}
+          onClick={() => handleTabChange("fullgame")}
         >
           Full Game
         </button>
         <button
           className={`leaderboard-tab ${activeTab === "il" ? "active" : ""}`}
-          onClick={() => setActiveTab("il")}
+          onClick={() => handleTabChange("il")}
         >
           Individual Levels
         </button>
         {hasExtensions && (
           <button
             className={`leaderboard-tab ${activeTab === "extension" ? "active" : ""}`}
-            onClick={() => setActiveTab("extension")}
+            onClick={() => handleTabChange("extension")}
           >
             Category Extensions
           </button>
@@ -61,6 +92,11 @@ export default function LeaderboardTabs({
           categories={categories}
           gameSlug={gameSlug}
           platformSlug={platformSlug}
+          initialCategory={initialCategory}
+          initialSubcategory={initialSubcategory}
+          initialVariables={initialVariables}
+          tabType="fullgame"
+          onUrlChange={updateUrl}
         />
       )}
 
@@ -68,6 +104,10 @@ export default function LeaderboardTabs({
         <ILLeaderboard
           gameSlug={gameSlug}
           platformSlug={platformSlug}
+          initialLevel={initialLevel}
+          initialCategory={initialCategory}
+          initialVariables={initialVariables}
+          onUrlChange={updateUrl}
         />
       )}
 
@@ -76,6 +116,11 @@ export default function LeaderboardTabs({
           categories={extensionCategories}
           gameSlug={gameSlug}
           platformSlug={platformSlug}
+          initialCategory={initialCategory}
+          initialSubcategory={initialSubcategory}
+          initialVariables={initialVariables}
+          tabType="extension"
+          onUrlChange={updateUrl}
         />
       )}
     </div>

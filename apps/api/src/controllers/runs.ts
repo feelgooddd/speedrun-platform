@@ -672,7 +672,8 @@ export const getCategoryRuns = async (req: AuthRequest, res: Response) => {
 
 export const getMyRejectedRuns = async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    if (!req.userId)
+      return res.status(401).json({ error: "Not authenticated" });
 
     const runs = await prisma.run.findMany({
       where: {
@@ -723,6 +724,8 @@ export const getMyRejectedRuns = async (req: AuthRequest, res: Response) => {
           null,
         video_url: run.video_url,
         comment: run.comment,
+        platform_slug: run.platform.slug,
+        system_id: run.system_id ?? null,
         reject_reason: run.reject_reason,
         submitted_at: run.submitted_at,
         variable_values: run.variable_values.map((rv) => ({
@@ -742,15 +745,25 @@ export const getMyRejectedRuns = async (req: AuthRequest, res: Response) => {
 
 export const resubmitRun = async (req: AuthRequest, res: Response) => {
   try {
-    if (!req.userId) return res.status(401).json({ error: "Not authenticated" });
+    if (!req.userId)
+      return res.status(401).json({ error: "Not authenticated" });
 
     const id = req.params.id as string;
-    const { realtime_ms, gametime_ms, score_value, video_url, comment } = req.body;
+    const {
+      realtime_ms,
+      gametime_ms,
+      score_value,
+      video_url,
+      comment,
+      system_id,
+    } = req.body;
 
     const run = await prisma.run.findUnique({ where: { id } });
     if (!run) return res.status(404).json({ error: "Run not found" });
     if (run.user_id !== req.userId)
-      return res.status(403).json({ error: "You can only resubmit your own runs" });
+      return res
+        .status(403)
+        .json({ error: "You can only resubmit your own runs" });
     if (!run.rejected)
       return res.status(400).json({ error: "Run is not rejected" });
 
@@ -771,10 +784,14 @@ export const resubmitRun = async (req: AuthRequest, res: Response) => {
         }),
         ...(video_url !== undefined && { video_url }),
         ...(comment !== undefined && { comment }),
+        ...(system_id !== undefined && { system_id: system_id ?? null }),
       },
     });
 
-    res.json({ run: updated, message: "Run resubmitted successfully. Awaiting verification." });
+    res.json({
+      run: updated,
+      message: "Run resubmitted successfully. Awaiting verification.",
+    });
   } catch (error) {
     res.status(500).json({ error: "Failed to resubmit run" });
   }

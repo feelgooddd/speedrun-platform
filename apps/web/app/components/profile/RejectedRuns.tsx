@@ -10,6 +10,8 @@ interface RejectedRun {
   category: string | null;
   level: string | null;
   platform: string;
+  platform_slug: string | null;
+  system_id: string | null;
   realtime_ms: number | null;
   gametime_ms: number | null;
   realtime_display: string | null;
@@ -20,6 +22,11 @@ interface RejectedRun {
   comment: string | null;
   reject_reason: string | null;
   submitted_at: string;
+}
+
+interface System {
+  id: string;
+  name: string;
 }
 
 function msToComponents(ms: number | null) {
@@ -53,7 +60,9 @@ export default function RejectedRuns({ username }: { username: string }) {
   const [editForms, setEditForms] = useState<Record<string, {
     h: string; m: string; s: string; ms: string;
     videoUrl: string; comment: string; scoreValue: string;
+    systemId: string;
   }>>({});
+  const [platformSystems, setPlatformSystems] = useState<Record<string, System[]>>({});
   const [submitting, setSubmitting] = useState<Record<string, boolean>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [successes, setSuccesses] = useState<Record<string, string>>({});
@@ -66,9 +75,10 @@ export default function RejectedRuns({ username }: { username: string }) {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
-      .then((data) => {
+      .then(async (data) => {
         const fetched: RejectedRun[] = data.runs ?? [];
         setRuns(fetched);
+
         const forms: typeof editForms = {};
         for (const run of fetched) {
           const t = msToComponents(run.realtime_ms);
@@ -77,9 +87,37 @@ export default function RejectedRuns({ username }: { username: string }) {
             videoUrl: run.video_url ?? "",
             comment: run.comment ?? "",
             scoreValue: run.score_value != null ? String(run.score_value) : "",
+            systemId: run.system_id ?? "",
           };
         }
         setEditForms(forms);
+
+        // Fetch systems for each unique game+platform combo
+        const uniquePlatforms = new Map<string, { gameSlug: string; platformSlug: string }>();
+        for (const run of fetched) {
+          if (run.game_slug && run.platform_slug) {
+            const key = `${run.game_slug}/${run.platform_slug}`;
+            if (!uniquePlatforms.has(key)) {
+              uniquePlatforms.set(key, { gameSlug: run.game_slug, platformSlug: run.platform_slug });
+            }
+          }
+        }
+
+        const systemsMap: Record<string, System[]> = {};
+        await Promise.all(
+          Array.from(uniquePlatforms.entries()).map(async ([key, { gameSlug, platformSlug }]) => {
+            try {
+              const res = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/games/${gameSlug}/${platformSlug}/systems`
+              );
+              const sysData = await res.json();
+              systemsMap[key] = sysData.systems ?? [];
+            } catch {
+              systemsMap[key] = [];
+            }
+          })
+        );
+        setPlatformSystems(systemsMap);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -97,13 +135,13 @@ export default function RejectedRuns({ username }: { username: string }) {
     setSuccesses((p) => ({ ...p, [run.id]: "" }));
 
     const isScored = !!run.scoring_type;
-const realtime_ms = componentsToMs(form.h, form.m, form.s, form.ms);
+    const realtime_ms = componentsToMs(form.h, form.m, form.s, form.ms);
 
-if (!realtime_ms || realtime_ms <= 0) {
-  setErrors((p) => ({ ...p, [run.id]: "Please enter a valid time" }));
-  setSubmitting((p) => ({ ...p, [run.id]: false }));
-  return;
-}
+    if (!realtime_ms || realtime_ms <= 0) {
+      setErrors((p) => ({ ...p, [run.id]: "Please enter a valid time" }));
+      setSubmitting((p) => ({ ...p, [run.id]: false }));
+      return;
+    }
 
     if (!form.videoUrl) {
       setErrors((p) => ({ ...p, [run.id]: "Video URL is required" }));
@@ -125,6 +163,7 @@ if (!realtime_ms || realtime_ms <= 0) {
             video_url: form.videoUrl,
             comment: form.comment || null,
             score_value: isScored && form.scoreValue ? parseInt(form.scoreValue) : null,
+            system_id: form.systemId || null,
           }),
         }
       );
@@ -154,6 +193,8 @@ if (!realtime_ms || realtime_ms <= 0) {
           const form = editForms[run.id];
           const isExpanded = expandedId === run.id;
           const isScored = !!run.scoring_type;
+          const platformKey = `${run.game_slug}/${run.platform_slug}`;
+          const systems = platformSystems[platformKey] ?? [];
 
           return (
             <div key={run.id} className="cgw-card" style={{ borderColor: "rgba(255,0,0,0.2)" }}>
@@ -177,33 +218,49 @@ if (!realtime_ms || realtime_ms <= 0) {
               {/* Edit form */}
               {isExpanded && form && (
                 <div className="cgw-card-body">
-{isScored && (
-  <div className="form-group">
-    <label className="form-label">
-      {run.scoring_type === "highscore" ? "Score" : "Casts"}
-    </label>
-    <input
-      type="number"
-      className="auth-input"
-      value={form.scoreValue}
-      onChange={(e) => updateForm(run.id, { scoreValue: e.target.value })}
-      placeholder="Enter score..."
-    />
-  </div>
-)}
+                  {isScored && (
+                    <div className="form-group">
+                      <label className="form-label">
+                        {run.scoring_type === "highscore" ? "Score" : "Casts"}
+                      </label>
+                      <input
+                        type="number"
+                        className="auth-input"
+                        value={form.scoreValue}
+                        onChange={(e) => updateForm(run.id, { scoreValue: e.target.value })}
+                        placeholder="Enter score..."
+                      />
+                    </div>
+                  )}
 
-<div className="form-group">
-  <label className="form-label">Time (RTA)</label>
-  <div className="time-input-group">
-    <input type="number" placeholder="HH" className="auth-input" value={form.h} onChange={(e) => updateForm(run.id, { h: e.target.value })} />
-    <span className="time-separator">:</span>
-    <input type="number" placeholder="MM" className="auth-input" value={form.m} onChange={(e) => updateForm(run.id, { m: e.target.value })} />
-    <span className="time-separator">:</span>
-    <input type="number" placeholder="SS" className="auth-input" value={form.s} onChange={(e) => updateForm(run.id, { s: e.target.value })} />
-    <span className="time-separator">.</span>
-    <input type="number" placeholder="MS" className="auth-input" value={form.ms} onChange={(e) => updateForm(run.id, { ms: e.target.value })} />
-  </div>
-</div>
+                  <div className="form-group">
+                    <label className="form-label">Time (RTA)</label>
+                    <div className="time-input-group">
+                      <input type="number" placeholder="HH" className="auth-input" value={form.h} onChange={(e) => updateForm(run.id, { h: e.target.value })} />
+                      <span className="time-separator">:</span>
+                      <input type="number" placeholder="MM" className="auth-input" value={form.m} onChange={(e) => updateForm(run.id, { m: e.target.value })} />
+                      <span className="time-separator">:</span>
+                      <input type="number" placeholder="SS" className="auth-input" value={form.s} onChange={(e) => updateForm(run.id, { s: e.target.value })} />
+                      <span className="time-separator">.</span>
+                      <input type="number" placeholder="MS" className="auth-input" value={form.ms} onChange={(e) => updateForm(run.id, { ms: e.target.value })} />
+                    </div>
+                  </div>
+
+                  {systems.length > 0 && (
+                    <div className="form-group">
+                      <label className="form-label">System</label>
+                      <select
+                        className="auth-input"
+                        value={form.systemId}
+                        onChange={(e) => updateForm(run.id, { systemId: e.target.value })}
+                      >
+                        <option value="">— None —</option>
+                        {systems.map((s) => (
+                          <option key={s.id} value={s.id}>{s.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
 
                   <div className="form-group">
                     <label className="form-label">Video URL</label>

@@ -543,13 +543,16 @@ export default function FullGameLeaderboard({
                           ) : null}
                         </td>
                         {isScored && (
-  <td className="time-cell">
-    {run.score_value ?? "—"}
-    {run.realtime_display && (
-      <span className="time-secondary"> ({run.realtime_display})</span>
-    )}
-  </td>
-)}
+                          <td className="time-cell">
+                            {run.score_value ?? "—"}
+                            {run.realtime_display && (
+                              <span className="time-secondary">
+                                {" "}
+                                ({run.realtime_display})
+                              </span>
+                            )}
+                          </td>
+                        )}
                         {showSeparateTimes ? (
                           <>
                             <td className="time-cell">

@@ -5,8 +5,15 @@ import VariableForm from "./VariableForm";
 import DependencyForm from "./DependencyForm";
 import AdminAddCategoryForm from "./AdminAddCategoryForm";
 import CreateILWizard from "./CreateILWizard";
+import AdminRulesEditor from "./AdminRulesEditor";
 
-type GameTab = "create" | "categories" | "variables" | "dependencies" | "ils";
+type GameTab =
+  | "create"
+  | "categories"
+  | "variables"
+  | "dependencies"
+  | "ils"
+  | "rules";
 
 interface Platform {
   id: string;
@@ -45,6 +52,7 @@ export default function AdminGamesTab({
             { key: "variables", label: "Add Variable" },
             { key: "dependencies", label: "Set Dependencies" },
             { key: "ils", label: "Add ILs" },
+            { key: "rules", label: "Edit Rules" },
           ] as { key: GameTab; label: string }[]
         ).map(({ key, label }) => (
           <button
@@ -90,6 +98,12 @@ export default function AdminGamesTab({
         <div className="profile-section">
           <h2 className="profile-section-title">🎮 Individual Levels</h2>
           <CreateILWizard games={games} token={token} />
+        </div>
+      )}
+      {activeGameTab === "rules" && (
+        <div className="profile-section">
+          <h2 className="profile-section-title">📋 Edit Rules</h2>
+          <AdminRulesEditor games={games} token={token} />
         </div>
       )}
     </div>

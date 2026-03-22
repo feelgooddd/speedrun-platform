@@ -229,3 +229,162 @@ export const verifyRun = async (req: AuthRequest, res: Response) => {
     res.status(500).json({ error: "Failed to verify run" });
   }
 };
+export const updatePlatformRules = async (req: Request, res: Response) => {
+  try {
+const { slug, platform: platformSlug } = req.params as Record<string, string>;
+    const { rules } = req.body;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const updated = await prisma.platform.update({
+      where: { id: platform.id },
+      data: { rules: rules ?? null },
+    });
+
+    res.json({ platform: updated });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update platform rules" });
+  }
+};
+
+export const updateCategoryRules = async (req: Request, res: Response) => {
+  try {
+const { slug, platform: platformSlug, category: categorySlug } = req.params as Record<string, string>;
+    const { rules } = req.body;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const category = await prisma.category.findFirst({
+      where: { slug: categorySlug, platform_id: platform.id },
+    });
+    if (!category) return res.status(404).json({ error: "Category not found" });
+
+    const updated = await prisma.category.update({
+      where: { id: category.id },
+      data: { rules: rules ?? null },
+    });
+
+    res.json({ category: updated });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update category rules" });
+  }
+};
+
+export const updateLevelRules = async (req: Request, res: Response) => {
+  try {
+const { slug, platform: platformSlug, level: levelSlug } = req.params as Record<string, string>;
+    const { rules } = req.body;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const level = await prisma.level.findFirst({
+      where: { slug: levelSlug, platform_id: platform.id },
+    });
+    if (!level) return res.status(404).json({ error: "Level not found" });
+
+    const updated = await prisma.level.update({
+      where: { id: level.id },
+      data: { rules: rules ?? null },
+    });
+
+    res.json({ level: updated });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update level rules" });
+  }
+};
+
+export const updateLevelCategoryRules = async (req: Request, res: Response) => {
+  try {
+    const { slug, platform: platformSlug, levelCategory: levelCategorySlug } = req.params as Record<string, string>;
+    const { rules } = req.body;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const updated = await prisma.levelCategory.updateMany({
+      where: {
+        slug: levelCategorySlug,
+        level: { platform_id: platform.id },
+      },
+      data: { rules: rules ?? null },
+    });
+
+    res.json({ updated: updated.count });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update level category rules" });
+  }
+};
+
+export const getPlatformRules = async (req: Request, res: Response) => {
+  try {
+    const { slug, platform: platformSlug } = req.params as Record<string, string>;
+
+    const game = await prisma.game.findUnique({ where: { slug } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const platform = await prisma.platform.findFirst({
+      where: { slug: platformSlug, game_id: game.id },
+    });
+    if (!platform) return res.status(404).json({ error: "Platform not found" });
+
+    const categories = await prisma.category.findMany({
+      where: { platform_id: platform.id, deleted_at: null },
+      select: { id: true, name: true, slug: true, rules: true, category_type: true },
+      orderBy: { order: "asc" },
+    });
+
+    const levels = await prisma.level.findMany({
+      where: { platform_id: platform.id, deleted_at: null },
+      select: { id: true, name: true, slug: true, rules: true },
+      orderBy: { order: "asc" },
+    });
+
+    // Unique level categories
+    const allLevelCategories = await prisma.levelCategory.findMany({
+      where: {
+        level: { platform_id: platform.id },
+        deleted_at: null,
+      },
+      select: { id: true, name: true, slug: true, rules: true },
+    });
+
+    const seen = new Set<string>();
+    const levelCategories = allLevelCategories.filter((lc) => {
+      if (seen.has(lc.slug)) return false;
+      seen.add(lc.slug);
+      return true;
+    });
+
+    res.json({
+      platform_rules: platform.rules ?? null,
+      categories,
+      levels,
+      level_categories: levelCategories,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch platform rules" });
+  }
+};

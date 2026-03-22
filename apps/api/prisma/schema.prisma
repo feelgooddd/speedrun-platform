@@ -51,6 +51,8 @@ model Platform {
 
   game            Game             @relation(fields: [game_id], references: [id])
   runs            Run[]
+  rules String?
+
   categories      Category[]
   platformSystems PlatformSystem[]
 
@@ -71,6 +73,7 @@ model Category {
 
   platform      Platform      @relation(fields: [platform_id], references: [id])
   runs          Run[]
+  rules         String?
   subcategories Subcategory[]
   variables     Variable[]
   category_type String @default("full_game")
@@ -225,7 +228,7 @@ model Level {
   slug        String
   order       Int       @default(0)
   deleted_at  DateTime?
-
+  rules       String?
   platform         Platform        @relation(fields: [platform_id], references: [id])
   level_categories LevelCategory[]
 }
@@ -240,5 +243,6 @@ model LevelCategory {
   scoring_type String?
   level     Level      @relation(fields: [level_id], references: [id])
   runs      Run[]
+  rules     String?
   variables Variable[]
 }

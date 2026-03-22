@@ -80,6 +80,7 @@ interface FullGameLeaderboardProps {
   initialVariables: Record<string, string>;
   tabType: "fullgame" | "extension";
   onUrlChange: (params: Record<string, string | null>) => void;
+  onCategoryChange?: (category: string) => void;
 }
 
 function serializeFilters(filters: Record<string, string>): string {
@@ -123,6 +124,7 @@ export default function FullGameLeaderboard({
   initialVariables,
   tabType,
   onUrlChange,
+  onCategoryChange,
 }: FullGameLeaderboardProps) {
   // Seed active category from URL or fall back to first
   const seedCategory = initialCategory &&
@@ -233,6 +235,7 @@ export default function FullGameLeaderboard({
 
   const handleCategoryChange = (slug: string) => {
     setActiveCategory(slug);
+    onCategoryChange?.(slug);
     const cat = categories.find((c) => c.slug === slug);
     const subSlug = activeSubcategory[slug] || cat?.subcategories?.[0]?.slug || null;
     const varFilters = activeFilters[slug] ?? {};

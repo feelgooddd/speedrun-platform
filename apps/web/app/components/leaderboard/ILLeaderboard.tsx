@@ -71,6 +71,7 @@ interface ILLeaderboardProps {
   initialCategory: string | null;
   initialVariables: Record<string, string>;
   onUrlChange: (params: Record<string, string | null>) => void;
+  onCategoryChange?: (category: string) => void;
 }
 
 function serializeFilters(filters: Record<string, string>): string {
@@ -110,15 +111,16 @@ export default function ILLeaderboard({
   platformSlug,
   initialLevel,
   initialCategory,
-initialVariables = {},
+  initialVariables,
   onUrlChange,
+  onCategoryChange,
 }: ILLeaderboardProps) {
   const [levels, setLevels] = useState<Level[]>([]);
   const [loadingLevels, setLoadingLevels] = useState(true);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [activeLevel, setActiveLevel] = useState<string | null>(null);
   const [activeFilters, setActiveFilters] = useState<Record<string, string>>(
-Object.keys(initialVariables ?? {}).length > 0 ? initialVariables : {}
+    Object.keys(initialVariables).length > 0 ? initialVariables : {}
   );
   const [runsCache, setRunsCache] = useState<Record<string, { runs: Run[]; total: number; timingMethod: string; scoringType: string | null }>>({});
   const [loading, setLoading] = useState<Record<string, boolean>>({});
@@ -263,6 +265,7 @@ Object.keys(initialVariables ?? {}).length > 0 ? initialVariables : {}
 
   const handleCategoryChange = (catSlug: string) => {
     setActiveCategory(catSlug);
+    onCategoryChange?.(catSlug);
     setActiveFilters({});
     const firstAvailable = levels.find((l) =>
       l.level_categories.some((c) => c.slug === catSlug)

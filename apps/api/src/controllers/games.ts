@@ -1185,6 +1185,8 @@ export const getLeaderboard = async (req: Request, res: Response) => {
     return res.json({
       game: game.name,
       platform: platform.name,
+      platform_rules: platform.rules ?? null,
+      category_rules: category.rules ?? null,
       timing_method: platform.timing_method,
       category: category.name,
       subcategory: subcategory?.name ?? null,
@@ -1461,6 +1463,7 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
       return {
         level: level.name,
         level_slug: level.slug,
+        level_rules: level.rules ?? null,
         order: level.order,
         total: ranked.length,
         runs: ranked,
@@ -1470,9 +1473,13 @@ export const getILLeaderboard = async (req: Request, res: Response) => {
     return res.json({
       game: game.name,
       platform: platform.name,
+      platform_rules: platform.rules ?? null,
+
       timing_method: platform.timing_method,
       category: levelCategory.name,
       category_slug: categorySlug,
+      category_rules: levelCategory.rules ?? null,
+
       scoring_type: levelCategory.scoring_type ?? null,
       variable_filters: hasVariableFilter
         ? Object.entries(variableFilters).map(([varSlug, valSlug]) => ({

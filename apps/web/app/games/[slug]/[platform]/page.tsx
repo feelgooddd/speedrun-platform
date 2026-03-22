@@ -58,7 +58,12 @@ interface Category {
   runs?: Run[];
   total?: number;
   category_type?: string;
+  rules?: string | null;
   variableRuns?: Record<string, { runs: Run[]; total: number }>;
+}
+
+interface CategoryWithPlatformRules extends Category {
+  platform_rules: string | null;
 }
 
 interface Game {
@@ -96,7 +101,7 @@ async function getLeaderboard(
   category: string,
   subcategory?: string,
   variableFilters?: Record<string, string>,
-): Promise<{ runs: Run[]; total: number }> {
+): Promise<{ runs: Run[]; total: number; platform_rules: string | null; category_rules: string | null }> {
   let url = subcategory
     ? `${process.env.NEXT_PUBLIC_API_URL}/games/${slug}/${platform}/${category}/${subcategory}?page=1&limit=25`
     : `${process.env.NEXT_PUBLIC_API_URL}/games/${slug}/${platform}/${category}?page=1&limit=25`;
@@ -108,9 +113,14 @@ async function getLeaderboard(
   }
 
   const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) return { runs: [], total: 0 };
+  if (!res.ok) return { runs: [], total: 0, platform_rules: null, category_rules: null };
   const data = await res.json();
-  return { runs: data.runs ?? [], total: data.total ?? 0 };
+  return {
+    runs: data.runs ?? [],
+    total: data.total ?? 0,
+    platform_rules: data.platform_rules ?? null,
+    category_rules: data.category_rules ?? null,
+  };
 }
 
 export default async function PlatformPage({
@@ -131,7 +141,7 @@ export default async function PlatformPage({
 
   const platformCategories = await getPlatformCategories(slug, platform);
 
-  const categories: Category[] = await Promise.all(
+  const categoriesWithPlatformRules: CategoryWithPlatformRules[] = await Promise.all(
     platformCategories.map(async (cat) => {
       if (cat.subcategories && cat.subcategories.length > 0) {
         const subcategoriesWithRuns: Subcategory[] = await Promise.all(
@@ -145,7 +155,13 @@ export default async function PlatformPage({
             return { ...sub, runs, total };
           }),
         );
-        return { ...cat, subcategories: subcategoriesWithRuns };
+        const { platform_rules: pr, category_rules: cr } = await getLeaderboard(
+          slug,
+          platform,
+          cat.slug,
+          cat.subcategories[0].slug,
+        );
+        return { ...cat, subcategories: subcategoriesWithRuns, rules: cr, platform_rules: pr };
       }
 
       if (cat.variables && cat.variables.length > 0) {
@@ -162,22 +178,33 @@ export default async function PlatformPage({
             .map(([k, v]) => `${k}:${v}`)
             .join("|");
 
-          const result = await getLeaderboard(
+          const { runs, total, platform_rules: pr, category_rules: cr } = await getLeaderboard(
             slug,
             platform,
             cat.slug,
             undefined,
             defaultFilters,
           );
-          variableRuns[key] = result;
+          variableRuns[key] = { runs, total };
+          return { ...cat, variableRuns, rules: cr, platform_rules: pr };
         }
 
-        return { ...cat, variableRuns };
+        return { ...cat, variableRuns, rules: null, platform_rules: null };
       }
 
-      const { runs, total } = await getLeaderboard(slug, platform, cat.slug);
-      return { ...cat, runs, total };
+      const { runs, total, platform_rules: pr, category_rules: cr } = await getLeaderboard(
+        slug,
+        platform,
+        cat.slug,
+      );
+      return { ...cat, runs, total, rules: cr, platform_rules: pr };
     }),
+  );
+
+  const platformRules = categoriesWithPlatformRules[0]?.platform_rules ?? null;
+
+  const categories: Category[] = categoriesWithPlatformRules.map(
+    ({ platform_rules, ...rest }) => rest,
   );
 
   const fullGameCategories = categories.filter(
@@ -187,13 +214,11 @@ export default async function PlatformPage({
     (c) => c.category_type === "extension",
   );
 
-  // Parse initial state from searchParams
   const initialTab = (sp.type as "fullgame" | "il" | "extension") || "fullgame";
   const initialCategory = sp.category || null;
   const initialSubcategory = sp.subcategory || null;
   const initialLevel = sp.level || null;
 
-  // Everything else in searchParams that isn't a reserved key = variable filters
   const reservedKeys = new Set(["type", "category", "subcategory", "level"]);
   const initialVariables: Record<string, string> = {};
   for (const [k, v] of Object.entries(sp)) {
@@ -220,6 +245,9 @@ export default async function PlatformPage({
           extensionCategories={extensionCategories}
           gameSlug={slug}
           platformSlug={platform}
+          platformName={platformData.name}
+          gameName={game.name}
+          platformRules={platformRules}
           initialTab={initialTab}
           initialCategory={initialCategory}
           initialSubcategory={initialSubcategory}

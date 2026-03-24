@@ -111,9 +111,11 @@ export default function AdminRulesEditor({ games, token }: AdminRulesEditorProps
         return `${process.env.NEXT_PUBLIC_API_URL}/moderation/games/${gameSlug}/${platformSlug}/rules`;
       case "category":
         return `${process.env.NEXT_PUBLIC_API_URL}/moderation/games/${gameSlug}/${platformSlug}/${selectedCategory}/rules`;
-      case "level":
-        return `${process.env.NEXT_PUBLIC_API_URL}/moderation/games/${gameSlug}/${platformSlug}/level/${selectedLevel}/rules`;
-      case "levelcategory":
+case "level":
+  return `${process.env.NEXT_PUBLIC_API_URL}/moderation/games/${gameSlug}/${platformSlug}/levels/${selectedLevel}/rules`;
+
+case "levelcategory":
+  return `${process.env.NEXT_PUBLIC_API_URL}/moderation/games/${gameSlug}/${platformSlug}/levels/categories/${selectedLevelCategory}/rules`;
         return `${process.env.NEXT_PUBLIC_API_URL}/moderation/games/${gameSlug}/${platformSlug}/levels/${selectedLevelCategory}/rules`;
     }
   };

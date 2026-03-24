@@ -44,7 +44,7 @@ moderationRouter.patch(
   updateCategoryRules,
 );
 moderationRouter.patch(
-  "/games/:slug/:platform/levels/:levelCategory/rules",
+  "/games/:slug/:platform/levels/categories/:levelCategory/rules",
   requireAuth,
   isAdmin,
   updateLevelCategoryRules,

@@ -1,6 +1,3 @@
-No `.env.example` files exist — I'll document the env vars based on what I can see in the code. Here's the fully updated README:
-
-```markdown
 # Speedrun Platform
 
 A full-stack speedrunning leaderboard platform with a game-agnostic backend API and a Harry Potter-themed reference frontend. Built for the Harry Potter speedrunning community as **Wizarding Runs**, but designed so any community can build their own frontend on top of the same backend.
@@ -284,4 +281,3 @@ pnpm test
 ```
 
 Tests use Vitest and React Testing Library. Current coverage includes the game creation wizard and API utility functions.
-```

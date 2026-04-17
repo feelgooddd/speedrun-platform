@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import CreateGameWizard from "../CreateGameWizard";
 
@@ -8,12 +14,26 @@ vi.mock("@/app/components/auth/AuthContext", () => ({
 
 vi.mock("@/app/lib/api", () => ({
   apiFetch: vi.fn(),
+  apiUrl: (path: string) => `http://localhost:3001/api${path}`,
 }));
 
 import { apiFetch } from "@/app/lib/api";
 const mockApiFetch = vi.mocked(apiFetch);
 
 const onDoneAction = vi.fn();
+
+function mockFetch(...responses: any[]) {
+  let call = 0;
+  global.fetch = vi.fn().mockImplementation(() => {
+    const res = responses[call] ?? responses[responses.length - 1];
+    call++;
+    return Promise.resolve(res);
+  });
+}
+
+function jsonResponse(data: any, ok = true) {
+  return { ok, json: async () => data };
+}
 
 async function setup() {
   await act(async () => {
@@ -48,10 +68,10 @@ function addCategory(name = "Any%") {
 describe("CreateGameWizard", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockApiFetch.mockResolvedValueOnce({
+    global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ systems: [] }),
-    } as any);
+    });
   });
 
   // ── Validation ──
@@ -60,14 +80,14 @@ describe("CreateGameWizard", () => {
     await setup();
     fireEvent.click(screen.getByText("✨ Create Game"));
     expect(screen.queryByText(/required/i)).not.toBeInTheDocument();
-    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   it("shows error when submitting with game name but no platforms", async () => {
     await setup();
     fillGameDetails();
     fireEvent.click(screen.getByText("✨ Create Game"));
-    expect(mockApiFetch).toHaveBeenCalledTimes(1);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
   });
 
   // ── Platform ──
@@ -84,7 +104,9 @@ describe("CreateGameWizard", () => {
   it("adds a platform tag when Add is clicked", async () => {
     await setup();
     addPlatform("PC");
-    expect(screen.getByText("PC", { selector: ".cgw-tag" })).toBeInTheDocument();
+    expect(
+      screen.getByText("PC", { selector: ".cgw-tag" }),
+    ).toBeInTheDocument();
   });
 
   it("removes a platform when × is clicked", async () => {
@@ -147,29 +169,24 @@ describe("CreateGameWizard", () => {
     addPlatform("PC");
     addCategory("Any%");
 
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ game: { id: "game-1", slug: "hp1", name: "Harry Potter 1" } }),
-    } as any);
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ platform: { id: "plat-1", slug: "pc" } }),
-    } as any);
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ category: { id: "cat-1", slug: "any", name: "Any%" } }),
-    } as any);
+    mockFetch(
+      jsonResponse({
+        game: { id: "game-1", slug: "hp1", name: "Harry Potter 1" },
+      }),
+      jsonResponse({ platform: { id: "plat-1", slug: "pc" } }),
+      jsonResponse({ category: { id: "cat-1", slug: "any", name: "Any%" } }),
+    );
 
     fireEvent.click(screen.getByText("✨ Create Game"));
 
     await waitFor(() => {
-      expect(mockApiFetch).toHaveBeenCalledWith(
-        "/games",
-        expect.objectContaining({ method: "POST" })
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:3001/api/games",
+        expect.objectContaining({ method: "POST" }),
       );
-      expect(mockApiFetch).toHaveBeenCalledWith(
-        "/games/hp1/platforms",
-        expect.objectContaining({ method: "POST" })
+      expect(global.fetch).toHaveBeenCalledWith(
+        "http://localhost:3001/api/games/hp1/platforms",
+        expect.objectContaining({ method: "POST" }),
       );
     });
   });
@@ -180,23 +197,20 @@ describe("CreateGameWizard", () => {
     addPlatform("PC");
     addCategory("Any%");
 
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ game: { id: "game-1", slug: "hp1", name: "Harry Potter 1" } }),
-    } as any);
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ platform: { id: "plat-1", slug: "pc" } }),
-    } as any);
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ category: { id: "cat-1", slug: "any", name: "Any%" } }),
-    } as any);
+    mockFetch(
+      jsonResponse({
+        game: { id: "game-1", slug: "hp1", name: "Harry Potter 1" },
+      }),
+      jsonResponse({ platform: { id: "plat-1", slug: "pc" } }),
+      jsonResponse({ category: { id: "cat-1", slug: "any", name: "Any%" } }),
+    );
 
     fireEvent.click(screen.getByText("✨ Create Game"));
 
     await waitFor(() => {
-      expect(screen.getByText(/"Harry Potter 1" created successfully\./)).toBeInTheDocument();
+      expect(
+        screen.getByText(/"Harry Potter 1" created successfully\./),
+      ).toBeInTheDocument();
     });
   });
 
@@ -206,10 +220,7 @@ describe("CreateGameWizard", () => {
     addPlatform("PC");
     addCategory("Any%");
 
-    mockApiFetch.mockResolvedValueOnce({
-      ok: false,
-      json: async () => ({ error: "Game already exists" }),
-    } as any);
+    mockFetch(jsonResponse({ error: "Game already exists" }, false));
 
     fireEvent.click(screen.getByText("✨ Create Game"));
 
@@ -226,18 +237,11 @@ describe("CreateGameWizard", () => {
 
     const createdGame = { id: "game-1", slug: "hp1", name: "Harry Potter 1" };
 
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ game: createdGame }),
-    } as any);
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ platform: { id: "plat-1", slug: "pc" } }),
-    } as any);
-    mockApiFetch.mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ category: { id: "cat-1", slug: "any", name: "Any%" } }),
-    } as any);
+    mockFetch(
+      jsonResponse({ game: createdGame }),
+      jsonResponse({ platform: { id: "plat-1", slug: "pc" } }),
+      jsonResponse({ category: { id: "cat-1", slug: "any", name: "Any%" } }),
+    );
 
     fireEvent.click(screen.getByText("✨ Create Game"));
 

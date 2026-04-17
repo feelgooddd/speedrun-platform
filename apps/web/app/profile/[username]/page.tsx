@@ -98,22 +98,16 @@ interface UserPBsResponse {
 // Fetchers
 // ----------------------------------------------------------------
 async function getUserProfile(id: string): Promise<UserProfile | null> {
-  const res = await apiFetch(`/users/${id}`);
-  if (!res.ok) return null;
-  return res.json();
+  return apiFetch(`/users/${id}`);
 }
 
 async function getUserPBs(id: string): Promise<UserPBsResponse | null> {
-  const res = await apiFetch(`/users/${id}/pbs`);
-  if (!res.ok) return null;
-  return res.json();
+  return apiFetch(`/users/${id}/pbs`);
 }
 
 async function getUserRuns(id: string): Promise<Run[]> {
-  const res = await apiFetch(`/users/${id}/runs?limit=100`);
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.runs ?? [];
+  const data = await apiFetch(`/users/${id}/runs?limit=100`);
+  return data?.runs ?? [];
 }
 
 // ----------------------------------------------------------------

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useAuth } from "../auth/AuthContext";
-import { apiFetch } from "@/app/lib/api";
+import { apiFetch, apiUrl } from "@/app/lib/api";
 import "../../styles/creategamewizard.css";
 
 // ----------------------------------------------------------------
@@ -136,7 +136,7 @@ export default function CreateGameWizard({
   };
 
   useEffect(() => {
-    apiFetch("/games/systems")
+    fetch(apiUrl("/games/systems"))
       .then((r) => r.json())
       .then((d) => setAllSystems(d.systems || []))
       .catch(console.error);
@@ -435,7 +435,7 @@ export default function CreateGameWizard({
     setSuccess("");
 
     try {
-      const gameRes = await apiFetch("/games", {
+      const gameRes = await fetch(apiUrl("/games"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -449,7 +449,7 @@ export default function CreateGameWizard({
       const game = gameData.game;
 
       for (const plat of platforms) {
-        const platRes = await apiFetch(`/games/${game.slug}/platforms`, {
+        const platRes = await fetch(apiUrl(`/games/${game.slug}/platforms`), {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -468,7 +468,7 @@ export default function CreateGameWizard({
           );
 
         for (const sysName of plat.systems) {
-          await apiFetch(`/games/${game.slug}/${plat.slug}/systems`, {
+          await fetch(apiUrl(`/games/${game.slug}/${plat.slug}/systems`), {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -479,8 +479,8 @@ export default function CreateGameWizard({
         }
 
         for (const cat of plat.categories) {
-          const catRes = await apiFetch(
-            `/games/${game.slug}/${plat.slug}/categories`,
+          const catRes = await fetch(
+            apiUrl(`/games/${game.slug}/${plat.slug}/categories`),
             {
               method: "POST",
               headers: {
@@ -504,8 +504,10 @@ export default function CreateGameWizard({
 
           for (const variable of cat.variables) {
             if (variable.values.length === 0) continue;
-            const varRes = await apiFetch(
-              `/games/${game.slug}/${plat.slug}/${createdCat.slug}/variables`,
+            const varRes = await fetch(
+              apiUrl(
+                `/games/${game.slug}/${plat.slug}/${createdCat.slug}/variables`,
+              ),
               {
                 method: "POST",
                 headers: {

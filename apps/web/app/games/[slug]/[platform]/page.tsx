@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import LeaderboardTabs from "@/app/components/leaderboard/LeaderboardTabs";
-
+import { apiFetch } from "@/app/lib/api";
 interface Run {
   rank: number;
   id: string;
@@ -102,19 +102,21 @@ async function getLeaderboard(
   subcategory?: string,
   variableFilters?: Record<string, string>,
 ): Promise<{ runs: Run[]; total: number; platform_rules: string | null; category_rules: string | null }> {
-  let url = subcategory
-    ? `${process.env.NEXT_PUBLIC_API_URL}/games/${slug}/${platform}/${category}/${subcategory}?page=1&limit=25`
-    : `${process.env.NEXT_PUBLIC_API_URL}/games/${slug}/${platform}/${category}?page=1&limit=25`;
+  const empty = { runs: [], total: 0, platform_rules: null, category_rules: null };
+
+  let path = subcategory
+    ? `/games/${slug}/${platform}/${category}/${subcategory}?page=1&limit=25`
+    : `/games/${slug}/${platform}/${category}?page=1&limit=25`;
 
   if (variableFilters) {
     for (const [key, value] of Object.entries(variableFilters)) {
-      url += `&${key}=${value}`;
+      path += `&${key}=${value}`;
     }
   }
 
-  const res = await fetch(url, { cache: "no-store" });
-  if (!res.ok) return { runs: [], total: 0, platform_rules: null, category_rules: null };
-  const data = await res.json();
+  const data = await apiFetch(path);
+  if (!data) return empty;
+
   return {
     runs: data.runs ?? [],
     total: data.total ?? 0,
